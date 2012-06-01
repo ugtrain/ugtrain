@@ -1,0 +1,64 @@
+###################
+### DESCRIPTION ###
+###################
+# ugtrain is an universal game trainer for the CLI. It doesn't search any
+# values in memory to make it simple. This is the tool to be used after
+# knowing the memory addresses and structures where the values should be
+# freezed in memory. You can search the values e.g. with the GTK+ tool
+# "gamecheater", the CLI tool "scanmem", the C# tool "Tursiops" or the
+# Qt tool "QGSpider".
+#
+# Some of these can also freeze memory values. Where is the difference?
+#
+# Well, this tool is for the CLI, it will become multi-platform, and
+# it will also support dynamic structures like vectors and lists.
+# It already supports universal checks to prevent changing values
+# e.g. while in the game main menu or making an opponent immortal by
+# accident in a vector. With the config files you can also exchange
+# your trainer config with others without recompilation.
+#
+# Why a CLI tool?
+#
+# CLI is important e.g. if you play full screen in WINE. Some people
+# start another X session for the game but I don't like that. Moreover,
+# you will be able to use this tool for trainer creation out of another
+# tool (e.g. memory search tool) or you will be able to write your own
+# GUI frontend for it. CLI tools can last tens of years while GUIs change
+# more frequently.
+#
+# Please read TODO for further information.
+
+############################
+### HOW TO BUILD AND USE ###
+############################
+# Make sure that the "autotools" package is installed on your system.
+
+# Run the following command to generate the missing autotools files:
+./autogen.sh
+
+# Configure the build afterwards to generate the Makefiles:
+./configure
+
+# Build the ugtrain binary with:
+make
+
+# install ugtrain and libgcheater to /usr/local
+sudo make install
+
+# Use the compiled tool as follows:
+ugtrain <config>
+
+# This searches in the current working directory for the <config>.conf.
+# Do e.g. the following:
+cd examples
+ugrain test
+
+# This parses the test.conf from the examples, searches for the running
+# instance of the game and starts freezing the configured values.
+# In the examples the config syntax is described.
+
+#########################
+### HOW TO CONTRIBUTE ###
+#########################
+# Please send your patches and improvement suggestions to:
+sebastian.riemer@gmx.de

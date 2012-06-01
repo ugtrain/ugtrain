@@ -1,0 +1,51 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+PACKAGE=ugtrain
+VERSION=0.1.0
+EMAIL=sebastian.riemer@gmx.de
+
+AC_INIT(ugtrain, 0.1.0, sebastian.riemer@gmx.de)
+
+AM_INIT_AUTOMAKE(ugtrain, 0.1.0)
+AC_CONFIG_MACRO_DIR(m4)
+
+AM_MAINTAINER_MODE
+
+AC_PROG_LIBTOOL
+AC_SUBST(LIBTOOL_DEPS)
+
+LIB_CURRENT=0
+LIB_REVERSION=0
+LIB_AGE=0
+
+VERSION_INFO="$LIB_CURRENT:$LIB_REVERSION:$LIB_AGE"
+AC_SUBST(VERSION_INFO)
+
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_CC
+AM_PROG_CC_STDC
+
+# Checks for pkg-config.
+AC_SUBST(DEPS_CFLAGS)
+AC_SUBST(DEPS_LIBS)
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(stdlib.h string.h unistd.h)
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_UID_T
+
+# Checks for library functions.
+AC_FUNC_STAT
+AC_CHECK_FUNCS(ptrace memcpy memcmp)
+
+AC_OUTPUT(
+Makefile
+libgcheater/Makefile
+src/Makefile
+)

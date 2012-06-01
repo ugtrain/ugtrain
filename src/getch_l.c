@@ -1,0 +1,71 @@
+/* getch_l.c:    getch() for Linux with terminal functions
+ *
+ * Copyright (c) 2012, by:      Sebastian Riemer
+ *    All rights reserved.      Ernst-Reinke-Str. 23
+ *                              10369 Berlin, Germany
+ *                             <sebastian.riemer@gmx.de>
+ *
+ * This file may be used subject to the terms and conditions of the
+ * GNU Library General Public License Version 2, or any later version
+ * at your option, as published by the Free Software Foundation.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Library General Public License for more details.
+ */
+
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+/* local includes */
+#include "getch.h"
+
+static struct termios saved_tty, raw_tty;
+static int tty_changed = 0;
+
+int prepare_getch (void)
+{
+	struct termios new_tty;
+
+	if (tcgetattr(STDIN_FILENO, &saved_tty) == -1)
+		return -1;
+	new_tty = saved_tty;
+	new_tty.c_lflag &= ~(ICANON | ECHO);
+	new_tty.c_oflag &= ~(TAB3);
+	new_tty.c_cc[VMIN] = 1;
+	new_tty.c_cc[VTIME] = 0;
+
+	tty_changed = 1;
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_tty) == -1)
+		return -1;
+	tcgetattr(STDIN_FILENO, &raw_tty);
+
+	return 0;
+}
+
+int prepare_getch_nb (void)
+{
+	int rc;
+
+	rc = prepare_getch();
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	return rc;
+}
+
+char do_getch (void)
+{
+	char ch;
+	int cnt = 1;
+
+	cnt = read(STDIN_FILENO, &ch, cnt);
+
+	tcflush(STDIN_FILENO, TCIFLUSH);
+	if (cnt < 0)
+		return -1;
+	return ch;
+}
+
+void restore_getch (void)
+{
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_tty);
+}
