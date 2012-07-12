@@ -101,12 +101,11 @@ static void output_config (list<CfgEntry> *cfg)
 static pid_t proc_to_pid (string *proc_name)
 {
 	pid_t pid;
-	int status, fds[2], bytes_read, pos = 0;
+	int status, fds[2], bytes_read;
 	char pbuf[PIPE_BUF] = {0};
-	string shell_cmd("ps xo pid,comm | grep ");
+	string shell_cmd("pidof -s ");
 
 	shell_cmd.append(*proc_name);
-	shell_cmd.append(" | head -n 1");
 
 	if (pipe(fds) < 0) {
 		perror("pipe");
@@ -149,13 +148,10 @@ static pid_t proc_to_pid (string *proc_name)
 
 	cout << "Pipe: " << pbuf;
 
-	for (pos = 0; pos < sizeof(pbuf); pos++) {
-		if (isdigit(pbuf[pos])) {
-			pid = atoi(pbuf + pos);
-			if (pid > 1)
-				return pid;
-			break;
-		}
+	if (isdigit(pbuf[0])) {
+		pid = atoi(pbuf);
+		if (pid > 1)
+			return pid;
 	}
 
 	cerr << "Found PID is invalid!" << endl;
