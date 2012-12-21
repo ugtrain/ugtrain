@@ -190,12 +190,6 @@ void toggle_cfg (list<CfgEntry*> *cfg, list<CfgEntry*> *cfg_act)
 	}
 }
 
-void cleanup_exit(int status)
-{
-	restore_getch();
-	exit(status);
-}
-
 template <typename T>
 static inline int check_mem_val (T value, unsigned char *chk_buf, int check)
 {
@@ -246,7 +240,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, unsigned char 
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
 			if (gc_get_memory(pid, (void *)it->addr, chk_buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
-				cleanup_exit(-1);
+				exit(-1);
 			}
 			if (check_memory(*it, chk_buf) != 0)
 				return;
@@ -259,7 +253,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, unsigned char 
 
 		if (gc_set_memory(pid, (void *)cfg_en->addr, buf, sizeof(long)) != 0) {
 			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
-			cleanup_exit(-1);
+			exit(-1);
 		}
 	}
 }
@@ -311,6 +305,8 @@ int main (int argc, char **argv)
 	unsigned char buf[10] = { 0 };
 	char ch;
 
+	atexit(restore_getch);
+
 	if (argc < 2)
 		usage();
 
@@ -336,7 +332,7 @@ int main (int argc, char **argv)
 
 	if (gc_ptrace_test(pid) != 0) {
 		cerr << "PTRACE ERROR PID[" << pid << "]!" << endl;
-		cleanup_exit(-1);
+		return -1;
 	}
 
 	while (1) {
@@ -347,21 +343,21 @@ int main (int argc, char **argv)
 
 		if (gc_ptrace_stop(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
-			cleanup_exit(-1);
+			return -1;
 		}
 
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
 			if (gc_get_memory(pid, (void *)cfg_en->addr, buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
-				cleanup_exit(-1);
+				return -1;
 			}
 			change_memory(pid, cfg_en, buf);
 		}
 
 		if (gc_ptrace_continue(pid) != 0) {
 			cerr << "PTRACE DETACH ERROR PID[" << pid << "]!" << endl;
-			cleanup_exit(-1);
+			return -1;
 		}
 
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
@@ -372,5 +368,5 @@ int main (int argc, char **argv)
 
 	}
 
-	cleanup_exit(0);
+	return 0;
 }
