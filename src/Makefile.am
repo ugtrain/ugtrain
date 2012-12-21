@@ -8,4 +8,5 @@ ugtrain_SOURCES = cfgentry.h \
 
 ugtrain_LDADD = $(DEPS_LIBS) ../libgcheater/libgcheater.la
 AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
+              -Wall \
               -I../libgcheater

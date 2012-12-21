@@ -125,7 +125,7 @@ static pid_t proc_to_pid (string *proc_name)
 			exit(-1);
 		}
 		close(fds[0]);
-		if (execlp("sh", "sh", "-c", shell_cmd.c_str(), 0) < 0) {
+		if (execlp("sh", "sh", "-c", shell_cmd.c_str(), NULL) < 0) {
 			perror("execlp");
 			close(fds[1]);
 			exit(-1);
@@ -342,8 +342,8 @@ int main (int argc, char **argv)
 	while (1) {
 		sleep(1);
 		ch = do_getch();
-		if (ch > 0 && cfgp_map[ch])
-			toggle_cfg(cfgp_map[ch], cfg_act);
+		if (ch > 0 && cfgp_map[(int)ch])
+			toggle_cfg(cfgp_map[(int)ch], cfg_act);
 
 		if (gc_ptrace_stop(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;

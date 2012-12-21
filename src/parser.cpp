@@ -21,16 +21,19 @@
 #include "parser.h"
 using namespace std;
 
+typedef unsigned int u32;
+
+
 #define CFG_DIR "."
 
-static inline void proc_name_err (string *line, int lidx)
+static inline void proc_name_err (string *line, u32 lidx)
 {
 	cerr << "First line doesn't contain a valid process name!" << endl;
 	cerr << string(*line, 0, lidx) << "<--" << endl;
 	exit(-1);
 }
 
-static inline void cfg_parse_err (string *line, int lnr, int lidx)
+static inline void cfg_parse_err (string *line, u32 lnr, u32 lidx)
 {
 	cerr << "Error while parsing config (line " << ++lnr << ")!" << endl;
 	cerr << string(*line, 0, lidx) << "<--" << endl;
@@ -55,9 +58,9 @@ static void read_config_vect (string *path, vector<string> *lines)
 	cfg_file.close();
 }
 
-static string parse_proc_name (string *line, int *start)
+static string parse_proc_name (string *line, u32 *start)
 {
-	int lidx;
+	u32 lidx;
 
 	if (line->length() == 0)
 		proc_name_err(line, 0);
@@ -70,10 +73,10 @@ static string parse_proc_name (string *line, int *start)
 	return *line;
 }
 
-static string parse_value_name (string *line, int lnr, int *start,
+static string parse_value_name (string *line, u32 lnr, u32 *start,
 				bool *is_check)
 {
-	int lidx;
+	u32 lidx;
 	string ret;
 
 	for (lidx = *start; lidx < line->length(); lidx++) {
@@ -94,9 +97,9 @@ static string parse_value_name (string *line, int lnr, int *start,
 	return ret;
 }
 
-static long parse_address (string *line, int lnr, int *start)
+static long parse_address (string *line, u32 lnr, u32 *start)
 {
-	int lidx;
+	u32 lidx;
 	long ret = 0;
 
 	lidx = *start;
@@ -117,9 +120,10 @@ static long parse_address (string *line, int lnr, int *start)
 	return ret;
 }
 
-static int parse_data_type (string *line, int lnr, int *start, bool *is_signed)
+static int parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
 {
-	int lidx, ret;
+	u32 lidx;
+	int ret = 32;
 
 	lidx = *start;
 	if (lidx + 2 > line->length())
@@ -150,10 +154,10 @@ static int parse_data_type (string *line, int lnr, int *start, bool *is_signed)
 	return ret;
 }
 
-static long parse_value (string *line, int lnr, int *start,
+static long parse_value (string *line, u32 lnr, u32 *start,
 				bool is_signed, int *check)
 {
-	int lidx;
+	u32 lidx;
 	long ret;
 
 	lidx = *start;
@@ -187,11 +191,11 @@ static long parse_value (string *line, int lnr, int *start,
 	return ret;
 }
 
-static void parse_key_bindings (string *line, int lnr, int *start,
+static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 				       list<CfgEntry> *cfg,
 				       list<CfgEntry*> **cfgp_map)
 {
-	int lidx;
+	u32 lidx;
 	char key;
 
 	for (lidx = *start; lidx < line->length(); lidx++) {
@@ -199,9 +203,9 @@ static void parse_key_bindings (string *line, int lnr, int *start,
 			if (lidx == *start + 1) {
 				key = line->at(*start);
 				*start = lidx + 1;
-				if (!cfgp_map[key])
-					cfgp_map[key] = new list<CfgEntry*>();
-				cfgp_map[key]->push_back(&cfg->back());
+				if (!cfgp_map[(int)key])
+					cfgp_map[(int)key] = new list<CfgEntry*>();
+				cfgp_map[(int)key]->push_back(&cfg->back());
 			} else {
 				cfg_parse_err(line, lnr, lidx);
 			}
@@ -224,7 +228,7 @@ list<CfgEntry*> *read_config (char *cfg_name,
 	list<CfgEntry*> *cfg_act = new list<CfgEntry*>();
 	CheckEntry chk_en;
 	list<CheckEntry> *chk_lp;
-	int lnr, start = 0;
+	u32 lnr, start = 0;
 	bool is_check;
 	string line;
 	vector<string> lines;
