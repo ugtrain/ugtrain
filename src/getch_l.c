@@ -67,5 +67,14 @@ char do_getch (void)
 
 void restore_getch (void)
 {
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_tty);
+	int flags;
+
+	/* disable nonblocking */
+	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+	fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+
+	if (tty_changed) {
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_tty);
+		tty_changed = 0;
+	}
 }
