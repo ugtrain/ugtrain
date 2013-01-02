@@ -42,10 +42,11 @@ AC_TYPE_UID_T
 
 # Checks for library functions.
 AC_FUNC_STAT
-AC_CHECK_FUNCS(ptrace memcpy memcmp)
+AC_CHECK_FUNCS(ptrace memcpy memcmp malloc free)
 
 AC_OUTPUT(
 Makefile
 libgcheater/Makefile
+linuxhooking/Makefile
 src/Makefile
 )
