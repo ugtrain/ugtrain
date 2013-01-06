@@ -22,10 +22,33 @@ LIB_AGE=0
 VERSION_INFO="$LIB_CURRENT:$LIB_REVERSION:$LIB_AGE"
 AC_SUBST(VERSION_INFO)
 
+AC_CANONICAL_HOST
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_CC_STDC
+
+case $host in
+  *i[[3456789]]86*)
+    TMP_CC="$CC"
+    CC="$CC -m64"
+    AC_MSG_CHECKING([whether $CC works])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM()],AC_MSG_RESULT([yes]),
+                   [AC_MSG_RESULT([no])
+                    AC_MSG_ERROR([Cannot build a 64-bit program, you need to install 64-bit development libraries.])])
+    CC="$TMP_CC"
+    ;;
+  *x86_64*)
+    TMP_CC="$CC"
+    CC="$CC -m32"
+    AC_MSG_CHECKING([whether $CC works])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM()],AC_MSG_RESULT([yes]),
+                   [AC_MSG_RESULT([no])
+                    AC_MSG_ERROR([Cannot build a 32-bit program, you need to install 32-bit development libraries.])])
+    CC="$TMP_CC"
+    ;;
+esac
 
 # Checks for pkg-config.
 AC_SUBST(DEPS_CFLAGS)
