@@ -26,6 +26,13 @@ typedef unsigned int u32;
 
 #define CFG_DIR "."
 
+enum {
+	NAME_REGULAR,
+	NAME_CHECK,
+	NAME_DYNMEM_START,
+	NAME_DYNMEM_END
+};
+
 static inline void proc_name_err (string *line, u32 lidx)
 {
 	cerr << "First line doesn't contain a valid process name!" << endl;
@@ -74,7 +81,7 @@ static string parse_proc_name (string *line, u32 *start)
 }
 
 static string parse_value_name (string *line, u32 lnr, u32 *start,
-				bool *is_check)
+				int *name_type)
 {
 	u32 lidx;
 	string ret;
@@ -90,17 +97,21 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	*start = lidx + 1;
 	ret = string(*line, 0, lidx);
 	if (ret == "check")
-		*is_check = true;
+		*name_type = NAME_CHECK;
+	else if (ret == "dynmemstart")
+		*name_type = NAME_DYNMEM_START;
+	else if (ret == "dynmemend")
+		*name_type = NAME_DYNMEM_END;
 	else
-		*is_check = false;
+		*name_type = NAME_REGULAR;
 
 	return ret;
 }
 
-static long parse_address (string *line, u32 lnr, u32 *start)
+static void *parse_address (string *line, u32 lnr, u32 *start)
 {
 	u32 lidx;
-	long ret = 0;
+	void *ret = NULL;
 
 	lidx = *start;
 	if (lidx + 2 > line->length() || line->at(lidx) != '0' ||
@@ -109,7 +120,7 @@ static long parse_address (string *line, u32 lnr, u32 *start)
 	*start = lidx + 2;
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ' ') {
-			ret = strtol(string(*line, *start,
+			ret = (void *) strtol(string(*line, *start,
 				lidx - *start).c_str(), NULL, 16);
 			break;
 		} else if (!isxdigit(line->at(lidx))) {
@@ -155,7 +166,7 @@ static int parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
 }
 
 static long parse_value (string *line, u32 lnr, u32 *start,
-				bool is_signed, int *check)
+			 bool is_signed, int *check)
 {
 	u32 lidx;
 	long ret;
@@ -192,8 +203,8 @@ static long parse_value (string *line, u32 lnr, u32 *start,
 }
 
 static void parse_key_bindings (string *line, u32 lnr, u32 *start,
-				       list<CfgEntry> *cfg,
-				       list<CfgEntry*> **cfgp_map)
+				list<CfgEntry> *cfg,
+				list<CfgEntry*> **cfgp_map)
 {
 	u32 lidx;
 	char key;
@@ -228,8 +239,10 @@ list<CfgEntry*> *read_config (char *cfg_name,
 	list<CfgEntry*> *cfg_act = new list<CfgEntry*>();
 	CheckEntry chk_en;
 	list<CheckEntry> *chk_lp;
+	DynMemEntry *dynmem_enp = NULL;
 	u32 lnr, start = 0;
-	bool is_check;
+	int name_type, tmp;
+	bool in_dynmem = false;
 	string line;
 	vector<string> lines;
 	string path(string(CFG_DIR) + string("/")
@@ -247,25 +260,9 @@ list<CfgEntry*> *read_config (char *cfg_name,
 		if (line.length() <= 0 || line[0] == '#')
 			continue;
 
-		cfg_en.name = parse_value_name(&line, lnr, &start, &is_check);
-		if (!is_check) {
-			cfg_en.checks = NULL;
-			cfg_en.addr = parse_address(&line, lnr, &start);
-			cfg_en.size = parse_data_type(&line, lnr, &start,
-				&cfg_en.is_signed);
-			cfg_en.value = parse_value(&line, lnr, &start,
-				cfg_en.is_signed, &cfg_en.check);
-
-			cfg->push_back(cfg_en);
-
-			parse_key_bindings(&line, lnr, &start, cfg, cfgp_map);
-
-			// get activation state
-			if (start > line.length())
-				cfg_parse_err(&line, lnr, --start);
-			else if (line.at(start) == 'a')
-				cfg_act->push_back(&cfg->back());
-		} else {
+		cfg_en.name = parse_value_name(&line, lnr, &start, &name_type);
+		switch (name_type) {
+		case NAME_CHECK:
 			cfg_enp = &cfg->back();
 			if (!cfg_enp->checks)
 				cfg_enp->checks = new list<CheckEntry>();
@@ -278,6 +275,50 @@ list<CfgEntry*> *read_config (char *cfg_name,
 				chk_en.is_signed, &chk_en.check);
 
 			chk_lp->push_back(chk_en);
+			break;
+
+		case NAME_DYNMEM_START:
+			in_dynmem = true;
+			dynmem_enp = new DynMemEntry();
+			dynmem_enp->mem_size = parse_value(&line, lnr,
+				&start, false, &tmp);
+			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
+			dynmem_enp->stack_offs = parse_address(&line, lnr, &start);
+			dynmem_enp->mem_addr = NULL;
+			break;
+
+		case NAME_DYNMEM_END:
+			if (in_dynmem) {
+				in_dynmem = false;
+				dynmem_enp = NULL;
+			} else {
+				cfg_parse_err(&line, lnr, start);
+			}
+			break;
+
+		default:
+			cfg_en.checks = NULL;
+			cfg_en.addr = parse_address(&line, lnr, &start);
+			cfg_en.size = parse_data_type(&line, lnr, &start,
+				&cfg_en.is_signed);
+			cfg_en.value = parse_value(&line, lnr, &start,
+				cfg_en.is_signed, &cfg_en.check);
+			if (in_dynmem) {
+				cfg_en.dynmem = dynmem_enp;
+			} else {
+				cfg_en.dynmem = NULL;
+			}
+
+			cfg->push_back(cfg_en);
+
+			parse_key_bindings(&line, lnr, &start, cfg, cfgp_map);
+
+			// get activation state
+			if (start > line.length())
+				cfg_parse_err(&line, lnr, --start);
+			else if (line.at(start) == 'a')
+				cfg_act->push_back(&cfg->back());
+			break;
 		}
 	}
 

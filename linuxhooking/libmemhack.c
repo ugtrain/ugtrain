@@ -45,7 +45,7 @@ struct cfg {
 	size_t mem_size;
 	void *code_addr;
 	void *stack_offs;
-	void *mem_addr;  /* filled my malloc for free */
+	void *mem_addr;  /* filled by malloc for free */
 };
 typedef struct cfg cfg_s;
 

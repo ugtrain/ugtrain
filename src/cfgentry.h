@@ -29,23 +29,32 @@ enum {
 
 class CheckEntry {
 public:
-	long addr;
+	void *addr;
 	bool is_signed;
 	int size;
 	long value;
 	int check;
 };
 
+class DynMemEntry {
+public:
+	size_t mem_size;
+	void *code_addr;
+	void *stack_offs;
+	void *mem_addr;  /* filled by malloc for free */
+};
+
 class CfgEntry {
 public:
 	string name;
-	long addr;
+	void *addr;
 	bool is_signed;
 	int size;
 	long value;
 	long old_val;
 	int check;
 	list<CheckEntry> *checks;
+	DynMemEntry *dynmem;
 };
 
 #endif
