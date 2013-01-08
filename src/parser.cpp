@@ -71,7 +71,10 @@ static string parse_proc_name (string *line, u32 *start)
 		proc_name_err(line, 0);
 
 	for (lidx = *start; lidx < line->length(); lidx++) {
-		if (!isalpha(line->at(lidx)) && line->at(lidx) != '.')
+		if (!isalpha(line->at(lidx)) &&
+		    line->at(lidx) != '.' &&
+		    line->at(lidx) != '-' &&
+		    line->at(lidx) != '_')
 			proc_name_err(line, lidx);
 	}
 	*start = lidx;
@@ -87,7 +90,10 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ' ') {
 			break;
-		} else if (!isalpha(line->at(lidx))) {
+		} else
+		if (!isalpha(line->at(lidx)) &&
+		    line->at(lidx) != '-' &&
+		    line->at(lidx) != '_') {
 			cfg_parse_err(line, lnr, lidx);
 		}
 	}
@@ -117,7 +123,11 @@ static void *parse_address (string *line, u32 lnr, u32 *start)
 		cfg_parse_err(line, lnr, --lidx);
 	*start = lidx + 2;
 	for (lidx = *start; lidx < line->length(); lidx++) {
-		if (line->at(lidx) == ' ') {
+		if (lidx == line->length() - 1) {
+			ret = (void *) strtol(string(*line, *start,
+				lidx + 1 - *start).c_str(), NULL, 16);
+			break;
+		} else if (line->at(lidx) == ' ') {
 			ret = (void *) strtol(string(*line, *start,
 				lidx - *start).c_str(), NULL, 16);
 			break;
