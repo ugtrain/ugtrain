@@ -21,8 +21,6 @@
 #include "parser.h"
 using namespace std;
 
-typedef unsigned int u32;
-
 
 #define CFG_DIR "."
 
@@ -81,7 +79,7 @@ static string parse_proc_name (string *line, u32 *start)
 }
 
 static string parse_value_name (string *line, u32 lnr, u32 *start,
-				int *name_type)
+				i32 *name_type)
 {
 	u32 lidx;
 	string ret;
@@ -131,10 +129,10 @@ static void *parse_address (string *line, u32 lnr, u32 *start)
 	return ret;
 }
 
-static int parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
+static i32 parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
 {
 	u32 lidx;
-	int ret = 32;
+	i32 ret = 32;
 
 	lidx = *start;
 	if (lidx + 2 > line->length())
@@ -166,7 +164,7 @@ static int parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
 }
 
 static long parse_value (string *line, u32 lnr, u32 *start,
-			 bool is_signed, int *check)
+			 bool is_signed, i32 *check)
 {
 	u32 lidx;
 	long ret;
@@ -214,9 +212,9 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 			if (lidx == *start + 1) {
 				key = line->at(*start);
 				*start = lidx + 1;
-				if (!cfgp_map[(int)key])
-					cfgp_map[(int)key] = new list<CfgEntry*>();
-				cfgp_map[(int)key]->push_back(&cfg->back());
+				if (!cfgp_map[(i32)key])
+					cfgp_map[(i32)key] = new list<CfgEntry*>();
+				cfgp_map[(i32)key]->push_back(&cfg->back());
 			} else {
 				cfg_parse_err(line, lnr, lidx);
 			}
@@ -241,7 +239,7 @@ list<CfgEntry*> *read_config (char *cfg_name,
 	list<CheckEntry> *chk_lp;
 	DynMemEntry *dynmem_enp = NULL;
 	u32 lnr, start = 0;
-	int name_type, tmp;
+	i32 name_type, tmp;
 	bool in_dynmem = false;
 	string line;
 	vector<string> lines;

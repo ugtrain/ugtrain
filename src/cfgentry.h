@@ -21,6 +21,15 @@
 #include <list>
 using namespace std;
 
+typedef char i8;
+typedef unsigned char u8;
+typedef short i16;
+typedef unsigned short u16;
+typedef int i32;
+typedef unsigned int u32;
+typedef long long i64;
+typedef unsigned long long u64;
+
 enum {
 	DO_UNCHECKED,
 	DO_LT,
@@ -31,9 +40,9 @@ class CheckEntry {
 public:
 	void *addr;
 	bool is_signed;
-	int size;
+	i32 size;
 	long value;
-	int check;
+	i32 check;
 };
 
 class DynMemEntry {
@@ -49,10 +58,10 @@ public:
 	string name;
 	void *addr;
 	bool is_signed;
-	int size;
+	i32 size;
 	long value;
 	long old_val;
-	int check;
+	i32 check;
 	list<CheckEntry> *checks;
 	DynMemEntry *dynmem;
 };

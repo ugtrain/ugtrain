@@ -101,7 +101,7 @@ static void output_config (list<CfgEntry> *cfg)
 static pid_t proc_to_pid (string *proc_name)
 {
 	pid_t pid;
-	int status, fds[2], bytes_read;
+	i32 status, fds[2], bytes_read;
 	char pbuf[PIPE_BUF] = {0};
 	string shell_cmd("pidof -s ");
 
@@ -191,7 +191,7 @@ void toggle_cfg (list<CfgEntry*> *cfg, list<CfgEntry*> *cfg_act)
 }
 
 template <typename T>
-static inline int check_mem_val (T value, unsigned char *chk_buf, int check)
+static inline i32 check_mem_val (T value, u8 *chk_buf, i32 check)
 {
 	if ((check == DO_LT && *(T *)chk_buf < value) ||
 	    (check == DO_GT && *(T *)chk_buf > value))
@@ -199,38 +199,38 @@ static inline int check_mem_val (T value, unsigned char *chk_buf, int check)
 	return -1;
 }
 
-static int check_memory (CheckEntry chk_en, unsigned char *chk_buf)
+static i32 check_memory (CheckEntry chk_en, u8 *chk_buf)
 {
 	if (chk_en.is_signed) {
 		switch (chk_en.size) {
 		case 64:
 			return check_mem_val((long) chk_en.value, chk_buf, chk_en.check);
 		case 32:
-			return check_mem_val((int) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i32) chk_en.value, chk_buf, chk_en.check);
 		case 16:
-			return check_mem_val((short) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i16) chk_en.value, chk_buf, chk_en.check);
 		default:
-			return check_mem_val((char) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i8) chk_en.value, chk_buf, chk_en.check);
 		}
 	} else {
 		switch (chk_en.size) {
 		case 64:
 			return check_mem_val((unsigned long) chk_en.value, chk_buf, chk_en.check);
 		case 32:
-			return check_mem_val((unsigned int) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u32) chk_en.value, chk_buf, chk_en.check);
 		case 16:
-			return check_mem_val((unsigned short) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u16) chk_en.value, chk_buf, chk_en.check);
 		default:
-			return check_mem_val((unsigned char) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u8) chk_en.value, chk_buf, chk_en.check);
 		}
 	}
 }
 
 template <typename T>
-static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, unsigned char *buf)
+static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf)
 {
 	list<CheckEntry> *chk_lp;
-	unsigned char chk_buf[10];
+	u8 chk_buf[10];
 
 	cfg_en->old_val = *(T *)buf;
 
@@ -258,7 +258,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, unsigned char 
 	}
 }
 
-static void change_memory (pid_t pid, CfgEntry *cfg_en, unsigned char *buf)
+static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf)
 {
 	if (cfg_en->is_signed) {
 		switch (cfg_en->size) {
@@ -266,13 +266,13 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, unsigned char *buf)
 			change_mem_val(pid, cfg_en, (long) cfg_en->value, buf);
 			break;
 		case 32:
-			change_mem_val(pid, cfg_en, (int) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (i32) cfg_en->value, buf);
 			break;
 		case 16:
-			change_mem_val(pid, cfg_en, (short) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (i16) cfg_en->value, buf);
 			break;
 		default:
-			change_mem_val(pid, cfg_en, (char) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (i8) cfg_en->value, buf);
 			break;
 		}
 	} else {
@@ -281,19 +281,19 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, unsigned char *buf)
 			change_mem_val(pid, cfg_en, (unsigned long) cfg_en->value, buf);
 			break;
 		case 32:
-			change_mem_val(pid, cfg_en, (unsigned int) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (u32) cfg_en->value, buf);
 			break;
 		case 16:
-			change_mem_val(pid, cfg_en, (unsigned short) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (u16) cfg_en->value, buf);
 			break;
 		default:
-			change_mem_val(pid, cfg_en, (unsigned char) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (u8) cfg_en->value, buf);
 			break;
 		}
 	}
 }
 
-int main (int argc, char **argv)
+i32 main (i32 argc, char **argv)
 {
 	string proc_name;
 	list<CfgEntry> cfg;
@@ -302,7 +302,7 @@ int main (int argc, char **argv)
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
 	CfgEntry *cfg_en;
 	pid_t pid;
-	unsigned char buf[10] = { 0 };
+	u8 buf[10] = { 0 };
 	char ch;
 
 	atexit(restore_getch);
@@ -338,8 +338,8 @@ int main (int argc, char **argv)
 	while (1) {
 		sleep(1);
 		ch = do_getch();
-		if (ch > 0 && cfgp_map[(int)ch])
-			toggle_cfg(cfgp_map[(int)ch], cfg_act);
+		if (ch > 0 && cfgp_map[(i32)ch])
+			toggle_cfg(cfgp_map[(i32)ch], cfg_act);
 
 		if (gc_ptrace_stop(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
