@@ -46,7 +46,7 @@ void output_configp (list<CfgEntry*> *cfg)
 	list<CfgEntry*>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		cfg_en = *it;
-		cout << cfg_en->name << " " << "0x" << hex << cfg_en->addr << dec;
+		cout << cfg_en->name << " " << hex << cfg_en->addr << dec;
 		cout << " " << cfg_en->size << " " << cfg_en->value << endl;
 	}
 }
@@ -56,7 +56,7 @@ static void output_checks (CfgEntry *cfg_en)
 	list<CheckEntry> *chk_lp;
 
 	if (cfg_en->check > DO_UNCHECKED) {
-		cout << "check " << "0x" << hex << cfg_en->addr << dec;
+		cout << "check " << hex << cfg_en->addr << dec;
 		if (cfg_en->check == DO_LT)
 			cout << " <";
 		else if (cfg_en->check == DO_GT)
@@ -70,7 +70,7 @@ static void output_checks (CfgEntry *cfg_en)
 	list<CheckEntry>::iterator it;
 	for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
 		if (it->check > DO_UNCHECKED) {
-			cout << "check " << "0x" << hex << it->addr << dec;
+			cout << "check " << hex << it->addr << dec;
 			if (it->check == DO_LT)
 				cout << " <";
 			else if (it->check == DO_GT)
@@ -92,7 +92,11 @@ static void output_config (list<CfgEntry> *cfg)
 	list<CfgEntry>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		cfg_en = *it;
-		cout << cfg_en.name << " " << "0x" << hex << cfg_en.addr << dec;
+		if (cfg_en.dynmem)
+			cout << "dynmem: " << cfg_en.dynmem->mem_size << " "
+			<< hex << cfg_en.dynmem->code_addr << " "
+			<< cfg_en.dynmem->stack_offs << dec << endl;
+		cout << cfg_en.name << " " << hex << cfg_en.addr << dec;
 		cout << " " << cfg_en.size << " " << cfg_en.value << endl;
 		output_checks(&cfg_en);
 	}
@@ -238,7 +242,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf)
 		chk_lp = cfg_en->checks;
 		list<CheckEntry>::iterator it;
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
-			if (gc_get_memory(pid, (void *)it->addr, chk_buf, sizeof(long)) != 0) {
+			if (gc_get_memory(pid, it->addr, chk_buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				exit(-1);
 			}
@@ -251,7 +255,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf)
 	    (cfg_en->check == DO_GT && *(T *)buf > value)) {
 		memcpy(buf, &value, sizeof(T));
 
-		if (gc_set_memory(pid, (void *)cfg_en->addr, buf, sizeof(long)) != 0) {
+		if (gc_set_memory(pid, cfg_en->addr, buf, sizeof(long)) != 0) {
 			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
 			exit(-1);
 		}
@@ -348,7 +352,7 @@ i32 main (i32 argc, char **argv)
 
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
-			if (gc_get_memory(pid, (void *)cfg_en->addr, buf, sizeof(long)) != 0) {
+			if (gc_get_memory(pid, cfg_en->addr, buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				return -1;
 			}
@@ -362,7 +366,7 @@ i32 main (i32 argc, char **argv)
 
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
-			cout << "Addr: 0x" << hex << (unsigned long) cfg_en->addr << " Data: 0x"
+			cout << "Addr: " << hex << cfg_en->addr << " Data: 0x"
 			     << (long) cfg_en->old_val << endl << dec;
 		}
 
