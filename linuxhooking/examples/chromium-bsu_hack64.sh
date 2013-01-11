@@ -15,8 +15,8 @@ CWD=`pwd`
 make
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CWD/.libs"
 
-mkfifo -m 0600 /tmp/memhack_in > /dev/null 2>&1
-mkfifo -m 0600 /tmp/memhack_out > /dev/null 2>&1
+mkfifo -m 0666 /tmp/memhack_in > /dev/null 2>&1
+mkfifo -m 0666 /tmp/memhack_out > /dev/null 2>&1
 
 # set config for 64-bit chromium-bsu 0.9.15-1.2 (OpenSuse 11.4)
 # Format: "number of values;"

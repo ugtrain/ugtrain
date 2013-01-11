@@ -32,7 +32,10 @@
 #include "parser.h"
 using namespace std;
 
-#define PROG_NAME "ugtrain"
+#define PROG_NAME  "ugtrain"
+#define DYNMEM_IN  "/tmp/memhack_out"
+#define DYNMEM_OUT "/tmp/memhack_in"
+
 
 void output_configp (list<CfgEntry*> *cfg)
 {
@@ -231,10 +234,11 @@ static i32 check_memory (CheckEntry chk_en, u8 *chk_buf)
 }
 
 template <typename T>
-static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf)
+static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void *mem_offs)
 {
 	list<CheckEntry> *chk_lp;
 	u8 chk_buf[10];
+	void *mem_addr;
 
 	cfg_en->old_val = *(T *)buf;
 
@@ -242,7 +246,9 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf)
 		chk_lp = cfg_en->checks;
 		list<CheckEntry>::iterator it;
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
-			if (gc_get_memory(pid, it->addr, chk_buf, sizeof(long)) != 0) {
+			mem_addr = (void *) ((ptr_t)mem_offs + (ptr_t)it->addr);
+
+			if (gc_get_memory(pid, mem_addr, chk_buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				exit(-1);
 			}
@@ -254,44 +260,45 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf)
 	if ((cfg_en->check == DO_LT && *(T *)buf < value) ||
 	    (cfg_en->check == DO_GT && *(T *)buf > value)) {
 		memcpy(buf, &value, sizeof(T));
+		mem_addr = (void *) ((ptr_t)mem_offs + (ptr_t)cfg_en->addr);
 
-		if (gc_set_memory(pid, cfg_en->addr, buf, sizeof(long)) != 0) {
+		if (gc_set_memory(pid, mem_addr, buf, sizeof(long)) != 0) {
 			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
 			exit(-1);
 		}
 	}
 }
 
-static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf)
+static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 {
 	if (cfg_en->is_signed) {
 		switch (cfg_en->size) {
 		case 64:
-			change_mem_val(pid, cfg_en, (long) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (long) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
-			change_mem_val(pid, cfg_en, (i32) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (i32) cfg_en->value, buf, mem_offs);
 			break;
 		case 16:
-			change_mem_val(pid, cfg_en, (i16) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (i16) cfg_en->value, buf, mem_offs);
 			break;
 		default:
-			change_mem_val(pid, cfg_en, (i8) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (i8) cfg_en->value, buf, mem_offs);
 			break;
 		}
 	} else {
 		switch (cfg_en->size) {
 		case 64:
-			change_mem_val(pid, cfg_en, (unsigned long) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (unsigned long) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
-			change_mem_val(pid, cfg_en, (u32) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (u32) cfg_en->value, buf, mem_offs);
 			break;
 		case 16:
-			change_mem_val(pid, cfg_en, (u16) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (u16) cfg_en->value, buf, mem_offs);
 			break;
 		default:
-			change_mem_val(pid, cfg_en, (u8) cfg_en->value, buf);
+			change_mem_val(pid, cfg_en, (u8) cfg_en->value, buf, mem_offs);
 			break;
 		}
 	}
@@ -305,6 +312,7 @@ i32 main (i32 argc, char **argv)
 	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
 	CfgEntry *cfg_en;
+	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
 	u8 buf[10] = { 0 };
 	char ch;
@@ -352,11 +360,19 @@ i32 main (i32 argc, char **argv)
 
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
-			if (gc_get_memory(pid, cfg_en->addr, buf, sizeof(long)) != 0) {
+			if (cfg_en->dynmem) {
+				if (!cfg_en->dynmem->mem_addr)
+					continue;
+				else
+					mem_offs = cfg_en->dynmem->mem_addr;
+			}
+
+			mem_addr = (void *) ((ptr_t)mem_offs + (ptr_t)cfg_en->addr);
+			if (gc_get_memory(pid, mem_addr, buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				return -1;
 			}
-			change_memory(pid, cfg_en, buf);
+			change_memory(pid, cfg_en, buf, mem_offs);
 		}
 
 		if (gc_ptrace_continue(pid) != 0) {

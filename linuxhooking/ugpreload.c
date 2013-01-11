@@ -38,7 +38,9 @@ typedef u64 ptr_t;
 
 #define PTR_ADD(type, x, y)   (type) ((ptr_t)x + (ptr_t)y)
 
-#define PATH_MAX 4096
+#define PATH_MAX   4096
+#define DYNMEM_IN  "/tmp/memhack_in"
+#define DYNMEM_OUT "/tmp/memhack_out"
 
 #if 0
 void print_env (char **envp)
@@ -152,10 +154,12 @@ int main (int argc, char *argv[], char *envp[])
 
 
 	/* prepare memory hacking */
-	if (mkfifo("/tmp/memhack_in", S_IRUSR | S_IWUSR) < 0 && errno != EEXIST)
+	if (mkfifo(DYNMEM_IN, S_IRUSR | S_IWUSR |
+	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST)
 		perror("input mkfifo");
 
-	if (mkfifo("/tmp/memhack_out", S_IRUSR | S_IWUSR) < 0 && errno != EEXIST)
+	if (mkfifo(DYNMEM_OUT, S_IRUSR | S_IWUSR |
+	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST)
 		perror("output mkfifo");
 
 	/* run the victim process */

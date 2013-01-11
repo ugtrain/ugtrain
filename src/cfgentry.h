@@ -30,6 +30,12 @@ typedef unsigned int u32;
 typedef long long i64;
 typedef unsigned long long u64;
 
+#ifdef __i386__
+typedef u32 ptr_t;
+#else
+typedef u64 ptr_t;
+#endif
+
 enum {
 	DO_UNCHECKED,
 	DO_LT,
