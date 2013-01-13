@@ -27,6 +27,8 @@
 #define OW_FREE 1
 #define PAGE_SIZE 4096
 #define BUF_SIZE PAGE_SIZE
+#define DYNMEM_IN  "/tmp/memhack_in"
+#define DYNMEM_OUT "/tmp/memhack_out"
 
 typedef unsigned long long u64;
 typedef unsigned int u32;
@@ -39,6 +41,10 @@ typedef u32 ptr_t;
 register void *reg_sp __asm__ ("rsp");
 typedef u64 ptr_t;
 #endif
+
+#define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
+#define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)
+#define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
 
 /* Config structure */
 struct cfg {
@@ -82,14 +88,14 @@ memhack_init(void) {
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
 
-	ifd = open("/tmp/memhack_in", O_RDONLY | O_NONBLOCK);
+	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
 		perror("open in");
 		exit(1);
 	}
 	printf("ifd: %d\n", ifd);
 
-	ofd = open("/tmp/memhack_out", O_WRONLY | O_TRUNC);
+	ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (ofd < 0) {
 		perror("open out");
 		exit(1);
@@ -110,8 +116,8 @@ memhack_init(void) {
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
-		config[i] = (cfg_s *) ((ptr_t) config + (ptr_t) cfg_offs +
-			(ptr_t) (i * sizeof(cfg_s)));
+		config[i] = PTR_ADD2(cfg_s *, config, cfg_offs,
+			i * sizeof(cfg_s));
 		if ((ptr_t) config[i] + sizeof(cfg_s) - (ptr_t) config
 		    > PAGE_SIZE || ibuf_offs >= BUF_SIZE) {
 			/* config doesn't fit, truncate it */
@@ -171,8 +177,8 @@ void *malloc(size_t size)
 			if (size != config[i]->mem_size)
 				continue;
 
-			stack_addr = (void *) ((ptr_t) __libc_stack_end -
-				(ptr_t) config[i]->stack_offs);
+			stack_addr = PTR_SUB(void *, __libc_stack_end,
+				config[i]->stack_offs);
 
 			if (reg_sp > stack_addr ||
 			    *(ptr_t *)stack_addr !=

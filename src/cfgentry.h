@@ -36,6 +36,9 @@ typedef u32 ptr_t;
 typedef u64 ptr_t;
 #endif
 
+#define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
+#define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
+
 enum {
 	DO_UNCHECKED,
 	DO_LT,

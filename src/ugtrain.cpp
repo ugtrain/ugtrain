@@ -24,6 +24,8 @@
 #include <cstring>
 #include <libgcheater.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <limits.h>
 
 // local includes
@@ -153,7 +155,7 @@ static pid_t proc_to_pid (string *proc_name)
 		close(fds[0]);
 	}
 
-	cout << "Pipe: " << pbuf;
+	//cout << "Pipe: " << pbuf;
 
 	if (isdigit(pbuf[0])) {
 		pid = atoi(pbuf);
@@ -246,7 +248,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		chk_lp = cfg_en->checks;
 		list<CheckEntry>::iterator it;
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
-			mem_addr = (void *) ((ptr_t)mem_offs + (ptr_t)it->addr);
+			mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
 			if (gc_get_memory(pid, mem_addr, chk_buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
@@ -260,7 +262,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 	if ((cfg_en->check == DO_LT && *(T *)buf < value) ||
 	    (cfg_en->check == DO_GT && *(T *)buf > value)) {
 		memcpy(buf, &value, sizeof(T));
-		mem_addr = (void *) ((ptr_t)mem_offs + (ptr_t)cfg_en->addr);
+		mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 
 		if (gc_set_memory(pid, mem_addr, buf, sizeof(long)) != 0) {
 			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
@@ -304,6 +306,161 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	}
 }
 
+i32 prepare_dynmem(list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
+{
+	char obuf[4096] = {0};
+	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
+	size_t written;
+
+	// fill the output buffer with the dynmem cfg
+	list<CfgEntry>::iterator it;
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->dynmem) {
+			num_cfg++;
+			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
+				";%zd;%p;%p", it->dynmem->mem_size,
+				it->dynmem->code_addr, it->dynmem->stack_offs);
+		}
+	}
+	// put the number of cfgs to the end
+	num_cfg_len = snprintf(obuf + pos, sizeof(obuf) - pos, "%d", num_cfg);
+	pos += num_cfg_len;
+	if (pos + num_cfg_len + 2 > sizeof(obuf)) {
+		fprintf(stderr, "Buffer overflow\n");
+		return 1;
+	}
+	memmove(obuf + num_cfg_len, obuf, pos);  // shift str in buffer right
+	memmove(obuf, obuf + pos, num_cfg_len);  // move the number of cfgs to the front
+	obuf[pos++] = '\n';  // add cfg end
+	obuf[pos++] = '\0';
+
+	if (num_cfg <= 0)
+		return 0;
+
+	// set up and open FIFOs
+	if (mkfifo(DYNMEM_IN, S_IRUSR | S_IWUSR |
+	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
+		perror("input mkfifo");
+		return 1;
+	}
+
+	if (mkfifo(DYNMEM_OUT, S_IRUSR | S_IWUSR |
+	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
+		perror("output mkfifo");
+		return 1;
+	}
+
+	*ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
+	if (*ifd < 0) {
+		perror("open ifd");
+		return 1;
+	}
+
+	cout << "Waiting for preloaded game.." << endl;
+	*ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
+	if (*ofd < 0) {
+		perror("open ofd");
+		return 1;
+	}
+
+	// write dynmem cfg to output FIFO
+	written = write(*ofd, obuf, pos);
+	if (written < pos) {
+		perror("FIFO write");
+		return 1;
+	}
+
+	return 0;
+}
+
+void read_dynmem_buf(list<CfgEntry> *cfg, i32 ifd)
+{
+	void *mem_addr, *code_addr;
+	static ssize_t ipos = 0, ilen = 0;
+	ssize_t tmp_ilen, ppos;
+	char *msg_end, *sep_pos;
+	char ibuf[4096] = { 0 };
+	char scan_ch;
+	list<CfgEntry>::iterator it;
+
+	// read from FIFO and concat. incomplete msgs
+	tmp_ilen = read(ifd, ibuf + ipos, sizeof(ibuf) - 1 - ipos);  // always '\0' at end
+	if (tmp_ilen > 0) {
+		//cout << "ibuf: " << string(ibuf) << endl;
+		ilen += tmp_ilen;
+		//cout << "ilen: " << ilen << " tmp_ilen " << tmp_ilen << endl;
+		ipos += tmp_ilen;
+
+		// parse messages
+next:
+		msg_end = strchr(ibuf, '\n');
+		if (msg_end == NULL)
+			return;
+		if (sscanf(ibuf, "%c", &scan_ch) != 1)
+			goto parse_err;
+		switch (scan_ch) {
+		case 'm':
+			ppos = 1;
+			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
+				goto parse_err;
+			sep_pos = strchr(ibuf + ppos, ';');
+			if (!sep_pos)
+				goto parse_err;
+			ppos = sep_pos + 1 - ibuf;
+			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
+			    scan_ch != 'c')
+				goto parse_err;
+			ppos++;
+			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
+				goto parse_err;
+			cout << "m" << hex << mem_addr << ";c"
+				<< code_addr << dec << endl;
+
+			// find object and set mem_addr
+			for (it = cfg->begin(); it != cfg->end(); it++) {
+				if (it->dynmem &&
+				    it->dynmem->code_addr == code_addr) {
+					it->dynmem->mem_addr = mem_addr;
+					break;
+				}
+			}
+			break;
+		case 'f':
+			ppos = 1;
+			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
+				goto parse_err;
+			cout << "f" << hex << mem_addr << dec << endl;
+			for (it = cfg->begin(); it != cfg->end(); it++) {
+				if (it->dynmem &&
+				    it->dynmem->mem_addr == mem_addr) {
+					it->dynmem->mem_addr = NULL;
+					break;
+				}
+			}
+			break;
+		}
+		// prepare for next msg parsing
+
+		tmp_ilen = msg_end + 1 - ibuf;
+		// move rest to the front
+		memmove(ibuf, ibuf + tmp_ilen, ilen - tmp_ilen);
+		// zero what's behind the rest
+		memset(ibuf + ilen - tmp_ilen, 0, tmp_ilen);
+		ilen -= tmp_ilen;
+		ipos -= tmp_ilen;
+		//cout << "ilen: " << ilen << " ipos " << ipos << endl;
+
+		goto next;
+	}
+	return;
+
+parse_err:
+	memset(ibuf, 0, sizeof(ibuf));
+	ilen = 0;
+	ipos = 0;
+	return;
+}
+
 i32 main (i32 argc, char **argv)
 {
 	string proc_name;
@@ -316,6 +473,7 @@ i32 main (i32 argc, char **argv)
 	pid_t pid;
 	u8 buf[10] = { 0 };
 	char ch;
+	i32 ifd = -1, ofd = -1;
 
 	atexit(restore_getch);
 
@@ -331,6 +489,11 @@ i32 main (i32 argc, char **argv)
 	output_configp(cfg_act);
 	if (cfg.empty())
 		return -1;
+
+	if (prepare_dynmem(&cfg, &ifd, &ofd) != 0) {
+		cerr << "Error while dyn. mem. preparation!" << endl;
+		return -1;
+	}
 
 	pid = proc_to_pid(&proc_name);
 	if (pid < 0)
@@ -353,6 +516,8 @@ i32 main (i32 argc, char **argv)
 		if (ch > 0 && cfgp_map[(i32)ch])
 			toggle_cfg(cfgp_map[(i32)ch], cfg_act);
 
+		read_dynmem_buf(&cfg, ifd);
+
 		if (gc_ptrace_stop(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
@@ -367,7 +532,7 @@ i32 main (i32 argc, char **argv)
 					mem_offs = cfg_en->dynmem->mem_addr;
 			}
 
-			mem_addr = (void *) ((ptr_t)mem_offs + (ptr_t)cfg_en->addr);
+			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 			if (gc_get_memory(pid, mem_addr, buf, sizeof(long)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				return -1;
@@ -382,8 +547,18 @@ i32 main (i32 argc, char **argv)
 
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
-			cout << "Addr: " << hex << cfg_en->addr << " Data: 0x"
-			     << (long) cfg_en->old_val << endl << dec;
+			if (cfg_en->dynmem) {
+				if (!cfg_en->dynmem->mem_addr)
+					continue;
+				else
+					mem_offs = cfg_en->dynmem->mem_addr;
+			} else {
+				mem_offs = 0;
+			}
+			cout << cfg_en->name << " at " << hex
+				<< PTR_ADD(void *, cfg_en->addr, mem_offs)
+				<< ", Data: 0x" << (long) cfg_en->old_val << dec
+				<< " (" << cfg_en->old_val << ")" << endl;
 		}
 
 	}
