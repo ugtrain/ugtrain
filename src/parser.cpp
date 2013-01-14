@@ -18,6 +18,7 @@
 #include <fstream>
 #include <vector>
 #include <stdlib.h>
+#include <cstring>
 #include "parser.h"
 using namespace std;
 
@@ -139,7 +140,8 @@ static void *parse_address (string *line, u32 lnr, u32 *start)
 	return ret;
 }
 
-static i32 parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
+static i32 parse_data_type (string *line, u32 lnr, u32 *start,
+			    bool *is_signed, bool *is_float)
 {
 	u32 lidx;
 	i32 ret = 32;
@@ -150,9 +152,15 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
 	switch (line->at(lidx)) {
 	case 'u':
 		*is_signed = false;
+		*is_float = false;
 		break;
 	case 'i':
 		*is_signed = true;
+		*is_float = false;
+		break;
+	case 'f':
+		*is_signed = true;
+		*is_float = true;
 		break;
 	default:
 		cfg_parse_err(line, lnr, --lidx);
@@ -164,6 +172,8 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
 		if (line->at(lidx) == ' ') {
 			ret = atoi(string(*line,
 			  *start, lidx - *start).c_str());
+			if (*is_float && (ret != 32 && ret != 64))
+				cfg_parse_err(line, lnr, lidx);
 			break;
 		} else if (!isdigit(line->at(lidx))) {
 			cfg_parse_err(line, lnr, lidx);
@@ -173,11 +183,20 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start, bool *is_signed)
 	return ret;
 }
 
-static long parse_value (string *line, u32 lnr, u32 *start,
-			 bool is_signed, i32 *check)
+/*
+ * This function parses a signed/unsigned integer or a float/double value
+ * from the config and also determines if a greater/less than check is wanted.
+ *
+ * Attention: Hacky floats. A float has 4 bytes, a double has 8 bytes
+ *            and i64 has 8 bytes. Why not copy the float/double into the i64?!
+ *            We always parse floats as doubles here.
+ */
+static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
+		        bool is_float, i32 *check)
 {
 	u32 lidx;
-	long ret;
+	i64 ret = 0;
+	double tmp_dval;
 
 	lidx = *start;
 	if (lidx + 2 > line->length())
@@ -187,7 +206,7 @@ static long parse_value (string *line, u32 lnr, u32 *start,
 		*start += 2;
 	} else if (line->at(lidx) == 'g' && line->at(lidx + 1) == ' ') {
 		*check = DO_GT;
-		*start +=2;
+		*start += 2;
 	} else {
 		*check = DO_UNCHECKED;
 	}
@@ -195,17 +214,22 @@ static long parse_value (string *line, u32 lnr, u32 *start,
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ' ') {
 			break;
-		} else if (!isdigit(line->at(lidx)) &&
-			   line->at(*start) != '-') {
+		} else if (!isdigit(line->at(lidx)) && line->at(*start) != '-' &&
+		    !(is_float && line->at(lidx)) == '.') {
 			cfg_parse_err(line, lnr, lidx);
 		}
 	}
-	if (is_signed)
-		ret = strtol(string(*line,
-		  *start, lidx - *start).c_str(), NULL, 10);
-	else
-		ret = strtoul(string(*line,
-		  *start, lidx - *start).c_str(), NULL, 10);
+	if (is_float) {
+		tmp_dval = strtod(string(*line, *start,
+			lidx - *start).c_str(), NULL);
+		memcpy(&ret, &tmp_dval, sizeof(i64));  // hacky double to hex
+	} else if (is_signed) {
+		ret = strtoll(string(*line,
+			*start, lidx - *start).c_str(), NULL, 10);
+	} else {
+		ret = strtoull(string(*line,
+			*start, lidx - *start).c_str(), NULL, 10);
+	}
 	*start = ++lidx;
 	return ret;
 }
@@ -231,7 +255,7 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 			if (line->at(lidx) == ' ')
 				break;
 		} else if (!isdigit(line->at(lidx)) &&
-			   !isalpha(line->at(lidx))) {
+		    !isalpha(line->at(lidx))) {
 			cfg_parse_err(line, lnr, lidx);
 		}
 	}
@@ -278,9 +302,9 @@ list<CfgEntry*> *read_config (char *cfg_name,
 			chk_lp = cfg_enp->checks;
 			chk_en.addr = parse_address(&line, lnr, &start);
 			chk_en.size = parse_data_type(&line, lnr, &start,
-				&chk_en.is_signed);
+				&chk_en.is_signed, &chk_en.is_float);
 			chk_en.value = parse_value(&line, lnr, &start,
-				chk_en.is_signed, &chk_en.check);
+				chk_en.is_signed, chk_en.is_float, &chk_en.check);
 
 			chk_lp->push_back(chk_en);
 			break;
@@ -289,7 +313,7 @@ list<CfgEntry*> *read_config (char *cfg_name,
 			in_dynmem = true;
 			dynmem_enp = new DynMemEntry();
 			dynmem_enp->mem_size = parse_value(&line, lnr,
-				&start, false, &tmp);
+				&start, false, false, &tmp);
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
 			dynmem_enp->stack_offs = parse_address(&line, lnr, &start);
 			dynmem_enp->mem_addr = NULL;
@@ -308,9 +332,9 @@ list<CfgEntry*> *read_config (char *cfg_name,
 			cfg_en.checks = NULL;
 			cfg_en.addr = parse_address(&line, lnr, &start);
 			cfg_en.size = parse_data_type(&line, lnr, &start,
-				&cfg_en.is_signed);
+				&cfg_en.is_signed, &cfg_en.is_float);
 			cfg_en.value = parse_value(&line, lnr, &start,
-				cfg_en.is_signed, &cfg_en.check);
+				cfg_en.is_signed, cfg_en.is_float, &cfg_en.check);
 			if (in_dynmem) {
 				cfg_en.dynmem = dynmem_enp;
 			} else {

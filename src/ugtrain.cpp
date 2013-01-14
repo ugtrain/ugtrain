@@ -41,6 +41,8 @@ using namespace std;
 
 void output_configp (list<CfgEntry*> *cfg)
 {
+	double tmp_dval;
+
 	if (!cfg || cfg->empty()) {
 		cout << "<none>" << endl;
 		return;
@@ -51,14 +53,21 @@ void output_configp (list<CfgEntry*> *cfg)
 	list<CfgEntry*>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		cfg_en = *it;
-		cout << cfg_en->name << " " << hex << cfg_en->addr << dec;
-		cout << " " << cfg_en->size << " " << cfg_en->value << endl;
+		cout << cfg_en->name << " " << hex << cfg_en->addr << dec
+			<< " " << cfg_en->size << " ";
+		if (cfg_en->is_float) {
+			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
+			cout << tmp_dval << endl;
+		} else {
+			cout << cfg_en->value << endl;
+		}
 	}
 }
 
 static void output_checks (CfgEntry *cfg_en)
 {
 	list<CheckEntry> *chk_lp;
+	double tmp_dval;
 
 	if (cfg_en->check > DO_UNCHECKED) {
 		cout << "check " << hex << cfg_en->addr << dec;
@@ -67,7 +76,12 @@ static void output_checks (CfgEntry *cfg_en)
 		else if (cfg_en->check == DO_GT)
 			cout << " >";
 	}
-	cout << " " << cfg_en->value << endl;
+	if (cfg_en->is_float) {
+		memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
+		cout << " " << tmp_dval << endl;
+	} else {
+		cout << " " << cfg_en->value << endl;
+	}
 
 	if (!cfg_en->checks)
 		return;
@@ -81,12 +95,19 @@ static void output_checks (CfgEntry *cfg_en)
 			else if (it->check == DO_GT)
 				cout << " >";
 		}
-		cout << " " << it->value << endl;
+		if (it->is_float) {
+			memcpy(&tmp_dval, &it->value, sizeof(i64));
+			cout << " " << tmp_dval << endl;
+		} else {
+			cout << " " << it->value << endl;
+		}
 	}
 }
 
 static void output_config (list<CfgEntry> *cfg)
 {
+	double tmp_dval;
+
 	if (!cfg || cfg->empty()) {
 		cout << "<none>" << endl;
 		return;
@@ -102,7 +123,13 @@ static void output_config (list<CfgEntry> *cfg)
 			<< hex << cfg_en.dynmem->code_addr << " "
 			<< cfg_en.dynmem->stack_offs << dec << endl;
 		cout << cfg_en.name << " " << hex << cfg_en.addr << dec;
-		cout << " " << cfg_en.size << " " << cfg_en.value << endl;
+		cout << " " << cfg_en.size << " ";
+		if (cfg_en.is_float) {
+			memcpy(&tmp_dval, &cfg_en.value, sizeof(i64));
+			cout << tmp_dval << endl;
+		} else {
+			cout << cfg_en.value << endl;
+		}
 		output_checks(&cfg_en);
 	}
 }
@@ -213,7 +240,7 @@ static i32 check_memory (CheckEntry chk_en, u8 *chk_buf)
 	if (chk_en.is_signed) {
 		switch (chk_en.size) {
 		case 64:
-			return check_mem_val((long) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i64) chk_en.value, chk_buf, chk_en.check);
 		case 32:
 			return check_mem_val((i32) chk_en.value, chk_buf, chk_en.check);
 		case 16:
@@ -224,7 +251,7 @@ static i32 check_memory (CheckEntry chk_en, u8 *chk_buf)
 	} else {
 		switch (chk_en.size) {
 		case 64:
-			return check_mem_val((unsigned long) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u64) chk_en.value, chk_buf, chk_en.check);
 		case 32:
 			return check_mem_val((u32) chk_en.value, chk_buf, chk_en.check);
 		case 16:
@@ -239,10 +266,16 @@ template <typename T>
 static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void *mem_offs)
 {
 	list<CheckEntry> *chk_lp;
-	u8 chk_buf[10];
+	u8 chk_buf[sizeof(i64)];
 	void *mem_addr;
+	double tmp_dval;
 
-	cfg_en->old_val = *(T *)buf;
+	if (cfg_en->is_float) {
+		tmp_dval = (double) *(T *)buf;
+		memcpy(&cfg_en->old_val, &tmp_dval, sizeof(i64));
+	} else {
+		cfg_en->old_val = *(T *)buf;
+	}
 
 	if (cfg_en->checks) {
 		chk_lp = cfg_en->checks;
@@ -250,7 +283,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
 			mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
-			if (gc_get_memory(pid, mem_addr, chk_buf, sizeof(long)) != 0) {
+			if (gc_get_memory(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				exit(-1);
 			}
@@ -264,7 +297,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		memcpy(buf, &value, sizeof(T));
 		mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 
-		if (gc_set_memory(pid, mem_addr, buf, sizeof(long)) != 0) {
+		if (gc_set_memory(pid, mem_addr, buf, sizeof(i64)) != 0) {
 			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
 			exit(-1);
 		}
@@ -273,10 +306,22 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 
 static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 {
-	if (cfg_en->is_signed) {
+	double tmp_dval;
+
+	if (cfg_en->is_float) {
+		memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
 		switch (cfg_en->size) {
 		case 64:
-			change_mem_val(pid, cfg_en, (long) cfg_en->value, buf, mem_offs);
+			change_mem_val(pid, cfg_en, (double) tmp_dval, buf, mem_offs);
+			break;
+		case 32:
+			change_mem_val(pid, cfg_en, (float) tmp_dval, buf, mem_offs);
+			break;
+		}
+	} else if (cfg_en->is_signed) {
+		switch (cfg_en->size) {
+		case 64:
+			change_mem_val(pid, cfg_en, (i64) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
 			change_mem_val(pid, cfg_en, (i32) cfg_en->value, buf, mem_offs);
@@ -291,7 +336,7 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	} else {
 		switch (cfg_en->size) {
 		case 64:
-			change_mem_val(pid, cfg_en, (unsigned long) cfg_en->value, buf, mem_offs);
+			change_mem_val(pid, cfg_en, (u64) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
 			change_mem_val(pid, cfg_en, (u32) cfg_en->value, buf, mem_offs);
@@ -471,8 +516,9 @@ i32 main (i32 argc, char **argv)
 	CfgEntry *cfg_en;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
-	u8 buf[10] = { 0 };
+	u8 buf[sizeof(i64)] = { 0 };
 	char ch;
+	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
 
 	atexit(restore_getch);
@@ -533,7 +579,7 @@ i32 main (i32 argc, char **argv)
 			}
 
 			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
-			if (gc_get_memory(pid, mem_addr, buf, sizeof(long)) != 0) {
+			if (gc_get_memory(pid, mem_addr, buf, sizeof(i64)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				return -1;
 			}
@@ -557,8 +603,13 @@ i32 main (i32 argc, char **argv)
 			}
 			cout << cfg_en->name << " at " << hex
 				<< PTR_ADD(void *, cfg_en->addr, mem_offs)
-				<< ", Data: 0x" << (long) cfg_en->old_val << dec
-				<< " (" << cfg_en->old_val << ")" << endl;
+				<< ", Data: 0x" << (i64) cfg_en->old_val << dec;
+			if (cfg_en->is_float) {
+				memcpy(&tmp_dval, &cfg_en->old_val, sizeof(i64));
+				cout << " (" << tmp_dval << ")" << endl;
+			} else {
+				cout << " (" << cfg_en->old_val << ")" << endl;
+			}
 		}
 
 	}

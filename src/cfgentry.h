@@ -49,8 +49,9 @@ class CheckEntry {
 public:
 	void *addr;
 	bool is_signed;
+	bool is_float;
 	i32 size;
-	long value;
+	i64 value;
 	i32 check;
 };
 
@@ -67,9 +68,10 @@ public:
 	string name;
 	void *addr;
 	bool is_signed;
+	bool is_float;
 	i32 size;
-	long value;
-	long old_val;
+	i64 value;
+	i64 old_val;
 	i32 check;
 	list<CheckEntry> *checks;
 	DynMemEntry *dynmem;
