@@ -91,16 +91,15 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ' ') {
 			break;
-		} else
-		if (!isalnum(line->at(lidx)) &&
+		} else if (!isalnum(line->at(lidx)) &&
 		    line->at(lidx) != '-' &&
 		    line->at(lidx) != '_') {
 			cfg_parse_err(line, lnr, lidx);
 		}
 	}
 
+	ret = string(*line, *start, lidx - *start);
 	*start = lidx + 1;
-	ret = string(*line, 0, lidx);
 	if (ret == "check")
 		*name_type = NAME_CHECK;
 	else if (ret == "dynmemstart")
@@ -311,6 +310,8 @@ list<CfgEntry*> *read_config (char *cfg_name,
 		case NAME_DYNMEM_START:
 			in_dynmem = true;
 			dynmem_enp = new DynMemEntry();
+			dynmem_enp->name = parse_value_name(&line, lnr,
+				&start, &name_type);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
 				&start, false, false, &tmp);
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);

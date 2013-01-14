@@ -119,9 +119,10 @@ static void output_config (list<CfgEntry> *cfg)
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		cfg_en = *it;
 		if (cfg_en.dynmem)
-			cout << "dynmem: " << cfg_en.dynmem->mem_size << " "
-			<< hex << cfg_en.dynmem->code_addr << " "
-			<< cfg_en.dynmem->stack_offs << dec << endl;
+			cout << "dynmem: " << cfg_en.dynmem->name << " "
+				<< cfg_en.dynmem->mem_size << " "
+				<< hex << cfg_en.dynmem->code_addr << " "
+				<< cfg_en.dynmem->stack_offs << dec << endl;
 		cout << cfg_en.name << " " << hex << cfg_en.addr << dec;
 		cout << " " << cfg_en.size << " ";
 		if (cfg_en.is_float) {
@@ -460,14 +461,18 @@ next:
 			ppos++;
 			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
 				goto parse_err;
-			cout << "m" << hex << mem_addr << ";c"
-				<< code_addr << dec << endl;
+			//cout << "m" << hex << mem_addr << ";c"
+			//	<< code_addr << dec << endl;
 
 			// find object and set mem_addr
 			for (it = cfg->begin(); it != cfg->end(); it++) {
 				if (it->dynmem &&
 				    it->dynmem->code_addr == code_addr) {
 					it->dynmem->mem_addr = mem_addr;
+					cout << "Obj. " << it->dynmem->name << "; c"
+						<< it->dynmem->code_addr << "; s"
+						<< it->dynmem->mem_size << "; created at "
+						<< it->dynmem->mem_addr << endl;
 					break;
 				}
 			}
@@ -476,11 +481,15 @@ next:
 			ppos = 1;
 			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
 				goto parse_err;
-			cout << "f" << hex << mem_addr << dec << endl;
+			//cout << "f" << hex << mem_addr << dec << endl;
 			for (it = cfg->begin(); it != cfg->end(); it++) {
 				if (it->dynmem &&
 				    it->dynmem->mem_addr == mem_addr) {
 					it->dynmem->mem_addr = NULL;
+					cout << "Obj. " << it->dynmem->name << "; c"
+						<< it->dynmem->code_addr << "; s"
+						<< it->dynmem->mem_size << "; freed from "
+						<< mem_addr << endl;
 					break;
 				}
 			}

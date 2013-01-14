@@ -57,6 +57,7 @@ public:
 
 class DynMemEntry {
 public:
+	string name;
 	size_t mem_size;
 	void *code_addr;
 	void *stack_offs;
