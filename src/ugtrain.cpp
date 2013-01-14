@@ -351,20 +351,22 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	}
 }
 
-i32 prepare_dynmem(list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
+i32 prepare_dynmem (list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
 {
 	char obuf[4096] = {0};
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
 	size_t written;
+	void *old_code_addr = NULL;
 
 	// fill the output buffer with the dynmem cfg
 	list<CfgEntry>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
-		if (it->dynmem) {
+		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 				";%zd;%p;%p", it->dynmem->mem_size,
 				it->dynmem->code_addr, it->dynmem->stack_offs);
+			old_code_addr = it->dynmem->code_addr;
 		}
 	}
 	// put the number of cfgs to the end
@@ -418,7 +420,7 @@ i32 prepare_dynmem(list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
 	return 0;
 }
 
-void read_dynmem_buf(list<CfgEntry> *cfg, i32 ifd)
+void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd)
 {
 	void *mem_addr, *code_addr;
 	static ssize_t ipos = 0, ilen = 0;
