@@ -72,7 +72,7 @@ static string parse_proc_name (string *line, u32 *start)
 		proc_name_err(line, 0);
 
 	for (lidx = *start; lidx < line->length(); lidx++) {
-		if (!isalpha(line->at(lidx)) &&
+		if (!isalnum(line->at(lidx)) &&
 		    line->at(lidx) != '.' &&
 		    line->at(lidx) != '-' &&
 		    line->at(lidx) != '_')
@@ -92,7 +92,7 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 		if (line->at(lidx) == ' ') {
 			break;
 		} else
-		if (!isalpha(line->at(lidx)) &&
+		if (!isalnum(line->at(lidx)) &&
 		    line->at(lidx) != '-' &&
 		    line->at(lidx) != '_') {
 			cfg_parse_err(line, lnr, lidx);
@@ -254,8 +254,7 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 			}
 			if (line->at(lidx) == ' ')
 				break;
-		} else if (!isdigit(line->at(lidx)) &&
-		    !isalpha(line->at(lidx))) {
+		} else if (!isalnum(line->at(lidx))) {
 			cfg_parse_err(line, lnr, lidx);
 		}
 	}
