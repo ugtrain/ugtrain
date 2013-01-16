@@ -25,6 +25,10 @@
 
 #define OW_MALLOC 1
 #define OW_FREE 1
+#define PAGE_SIZE 4096
+#define BUF_SIZE PAGE_SIZE
+#define DYNMEM_IN  "/tmp/memhack_in"
+#define DYNMEM_OUT "/tmp/memhack_out"
 
 typedef unsigned long long u64;
 typedef unsigned int u32;
@@ -42,7 +46,7 @@ typedef u64 ptr_t;
 /* File descriptors and output buffer */
 static int ifd = -1;
 static FILE *ofile = NULL;  /* much data - we need caching */
-static char obuf[4096];
+static char obuf[BUF_SIZE];
 
 /* Output control */
 static int active = 0;
@@ -88,16 +92,17 @@ memhack_init(void) {
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
 
-	ifd = open("/tmp/memhack_in", O_RDONLY | O_NONBLOCK);
+	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
-		perror("open in");
+		perror("open input");
 		exit(1);
 	}
 	printf("ifd: %d\n", ifd);
 
-	ofile = fopen("/tmp/memhack_out", "w");
+	printf("Waiting for output FIFO opener..\n");
+	ofile = fopen(DYNMEM_OUT, "w");
 	if (!ofile) {
-		perror("fopen out");
+		perror("fopen output");
 		exit(1);
 	}
 	printf("ofile: %p\n", ofile);

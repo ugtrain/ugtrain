@@ -90,14 +90,15 @@ memhack_init(void) {
 
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
-		perror("open in");
+		perror("open input");
 		exit(1);
 	}
 	printf("ifd: %d\n", ifd);
 
+	printf("Waiting for output FIFO opener..\n");
 	ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (ofd < 0) {
-		perror("open out");
+		perror("open output");
 		exit(1);
 	}
 	printf("ofd: %d\n", ofd);
