@@ -391,10 +391,22 @@ i32 prepare_dynmem (list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
 		perror("input mkfifo");
 		return 1;
 	}
+	/* Bug in Ubuntu: mkfifo ignores mode */
+	if (chmod(DYNMEM_IN, S_IRUSR | S_IWUSR |
+	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
+		perror("input chmod");
+		return 1;
+	}
 
 	if (mkfifo(DYNMEM_OUT, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
 		perror("output mkfifo");
+		return 1;
+	}
+	/* Bug in Ubuntu: mkfifo ignores mode */
+	if (chmod(DYNMEM_OUT, S_IRUSR | S_IWUSR |
+	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
+		perror("output chmod");
 		return 1;
 	}
 
