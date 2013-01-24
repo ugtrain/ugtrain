@@ -1,3 +1,3 @@
-SUBDIRS = libgcheater linuxhooking src
+SUBDIRS = linuxhooking src
 
 ACLOCAL_AMFLAGS = -I m4

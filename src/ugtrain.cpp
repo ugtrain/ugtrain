@@ -19,19 +19,21 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <cstring>
+
 #include <stdlib.h>
 #include <unistd.h>
-#include <cstring>
-#include <libgcheater.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
 
 // local includes
-#include "getch.h"
 #include "cfgentry.h"
 #include "parser.h"
+#include "getch.h"
+#include "memattach.h"
 using namespace std;
 
 #define PROG_NAME  "ugtrain"
@@ -284,7 +286,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
 			mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
-			if (gc_get_memory(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
+			if (memread(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				exit(-1);
 			}
@@ -298,7 +300,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		memcpy(buf, &value, sizeof(T));
 		mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 
-		if (gc_set_memory(pid, mem_addr, buf, sizeof(i64)) != 0) {
+		if (memwrite(pid, mem_addr, buf, sizeof(i64)) != 0) {
 			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
 			exit(-1);
 		}
@@ -574,7 +576,7 @@ i32 main (i32 argc, char **argv)
 		return -1;
 	}
 
-	if (gc_ptrace_test(pid) != 0) {
+	if (memattach_test(pid) != 0) {
 		cerr << "PTRACE ERROR PID[" << pid << "]!" << endl;
 		return -1;
 	}
@@ -587,7 +589,7 @@ i32 main (i32 argc, char **argv)
 
 		read_dynmem_buf(&cfg, ifd);
 
-		if (gc_ptrace_stop(pid) != 0) {
+		if (memattach(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
 		}
@@ -602,14 +604,14 @@ i32 main (i32 argc, char **argv)
 			}
 
 			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
-			if (gc_get_memory(pid, mem_addr, buf, sizeof(i64)) != 0) {
+			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				return -1;
 			}
 			change_memory(pid, cfg_en, buf, mem_offs);
 		}
 
-		if (gc_ptrace_continue(pid) != 0) {
+		if (memdetach(pid) != 0) {
 			cerr << "PTRACE DETACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
 		}

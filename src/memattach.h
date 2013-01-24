@@ -1,9 +1,11 @@
-/* getch.h:    multi-platform getch() implementation
+/* memattach.h:    functions to attach/read/write victim proc. memory
  *
- * Copyright (c) 2012, by:      Sebastian Riemer
+ * Copyright (c) 2013, by:      Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
+ *
+ * based on libgcheater by Alf <h980501427@hotmail.com>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU Library General Public License Version 2, or any later version
@@ -14,16 +16,17 @@
  * GNU Library General Public License for more details.
  */
 
-#ifndef GETCH_H
-#define GETCH_H
+#ifndef MEMATTACH_H
+#define MEMATTACH_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-	int  prepare_getch (void);
-	int  prepare_getch_nb (void);
-	char do_getch      (void);
-	void restore_getch (void);
+	int memattach_test (pid_t pid);
+	int memattach (pid_t pid);
+	int memdetach (pid_t pid);
+	int memread   (pid_t pid, void* addr, void* buf, long buf_len);
+	int memwrite  (pid_t pid, void* addr, void* buf, long buf_len);
 #ifdef __cplusplus
 };
 #endif
