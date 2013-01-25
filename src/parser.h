@@ -1,6 +1,6 @@
 /* parser.h:    parsing functions to read in the config file
  *
- * Copyright (c) 2012, by:      Sebastian Riemer
+ * Copyright (c) 2012..13, by:  Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
@@ -22,6 +22,7 @@
 #include "cfgentry.h"
 
 list<CfgEntry*> *read_config (char *cfg_name,
+			      char *env_home,
 			      string *proc_name,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map);

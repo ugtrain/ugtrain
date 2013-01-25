@@ -1,6 +1,6 @@
 /* parser.cpp:    parsing functions to read in the config file
  *
- * Copyright (c) 2012, by:      Sebastian Riemer
+ * Copyright (c) 2012..13, by:  Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
@@ -23,7 +23,8 @@
 using namespace std;
 
 
-#define CFG_DIR "."
+#define CFG_DIR "~/.ugtrain/"
+#define CFG_EXT ".conf"
 
 enum {
 	NAME_REGULAR,
@@ -46,17 +47,30 @@ static inline void cfg_parse_err (string *line, u32 lnr, u32 lidx)
 	exit(-1);
 }
 
-static void read_config_vect (string *path, vector<string> *lines)
+static void read_config_vect (string *path, string *home, vector<string> *lines)
 {
 	ifstream cfg_file;
 	string line;
 
-	cout << "Loading config file \"" << *path << "\"." << endl;
+	if (path->rfind('~', 0) != string::npos)
+		path->replace(0, 1, *home);
+
+	if (path->find(CFG_EXT, path->size() - sizeof(CFG_EXT) + 1) == string::npos)
+		*path += string(CFG_EXT);
+
 	cfg_file.open(path->c_str());
 	if (!cfg_file.is_open()) {
-		cerr << "File \"" << *path << "\" doesn't exist!" << endl;
-		exit(-1);
+		*path = string(CFG_DIR) + *path;
+		if (path->rfind('~', 0) != string::npos)
+			path->replace(0, 1, *home);
+
+		cfg_file.open(path->c_str());
+		if (!cfg_file.is_open()) {
+			cerr << "File \"" << *path << "\" doesn't exist!" << endl;
+			exit(-1);
+		}
 	}
+	cout << "Loading config file \"" << *path << "\"." << endl;
 	while (cfg_file.good()) {
 		getline(cfg_file, line);
 		lines->push_back(line);
@@ -259,7 +273,8 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 	}
 }
 
-list<CfgEntry*> *read_config (char *cfg_name,
+list<CfgEntry*> *read_config (char *cfg_path,
+			      char *env_home,
 			      string *proc_name,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map)
@@ -275,11 +290,10 @@ list<CfgEntry*> *read_config (char *cfg_name,
 	bool in_dynmem = false;
 	string line;
 	vector<string> lines;
-	string path(string(CFG_DIR) + string("/")
-		+ string(cfg_name) + string(".conf"));
+	string path(cfg_path), home(env_home);
 
 	// read config into string vector
-	read_config_vect(&path, &lines);
+	read_config_vect(&path, &home, &lines);
 
 	// parse config
 	*proc_name = parse_proc_name(&lines.at(0), &start);

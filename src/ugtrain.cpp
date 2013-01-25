@@ -1,6 +1,6 @@
 /* ugtrain.cpp:    freeze values in process memory (game trainer)
  *
- * Copyright (c) 2012, by:      Sebastian Riemer
+ * Copyright (c) 2012..13, by:  Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
@@ -37,6 +37,7 @@
 using namespace std;
 
 #define PROG_NAME  "ugtrain"
+#define HOME_VAR   "HOME"
 #define DYNMEM_IN  "/tmp/memhack_out"
 #define DYNMEM_OUT "/tmp/memhack_in"
 
@@ -200,7 +201,7 @@ static pid_t proc_to_pid (string *proc_name)
 void usage()
 {
 	cerr << "Not enough arguments!" << endl;
-	cerr << "Call: " << PROG_NAME << " <config>" << endl;
+	cerr << "Call: " << PROG_NAME << " <config_path>" << endl;
 	exit(-1);
 }
 
@@ -531,7 +532,7 @@ parse_err:
 	return;
 }
 
-i32 main (i32 argc, char **argv)
+i32 main (i32 argc, char **argv, char **env)
 {
 	string proc_name;
 	list<CfgEntry> cfg;
@@ -541,6 +542,9 @@ i32 main (i32 argc, char **argv)
 	CfgEntry *cfg_en;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
+	u32 i;
+	char *home = NULL;
+	char _home[] = "~";
 	u8 buf[sizeof(i64)] = { 0 };
 	char ch;
 	double tmp_dval;
@@ -551,7 +555,19 @@ i32 main (i32 argc, char **argv)
 	if (argc < 2)
 		usage();
 
-	cfg_act = read_config(argv[1], &proc_name, &cfg, cfgp_map);
+	for (i = 0; env[i] != NULL; i++) {
+		if (strncmp(env[i], HOME_VAR "=", sizeof(HOME_VAR)) == 0) {
+			home = (char *) malloc(strlen(env[i]) + 1);
+			if (home)
+				memcpy(home, env[i] + sizeof(HOME_VAR),
+					strlen(env[i]) - sizeof(HOME_VAR) + 2);
+			break;
+		}
+	}
+	if (!home)
+		home = _home;
+
+	cfg_act = read_config(argv[1], home, &proc_name, &cfg, cfgp_map);
 	cout << "Found config for \"" << proc_name << "\"." << endl;
 
 	cout << "Config:" << endl;
