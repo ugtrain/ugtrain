@@ -1,41 +1,47 @@
-Version 0.1.0
-This is the initial version. The tool is still under heavy development.
-For now only static values in memory work with universal checks.
-There is lots of work to do. I appreciate any help I can get.
+Version 0.2
+This tool is still under heavy development. Dyn. mem. support is new.
+There is still a lot of work to do. I appreciate any help I can get.
 Just drop me an email with your contribution wish to:
 sebastian.riemer@gmx.de
 
 Autotools:
-create and include config.in and config.h
++ create and include config.in and config.h
++ make compilation of dyn. mem. support optional
++ make multilib (32 bit + 64 bit) support optional
 
 Config files:
-make search paths for config files configurable
-support home directory '~' as search path
-support more chars in program name to be attached to (e.g. '_')
-support vector and list pointers to take over a dynamic structure in memory
++ make search paths for config files configurable
++ support vector and list pointers to take over a dynamic structure in memory
 
 Options:
-support option parsing (getopt)
-support common linux options (-V, -v, --help, ...)
-support option to enable external control
++ support option parsing (getopt)
++ support common linux options (-V, -v, --help, ...)
++ support option to enable external control
++ support auto adaption of dynamic memory configs (--adapt)
 
-External control:
-support config from stdin or command line
+External control (using ugtrain as backend):
++ support config from stdin or command line
 
 Multi-platform support:
-support Windows as well
-write getch functions for Windows
-add Windows support to libgcheater (KeStackAttachProcess)
-support mingw compilation
-put process name to PID function into separate multi-platform files
-check boost libraries for help with that
++ support Windows as well
++ write getch functions for Windows
++ add Windows support for memory changing (KeStackAttachProcess)
++ support mingw compilation
++ put process name to PID function into separate multi-platform files
++ check boost libraries for help with that
++ add dyn. mem. support for WINE
 
 Trainer:
-support list and vector processing
-support external control (start/stop freezing)
++ support list and vector processing (hook 'memmove' as well)
++ support external control (start/stop freezing)
++ simplify dyn. mem. discovery and adaption
 
 Documentation:
-create man page
++ create man page
 
 Languages:
-support gettext
++ support gettext
+
+Other:
++ record a video of cheating "Chromium B.S.U." on skill "impossible"
++ upload the video to youtube
