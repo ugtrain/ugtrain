@@ -1,32 +1,73 @@
 ###################
 ### DESCRIPTION ###
 ###################
-# ugtrain is an universal game trainer for the CLI. It doesn't search any
-# values in memory to make it simple. This is the tool to be used after
-# knowing the memory addresses and structures where the values should be
-# freezed in memory. You can search the values e.g. with the GTK+ tool
-# "gamecheater", the CLI tool "scanmem", the C# tool "Tursiops" or the
-# Qt tool "QGSpider".
+# The ugtrain is a free universal game trainer for the CLI under GPLv2
+# license uploaded on GitHub. The dynamic memory support sets it apart.
+# A preloader, a malloc discovery and a memory hacking library are included
+# for this.
+# The ugtrain uses one simple config file per game which can be exchanged
+# with others. Examples are included.
 #
-# Some of these can also freeze memory values. Where is the difference?
+# ### Current Limitations ###
 #
-# Well, this tool is for the CLI, it will become multi-platform, and
-# it will also support dynamic structures like vectors and lists.
-# It already supports universal checks to prevent changing values
-# e.g. while in the game main menu or making an opponent immortal by
-# accident in a vector. With the config files you can also exchange
-# your trainer config with others without recompilation.
+# CPU Architecture:	x86 and x86_64 only
 #
-# Why a CLI tool?
+# Operating System:	Linux-only
+#
+# Dynamic Memory:	constructors-only (no growing objects/structures),
+#			discovery + adaption can be simpler,
+#			dosn't work for WINE, yet
+#
+# Compilation:		dyn. mem. support can't be deactivated,
+#			requires multilib support (32+64 bit) for dyn. mem.
+#
+# GUI:			can't serve as a backend, yet
+#
+# ### Why a CLI tool? ###
 #
 # CLI is important e.g. if you play full screen in WINE. Some people
 # start another X session for the game but I don't like that. Moreover,
-# you will be able to use this tool for trainer creation out of another
-# tool (e.g. memory search tool) or you will be able to write your own
-# GUI frontend for it. CLI tools can last tens of years while GUIs change
-# more frequently.
+# you will be able to write your own GUI frontend for it. CLI tools can
+# last decades while GUIs change more frequently.
 #
-# Please read TODO for further information.
+# ### Static Memory ###
+#
+# The ugtrain freezes memory values but doesn't search for them to make it
+# simple. You have to know the memory addresses already and to put them into
+# a config file.
+# You can search for the memory values e.g. with the CLI tool "scanmem".
+#
+# There are also GUI tools which can freeze found memory values.
+# Where is the difference?
+#
+# Well, this tool is for the CLI and has much more trainer features. It will
+# become muliti-platform and the simple config files give you a lot of
+# flexibility.
+#
+# There are universal checks implemented. These prevent changing values e.g.
+# while being in the game main menu or making an opponent immortal by accident
+# in a vector. This makes static memory freezing a lot safer.
+#
+# ### Dynamic Memory ###
+#
+# Why is dynamic memory so important and how to hack it?
+#
+# Since leaving the good old DOS times, games aren't implemented in C any more
+# but instead object oriented with e.g. C++. Objects are stored on the heap
+# memory. But Linux uses heap and stack randomization for security. The only
+# thing which remains constant is the code jump back address of the malloc call
+# and its offset on the stack memory.
+#
+# With ugpreload, libmemdisc and static memory search in parallel you can
+# easily discover the code address and register with libmemhack as well as
+# ugtrain on it to freeze the memory values within the allocated object. The
+# preloaded game communicates via FIFOs with ugtrain and tells it exactly when
+# the relevant malloc/free call occurred. This is especially useful if your
+# distribution requires ptrace and therefore ugtrain to be run as root. Then,
+# the game process still can be called as regular user. The "HeroAircraft"
+# object of the game "Chromium B.S.U." is one of the included examples.
+#
+# Please read 'TODO' for further information.
 
 ############################
 ### HOW TO BUILD AND USE ###
@@ -49,9 +90,10 @@ sudo make install
 ugtrain <config>
 
 # This searches in the current working directory for the <config>.conf.
+# If it can't find it there it tries ~/.ugtrain/<config>.conf.
 # Do e.g. the following:
 cd examples
-ugrain test
+ugrain test    # 'ugtrain test.conf' is also possible
 
 # This parses the test.conf from the examples, searches for the running
 # instance of the game and starts freezing the configured values.
