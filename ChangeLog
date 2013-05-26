@@ -1,3 +1,11 @@
-Version 0.1.0:
+Version 0.2:
+Support for dynamic memory values is implemented (constructors-only).
++ use 'pidof' to get the game process pid
++ removed libgcheater dependency
++ added '~/.ugtrain/' config search path
++ added float support
++ added "Chromium B.S.U." example for dyn. mem.
+
+Version 0.1:
 Support for static memory values is implemented.
 Support for universal checks is implemented.
