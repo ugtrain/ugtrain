@@ -17,11 +17,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <string.h>
 
 /* env var to be added */
@@ -84,8 +79,6 @@ int env_append(const char *name, const char *val, char separator)
 int main (int argc, char *argv[])
 {
 	char *game_path = NULL;
-	int status;
-	pid_t pid;
 
 	if (argc < 3) {
 		fprintf(stderr, "use the following parameters: "
@@ -98,19 +91,10 @@ int main (int argc, char *argv[])
 	/* append the library to the preload env var */
 	env_append(PRELOAD_VAR, argv[1], ':');
 
-	/* run the victim process */
-	pid = fork();
-	if (pid == 0) {
-		printf("fork worked\n");
-		if (execl(game_path, game_path, NULL) < 0) {
-			perror("execl");
-			return 1;
-		}
-	} else if (pid > 0) {
-		waitpid(pid, &status, 0);
-		printf("child status: %d\n", status);
-	} else {
-		perror("fork");
+	/* execute the victim code */
+	if (execl(game_path, game_path, NULL) < 0) {
+		perror("execl");
+		return 1;
 	}
 
 	return EXIT_SUCCESS;
