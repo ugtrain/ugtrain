@@ -2,12 +2,12 @@
 # Process this file with autoconf to produce a configure script.
 
 PACKAGE=ugtrain
-VERSION=0.1.0
+VERSION=0.2.0
 EMAIL=sebastian.riemer@gmx.de
 
-AC_INIT(ugtrain, 0.1.0, sebastian.riemer@gmx.de)
+AC_INIT(ugtrain, 0.2.0, sebastian.riemer@gmx.de)
 
-AM_INIT_AUTOMAKE(ugtrain, 0.1.0)
+AM_INIT_AUTOMAKE(ugtrain, 0.2.0)
 AC_CONFIG_MACRO_DIR(m4)
 
 AM_MAINTAINER_MODE
