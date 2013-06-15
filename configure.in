@@ -65,7 +65,7 @@ AC_TYPE_UID_T
 
 # Checks for library functions.
 AC_FUNC_STAT
-AC_CHECK_FUNCS(ptrace memcpy memcmp malloc free)
+AC_CHECK_FUNCS(ptrace memcpy memcmp getenv setenv)
 
 AC_OUTPUT(
 Makefile
