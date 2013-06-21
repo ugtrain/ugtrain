@@ -25,26 +25,6 @@
 typedef unsigned long long u64;
 typedef unsigned int u32;
 
-#ifdef __i386__
-typedef u32 ptr_t;
-#else
-typedef u64 ptr_t;
-#endif
-
-#define PTR_ADD(type, x, y)   (type) ((ptr_t)x + (ptr_t)y)
-
-#define PATH_MAX   4096
-
-#if 0
-void print_env (char **envp)
-{
-	int i;
-
-	for (i = 0; envp[i] != NULL; i++)
-		printf("%s\n", envp[i]);
-}
-#endif
-
 int env_append(const char *name, const char *val, char separator)
 {
 	size_t env_len;
@@ -82,8 +62,8 @@ int main (int argc, char *argv[])
 
 	if (argc < 3) {
 		fprintf(stderr, "use the following parameters: "
-			"<lib_path> <app_path>\n");
-		return 1;
+			"<lib_path> <app_path> [app_opts]\n");
+		return EXIT_FAILURE;
 	}
 
 	game_path = argv[2];
@@ -94,7 +74,7 @@ int main (int argc, char *argv[])
 	/* execute the victim code */
 	if (execv(game_path, &argv[2]) < 0) {
 		perror("execv");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	return EXIT_SUCCESS;
