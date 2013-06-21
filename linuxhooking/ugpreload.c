@@ -92,8 +92,8 @@ int main (int argc, char *argv[])
 	env_append(PRELOAD_VAR, argv[1], ':');
 
 	/* execute the victim code */
-	if (execl(game_path, game_path, NULL) < 0) {
-		perror("execl");
+	if (execv(game_path, &argv[2]) < 0) {
+		perror("execv");
 		return 1;
 	}
 
