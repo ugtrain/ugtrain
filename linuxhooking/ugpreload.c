@@ -56,24 +56,30 @@ int env_append(const char *name, const char *val, char separator)
 	return 0;
 }
 
+char Help[] =
+"ugpreload loads a library with LD_PRELOAD into a game process\n"
+"before all other libraries are loaded.\n"
+"\n"
+"Usage: <lib_path> <app_path> [app_opts]\n"
+;
+
 int main (int argc, char *argv[])
 {
-	char *game_path = NULL;
+	char *app_path = NULL;
 
 	if (argc < 3) {
-		fprintf(stderr, "use the following parameters: "
-			"<lib_path> <app_path> [app_opts]\n");
+		fprintf(stderr, "%s", Help);
 		return EXIT_FAILURE;
 	}
 
-	game_path = argv[2];
+	app_path = argv[2];
 
 	/* append the library to the preload env var */
 	env_append(PRELOAD_VAR, argv[1], ':');
 
 	/* execute the victim code */
-	if (execv(game_path, &argv[2]) < 0) {
-		perror("execv");
+	if (execvp(app_path, &argv[2]) < 0) {
+		perror("execvp");
 		return EXIT_FAILURE;
 	}
 
