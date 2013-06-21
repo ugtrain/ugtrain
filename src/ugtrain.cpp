@@ -542,9 +542,8 @@ i32 main (i32 argc, char **argv, char **env)
 	CfgEntry *cfg_en;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
-	u32 i;
-	char *home = NULL;
-	char _home[] = "~";
+	char *home;
+	char def_home[] = "~";
 	u8 buf[sizeof(i64)] = { 0 };
 	char ch;
 	double tmp_dval;
@@ -555,17 +554,9 @@ i32 main (i32 argc, char **argv, char **env)
 	if (argc < 2)
 		usage();
 
-	for (i = 0; env[i] != NULL; i++) {
-		if (strncmp(env[i], HOME_VAR "=", sizeof(HOME_VAR)) == 0) {
-			home = (char *) malloc(strlen(env[i]) + 1);
-			if (home)
-				memcpy(home, env[i] + sizeof(HOME_VAR),
-					strlen(env[i]) - sizeof(HOME_VAR) + 2);
-			break;
-		}
-	}
+	home = getenv(HOME_VAR);
 	if (!home)
-		home = _home;
+		home = def_home;
 
 	cfg_act = read_config(argv[1], home, &proc_name, &cfg, cfgp_map);
 	cout << "Found config for \"" << proc_name << "\"." << endl;
