@@ -30,13 +30,13 @@
 #include <sys/stat.h>
 
 // local includes
+#include "options.h"
 #include "cfgentry.h"
 #include "parser.h"
 #include "getch.h"
 #include "memattach.h"
 using namespace std;
 
-#define PROG_NAME  "ugtrain"
 #define HOME_VAR   "HOME"
 #define DYNMEM_IN  "/tmp/memhack_out"
 #define DYNMEM_OUT "/tmp/memhack_in"
@@ -198,13 +198,6 @@ static pid_t proc_to_pid (string *proc_name)
 	return -1;
 }
 
-void usage()
-{
-	cerr << "Not enough arguments!" << endl;
-	cerr << "Call: " << PROG_NAME << " <config_path>" << endl;
-	exit(-1);
-}
-
 void toggle_cfg (list<CfgEntry*> *cfg, list<CfgEntry*> *cfg_act)
 {
 	bool found;
@@ -355,7 +348,8 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	}
 }
 
-i32 prepare_dynmem (list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
+i32 prepare_dynmem (struct app_options *opt, string *proc_name,
+		    list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
 {
 	char obuf[4096] = {0};
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
@@ -417,6 +411,13 @@ i32 prepare_dynmem (list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
 	if (*ifd < 0) {
 		perror("open ifd");
 		return 1;
+	}
+
+	/* Run the preloaded game but not as root */
+	if (opt->preload_lib && getuid() != 0) {
+		cout << "Starting preloaded game.." << endl;
+		cout << "$ " << PRELOADER << " " << opt->preload_lib
+		     << " " << *proc_name << endl;
 	}
 
 	cout << "Waiting for preloaded game.." << endl;
@@ -548,17 +549,20 @@ i32 main (i32 argc, char **argv, char **env)
 	char ch;
 	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
+	struct app_options opt;
 
 	atexit(restore_getch);
 
 	if (argc < 2)
 		usage();
 
+	parse_options(argc, argv, &opt);
+
 	home = getenv(HOME_VAR);
 	if (!home)
 		home = def_home;
 
-	cfg_act = read_config(argv[1], home, &proc_name, &cfg, cfgp_map);
+	cfg_act = read_config(argv[optind - 1], home, &proc_name, &cfg, cfgp_map);
 	cout << "Found config for \"" << proc_name << "\"." << endl;
 
 	cout << "Config:" << endl;
@@ -568,7 +572,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (cfg.empty())
 		return -1;
 
-	if (prepare_dynmem(&cfg, &ifd, &ofd) != 0) {
+	if (prepare_dynmem(&opt, &proc_name, &cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}

@@ -1,8 +1,10 @@
 bin_PROGRAMS = ugtrain
-ugtrain_SOURCES = cfgentry.h \
+ugtrain_SOURCES = options.h \
+                  cfgentry.h \
                   getch.h \
                   parser.h \
                   ugtrain.cpp \
+                  options.c \
                   parser.cpp \
                   getch_l.c \
                   memattach_l.c
