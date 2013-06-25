@@ -138,63 +138,79 @@ static void output_config (list<CfgEntry> *cfg)
 	}
 }
 
-static pid_t proc_to_pid (string *proc_name)
+static ssize_t run_shell_cmd (string *shell_cmd, char *pbuf, size_t pbuf_size)
 {
 	pid_t pid;
-	i32 status, fds[2], bytes_read;
-	char pbuf[PIPE_BUF] = {0};
-	string shell_cmd("pidof -s ");
-
-	shell_cmd.append(*proc_name);
+	i32 status, fds[2];
+	ssize_t bytes_read = 0;
 
 	if (pipe(fds) < 0) {
 		perror("pipe");
-		return -1;
+		goto err;
 	}
 	pid = fork();
 	if (pid < 0) {
 		perror("fork");
-		close(fds[1]);
-		close(fds[0]);
-		return -1;
+		close(fds[STDOUT_FILENO]);
+		close(fds[STDIN_FILENO]);
+		goto err;
 	} else if (pid == 0) {
-		if (dup2(fds[1], 1) < 0) {
+		if (dup2(fds[STDOUT_FILENO], STDOUT_FILENO) < 0) {
 			perror("dup2");
-			close(fds[1]);
-			close(fds[0]);
-			exit(-1);
+			close(fds[STDOUT_FILENO]);
+			close(fds[STDIN_FILENO]);
+			goto child_err;
 		}
-		close(fds[0]);
-		if (execlp("sh", "sh", "-c", shell_cmd.c_str(), NULL) < 0) {
+		close(fds[STDIN_FILENO]);
+		if (execlp("sh", "sh", "-c", shell_cmd->c_str(), NULL) < 0) {
 			perror("execlp");
-			close(fds[1]);
-			exit(-1);
+			close(fds[STDOUT_FILENO]);
+			goto child_err;
 		}
 	} else {
-		close(fds[1]);
+		close(fds[STDOUT_FILENO]);
 		waitpid(pid, &status, 0);
-		bytes_read = read(fds[0], pbuf, PIPE_BUF);
+		bytes_read = read(fds[STDIN_FILENO], pbuf, pbuf_size);
 		if (bytes_read < 0) {
 			perror("pipe read");
-			close(fds[0]);
-			return -1;
+			goto parent_err;
 		} else if (bytes_read <= 1) {
-			cerr << "Unable to find PID for \"" << *proc_name << "\"!" << endl;
-			close(fds[0]);
-			return -1;
+			cerr << "The command \'" << shell_cmd->c_str()
+			     << "\' did not return anything." << endl;
+			goto parent_err;
 		}
-		close(fds[0]);
 	}
+	close(fds[STDIN_FILENO]);
+	return bytes_read;
 
-	//cout << "Pipe: " << pbuf;
+parent_err:
+	close(fds[STDIN_FILENO]);
+err:
+	return -1;
+child_err:
+	exit(-1);
+}
 
-	if (isdigit(pbuf[0])) {
-		pid = atoi(pbuf);
-		if (pid > 1)
-			return pid;
-	}
+static pid_t proc_to_pid (string *proc_name)
+{
+	pid_t pid;
+	char pbuf[PIPE_BUF] = {0};
+	string shell_cmd("pidof -s ");
 
-	cerr << "Found PID is invalid!" << endl;
+	shell_cmd.append(*proc_name);
+	if (run_shell_cmd(&shell_cmd, pbuf, sizeof(pbuf)) <= 0)
+		goto err;
+
+	if (!isdigit(pbuf[0]))
+		goto err;
+
+	pid = atoi(pbuf);
+	if (pid <= 1)
+		goto err;
+
+	return pid;
+err:
+	cerr << "PID not found or invalid!" << endl;
 	return -1;
 }
 
