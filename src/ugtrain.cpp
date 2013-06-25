@@ -138,7 +138,28 @@ static void output_config (list<CfgEntry> *cfg)
 	}
 }
 
-static ssize_t run_shell_cmd (string *shell_cmd, char *pbuf, size_t pbuf_size)
+static i32 run_shell_cmd (string *shell_cmd)
+{
+	pid_t pid;
+
+	pid = fork();
+	if (pid < 0) {
+		perror("fork");
+		goto err;
+	} else if (pid == 0) {
+		if (execlp("sh", "sh", "-c", shell_cmd->c_str(), NULL) < 0) {
+			perror("execlp");
+			goto child_err;
+		}
+	}
+	return 0;
+err:
+	return -1;
+child_err:
+	exit(-1);
+}
+
+static ssize_t run_shell_cmd_pipe (string *shell_cmd, char *pbuf, size_t pbuf_size)
 {
 	pid_t pid;
 	i32 status, fds[2];
@@ -198,7 +219,7 @@ static pid_t proc_to_pid (string *proc_name)
 	string shell_cmd("pidof -s ");
 
 	shell_cmd.append(*proc_name);
-	if (run_shell_cmd(&shell_cmd, pbuf, sizeof(pbuf)) <= 0)
+	if (run_shell_cmd_pipe(&shell_cmd, pbuf, sizeof(pbuf)) <= 0)
 		goto err;
 
 	if (!isdigit(pbuf[0]))
@@ -364,8 +385,27 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	}
 }
 
-i32 prepare_dynmem (struct app_options *opt, string *proc_name,
-		    list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
+static i32 run_preloader (char *preload_lib, string *proc_name)
+{
+	i32 ret;
+	string shell_cmd(PRELOADER);
+
+	shell_cmd.append(" ");
+	shell_cmd.append(preload_lib);
+	shell_cmd.append(" ");
+	shell_cmd.append(*proc_name);
+	ret = run_shell_cmd(&shell_cmd);
+	if (ret)
+		goto err;
+
+	return ret;
+err:
+	cerr << "Error while running preloader!" << endl;
+	return ret;
+}
+
+static i32 prepare_dynmem (struct app_options *opt, string *proc_name,
+			   list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
 {
 	char obuf[4096] = {0};
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
@@ -434,6 +474,7 @@ i32 prepare_dynmem (struct app_options *opt, string *proc_name,
 		cout << "Starting preloaded game.." << endl;
 		cout << "$ " << PRELOADER << " " << opt->preload_lib
 		     << " " << *proc_name << endl;
+		run_preloader(opt->preload_lib, proc_name);
 	}
 
 	cout << "Waiting for preloaded game.." << endl;
