@@ -23,6 +23,7 @@
 #define PRELOADER  "ugpreload"
 
 struct app_options {
+	int do_adapt;
 	char *preload_lib;
 };
 

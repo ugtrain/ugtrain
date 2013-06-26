@@ -30,7 +30,8 @@ enum {
 	NAME_REGULAR,
 	NAME_CHECK,
 	NAME_DYNMEM_START,
-	NAME_DYNMEM_END
+	NAME_DYNMEM_END,
+	NAME_ADAPT
 };
 
 static inline void proc_name_err (string *line, u32 lidx)
@@ -107,7 +108,9 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			break;
 		} else if (!isalnum(line->at(lidx)) &&
 		    line->at(lidx) != '-' &&
-		    line->at(lidx) != '_') {
+		    line->at(lidx) != '_' &&
+		    line->at(lidx) != '/' &&
+		    line->at(lidx) != '.') {
 			cfg_parse_err(line, lnr, lidx);
 		}
 	}
@@ -120,6 +123,8 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 		*name_type = NAME_DYNMEM_START;
 	else if (ret == "dynmemend")
 		*name_type = NAME_DYNMEM_END;
+	else if (ret == "adapt_script")
+		*name_type = NAME_ADAPT;
 	else
 		*name_type = NAME_REGULAR;
 
@@ -276,6 +281,7 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 list<CfgEntry*> *read_config (char *cfg_path,
 			      char *env_home,
 			      string *proc_name,
+			      string *adp_script,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map)
 {
@@ -340,6 +346,19 @@ list<CfgEntry*> *read_config (char *cfg_path,
 			} else {
 				cfg_parse_err(&line, lnr, start);
 			}
+			break;
+
+		case NAME_ADAPT:
+			size_t pos;
+			if (in_dynmem) {
+				cfg_parse_err(&line, lnr, start);
+			}
+			*adp_script = string("");
+			pos = path.rfind("/");
+			if (pos != string::npos)
+				adp_script->append(path.substr(0, pos + 1));
+			adp_script->append(parse_value_name(&line,
+					   lnr, &start, &name_type));
 			break;
 
 		default:

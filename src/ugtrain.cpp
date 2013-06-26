@@ -494,6 +494,25 @@ static i32 prepare_dynmem (struct app_options *opt, string *proc_name,
 	return 0;
 }
 
+static i32 adapt_config (string *adp_script)
+{
+	char pbuf[PIPE_BUF] = {0};
+	string shell_cmd(*adp_script);
+
+	if (getuid() == 0 || adp_script->empty())
+		goto err;
+
+	if (run_shell_cmd_pipe(&shell_cmd, pbuf, sizeof(pbuf)) <= 0)
+		goto err;
+	cout << "Adaption return:" << endl;
+	cout << pbuf;
+
+	return 0;
+err:
+	cerr << "Error while running adaption script!" << endl;
+	return -1;
+}
+
 void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd)
 {
 	void *mem_addr, *code_addr;
@@ -592,7 +611,7 @@ parse_err:
 
 i32 main (i32 argc, char **argv, char **env)
 {
-	string proc_name;
+	string proc_name, adp_script;
 	list<CfgEntry> cfg;
 	list<CfgEntry*> *cfg_act;
 	list<CfgEntry*>::iterator it;
@@ -619,7 +638,8 @@ i32 main (i32 argc, char **argv, char **env)
 	if (!home)
 		home = def_home;
 
-	cfg_act = read_config(argv[optind - 1], home, &proc_name, &cfg, cfgp_map);
+	cfg_act = read_config(argv[optind - 1], home, &proc_name,
+			      &adp_script, &cfg, cfgp_map);
 	cout << "Found config for \"" << proc_name << "\"." << endl;
 
 	cout << "Config:" << endl;
@@ -628,6 +648,11 @@ i32 main (i32 argc, char **argv, char **env)
 	output_configp(cfg_act);
 	if (cfg.empty())
 		return -1;
+
+	if (opt.do_adapt && adapt_config(&adp_script) != 0) {
+		cerr << "Error while code address adaption!" << endl;
+		return -1;
+	}
 
 	if (prepare_dynmem(&opt, &proc_name, &cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;

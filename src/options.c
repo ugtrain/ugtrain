@@ -24,8 +24,10 @@ PROG_NAME " is an universal game trainer for the CLI\n"
 "Usage: " PROG_NAME " [opts] <config_path>\n"
 "\n"
 "--help, -h:		show this information\n"
+"--adapt, -A:		run the adaption script from config to determine\n"
+"			code addresses (not allowed for root)\n"
 "--preload, -P <lib>:	start the game preloaded with the given lib\n"
-"                    	(ignored for root)\n"
+"			(ignored for root)\n"
 ;
 
 void usage()
@@ -34,9 +36,10 @@ void usage()
 	exit(-1);
 }
 
-static const char short_options[] = "-hP:";
+static const char short_options[] = "-hAP:";
 static struct option long_options[] = {
 	{"help",           0, 0, 'h'},
+	{"adapt",          0, 0, 'A'},
 	{"preload",        1, 0, 'P'},
 	{0, 0, 0, 0}
 };
@@ -44,6 +47,7 @@ static struct option long_options[] = {
 void parse_options (int argc, char **argv, struct app_options *opt)
 {
 	int ch, opt_idx;
+	opt->do_adapt = 0;
 	opt->preload_lib = NULL;
 
 	while (1) {
@@ -55,6 +59,9 @@ void parse_options (int argc, char **argv, struct app_options *opt)
 		switch (ch) {
 		case 'h':
 			usage();
+			break;
+		case 'A':
+			opt->do_adapt = 1;
 			break;
 		case 'P':
 			if (optind == argc)
