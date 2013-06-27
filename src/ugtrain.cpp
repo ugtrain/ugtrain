@@ -501,17 +501,16 @@ static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
 	return 0;
 }
 
-static i32 adapt_config (string *adp_script)
+static i32 adapt_config (char *adp_script)
 {
-	char pbuf[PIPE_BUF] = {0};
-	char *sname = new char[adp_script->size()+1];
-	const char *cmd = adp_script->c_str();
-	char *cmdv[2];
+	char pbuf[PIPE_BUF] = { 0 };
+	const char *cmd = (const char *) adp_script;
+	char *cmdv[] = {
+		adp_script,
+		NULL
+	};
 
-	sname[adp_script->size()] = '\0';
-	memcpy(sname, adp_script->c_str(), adp_script->size());
-
-	if (getuid() == 0 || adp_script->empty())
+	if (getuid() == 0)
 		goto err;
 
 	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
@@ -624,7 +623,7 @@ parse_err:
 i32 main (i32 argc, char **argv, char **env)
 {
 	char *proc_name = NULL;
-	string adp_script;
+	char *adp_script = NULL;
 	list<CfgEntry> cfg;
 	list<CfgEntry*> *cfg_act;
 	list<CfgEntry*>::iterator it;
@@ -662,7 +661,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (cfg.empty())
 		return -1;
 
-	if (opt.do_adapt && adapt_config(&adp_script) != 0) {
+	if (opt.do_adapt && adapt_config(adp_script) != 0) {
 		cerr << "Error while code address adaption!" << endl;
 		return -1;
 	}

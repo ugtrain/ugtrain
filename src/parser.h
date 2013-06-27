@@ -24,7 +24,7 @@
 list<CfgEntry*> *read_config (char *cfg_name,
 			      char *env_home,
 			      char **proc_name,
-			      string *adp_script,
+			      char **adp_script,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map);
 

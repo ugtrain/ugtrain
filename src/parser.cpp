@@ -97,7 +97,8 @@ static char *parse_proc_name (string *line, u32 *start)
 	*start = lidx;
 
 	// copy process name as we need it as C string
-	pname = new char[line->size()];
+	pname = new char[line->size() + 1];
+	pname[line->size()] = '\0';
 	memcpy(pname, line->c_str(), line->size());
 
 	return pname;
@@ -287,7 +288,7 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 list<CfgEntry*> *read_config (char *cfg_path,
 			      char *env_home,
 			      char **proc_name,
-			      string *adp_script,
+			      char **adp_script,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map)
 {
@@ -303,6 +304,9 @@ list<CfgEntry*> *read_config (char *cfg_path,
 	string line;
 	vector<string> lines;
 	string path(cfg_path), home(env_home);
+	string adp_str;
+	char *ascript;
+	size_t pos;
 
 	// read config into string vector
 	read_config_vect(&path, &home, &lines);
@@ -355,16 +359,21 @@ list<CfgEntry*> *read_config (char *cfg_path,
 			break;
 
 		case NAME_ADAPT:
-			size_t pos;
 			if (in_dynmem) {
 				cfg_parse_err(&line, lnr, start);
 			}
-			*adp_script = string("");
+			adp_str = string("");
 			pos = path.rfind("/");
 			if (pos != string::npos)
-				adp_script->append(path.substr(0, pos + 1));
-			adp_script->append(parse_value_name(&line,
-					   lnr, &start, &name_type));
+				adp_str.append(path.substr(0, pos + 1));
+			adp_str.append(parse_value_name(&line,
+				       lnr, &start, &name_type));
+
+			// Copy into C string
+			ascript = new char[adp_str.size() + 1];
+			ascript[adp_str.size()] = '\0';
+			memcpy(ascript, adp_str.c_str(), adp_str.size());
+			*adp_script = ascript;
 			break;
 
 		default:
