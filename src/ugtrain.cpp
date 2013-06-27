@@ -138,7 +138,7 @@ static void output_config (list<CfgEntry> *cfg)
 	}
 }
 
-static i32 run_shell_cmd (string *shell_cmd)
+static i32 run_cmd (const char *cmd, char *const cmdv[])
 {
 	pid_t pid;
 
@@ -147,8 +147,8 @@ static i32 run_shell_cmd (string *shell_cmd)
 		perror("fork");
 		goto err;
 	} else if (pid == 0) {
-		if (execlp("sh", "sh", "-c", shell_cmd->c_str(), NULL) < 0) {
-			perror("execlp");
+		if (execvp(cmd, cmdv) < 0) {
+			perror("execvp");
 			goto child_err;
 		}
 	}
@@ -388,13 +388,19 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 static i32 run_preloader (char *preload_lib, string *proc_name)
 {
 	i32 ret;
-	string shell_cmd(PRELOADER);
+	char *pname = new char[proc_name->size()+1];
+	const char *cmd = (const char *) PRELOADER;
+	char *cmdv[4];
 
-	shell_cmd.append(" ");
-	shell_cmd.append(preload_lib);
-	shell_cmd.append(" ");
-	shell_cmd.append(*proc_name);
-	ret = run_shell_cmd(&shell_cmd);
+	pname[proc_name->size()] = '\0';
+	memcpy(pname, proc_name->c_str(), proc_name->size());
+
+	cmdv[0] = (char *) PRELOADER;
+	cmdv[1] = preload_lib;
+	cmdv[2] = pname;
+	cmdv[3] = NULL;
+
+	ret = run_cmd(cmd, cmdv);
 	if (ret)
 		goto err;
 
