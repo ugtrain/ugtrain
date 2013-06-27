@@ -159,7 +159,8 @@ child_err:
 	exit(-1);
 }
 
-static ssize_t run_shell_cmd_pipe (string *shell_cmd, char *pbuf, size_t pbuf_size)
+static ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
+			     char *pbuf, size_t pbuf_size)
 {
 	pid_t pid;
 	i32 status, fds[2];
@@ -183,8 +184,8 @@ static ssize_t run_shell_cmd_pipe (string *shell_cmd, char *pbuf, size_t pbuf_si
 			goto child_err;
 		}
 		close(fds[STDIN_FILENO]);
-		if (execlp("sh", "sh", "-c", shell_cmd->c_str(), NULL) < 0) {
-			perror("execlp");
+		if (execvp(cmd, cmdv) < 0) {
+			perror("execvp");
 			close(fds[STDOUT_FILENO]);
 			goto child_err;
 		}
@@ -196,8 +197,7 @@ static ssize_t run_shell_cmd_pipe (string *shell_cmd, char *pbuf, size_t pbuf_si
 			perror("pipe read");
 			goto parent_err;
 		} else if (bytes_read <= 1) {
-			cerr << "The command \'" << shell_cmd->c_str()
-			     << "\' did not return anything." << endl;
+			cerr << "The command did not return anything." << endl;
 			goto parent_err;
 		}
 	}
@@ -216,10 +216,19 @@ static pid_t proc_to_pid (string *proc_name)
 {
 	pid_t pid;
 	char pbuf[PIPE_BUF] = {0};
-	string shell_cmd("pidof -s ");
+	char *pname = new char[proc_name->size()+1];
+	const char *cmd = (const char *) "pidof";
+	char *cmdv[4];
 
-	shell_cmd.append(*proc_name);
-	if (run_shell_cmd_pipe(&shell_cmd, pbuf, sizeof(pbuf)) <= 0)
+	pname[proc_name->size()] = '\0';
+	memcpy(pname, proc_name->c_str(), proc_name->size());
+
+	cmdv[0] = (char *) "pidof";
+	cmdv[1] = (char *) "-s";
+	cmdv[2] = pname;
+	cmdv[3] = NULL;
+
+	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
 		goto err;
 
 	if (!isdigit(pbuf[0]))
@@ -503,12 +512,17 @@ static i32 prepare_dynmem (struct app_options *opt, string *proc_name,
 static i32 adapt_config (string *adp_script)
 {
 	char pbuf[PIPE_BUF] = {0};
-	string shell_cmd(*adp_script);
+	char *sname = new char[adp_script->size()+1];
+	const char *cmd = adp_script->c_str();
+	char *cmdv[2];
+
+	sname[adp_script->size()] = '\0';
+	memcpy(sname, adp_script->c_str(), adp_script->size());
 
 	if (getuid() == 0 || adp_script->empty())
 		goto err;
 
-	if (run_shell_cmd_pipe(&shell_cmd, pbuf, sizeof(pbuf)) <= 0)
+	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
 		goto err;
 	cout << "Adaption return:" << endl;
 	cout << pbuf;
