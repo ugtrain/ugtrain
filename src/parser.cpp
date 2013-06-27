@@ -79,9 +79,10 @@ static void read_config_vect (string *path, string *home, vector<string> *lines)
 	cfg_file.close();
 }
 
-static string parse_proc_name (string *line, u32 *start)
+static char *parse_proc_name (string *line, u32 *start)
 {
 	u32 lidx;
+	char *pname = NULL;
 
 	if (line->length() == 0)
 		proc_name_err(line, 0);
@@ -94,7 +95,12 @@ static string parse_proc_name (string *line, u32 *start)
 			proc_name_err(line, lidx);
 	}
 	*start = lidx;
-	return *line;
+
+	// copy process name as we need it as C string
+	pname = new char[line->size()];
+	memcpy(pname, line->c_str(), line->size());
+
+	return pname;
 }
 
 static string parse_value_name (string *line, u32 lnr, u32 *start,
@@ -280,7 +286,7 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 
 list<CfgEntry*> *read_config (char *cfg_path,
 			      char *env_home,
-			      string *proc_name,
+			      char **proc_name,
 			      string *adp_script,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map)

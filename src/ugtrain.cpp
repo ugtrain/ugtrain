@@ -212,20 +212,16 @@ child_err:
 	exit(-1);
 }
 
-static pid_t proc_to_pid (string *proc_name)
+static pid_t proc_to_pid (char *proc_name)
 {
 	pid_t pid;
 	char pbuf[PIPE_BUF] = {0};
-	char *pname = new char[proc_name->size()+1];
 	const char *cmd = (const char *) "pidof";
 	char *cmdv[4];
 
-	pname[proc_name->size()] = '\0';
-	memcpy(pname, proc_name->c_str(), proc_name->size());
-
 	cmdv[0] = (char *) "pidof";
 	cmdv[1] = (char *) "-s";
-	cmdv[2] = pname;
+	cmdv[2] = proc_name;
 	cmdv[3] = NULL;
 
 	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
@@ -394,19 +390,15 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	}
 }
 
-static i32 run_preloader (char *preload_lib, string *proc_name)
+static i32 run_preloader (char *preload_lib, char *proc_name)
 {
 	i32 ret;
-	char *pname = new char[proc_name->size()+1];
 	const char *cmd = (const char *) PRELOADER;
 	char *cmdv[4];
 
-	pname[proc_name->size()] = '\0';
-	memcpy(pname, proc_name->c_str(), proc_name->size());
-
 	cmdv[0] = (char *) PRELOADER;
 	cmdv[1] = preload_lib;
-	cmdv[2] = pname;
+	cmdv[2] = proc_name;
 	cmdv[3] = NULL;
 
 	ret = run_cmd(cmd, cmdv);
@@ -419,7 +411,7 @@ err:
 	return ret;
 }
 
-static i32 prepare_dynmem (struct app_options *opt, string *proc_name,
+static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
 			   list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
 {
 	char obuf[4096] = {0};
@@ -488,7 +480,7 @@ static i32 prepare_dynmem (struct app_options *opt, string *proc_name,
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting preloaded game.." << endl;
 		cout << "$ " << PRELOADER << " " << opt->preload_lib
-		     << " " << *proc_name << endl;
+		     << " " << proc_name << endl;
 		run_preloader(opt->preload_lib, proc_name);
 	}
 
@@ -631,7 +623,8 @@ parse_err:
 
 i32 main (i32 argc, char **argv, char **env)
 {
-	string proc_name, adp_script;
+	char *proc_name = NULL;
+	string adp_script;
 	list<CfgEntry> cfg;
 	list<CfgEntry*> *cfg_act;
 	list<CfgEntry*>::iterator it;
@@ -674,12 +667,12 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	if (prepare_dynmem(&opt, &proc_name, &cfg, &ifd, &ofd) != 0) {
+	if (prepare_dynmem(&opt, proc_name, &cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}
 
-	pid = proc_to_pid(&proc_name);
+	pid = proc_to_pid(proc_name);
 	if (pid < 0)
 		return -1;
 	cout << "PID: " << pid << endl;
