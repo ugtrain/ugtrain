@@ -215,7 +215,7 @@ static int find_code_pointers(int obuf_offs)
 	     offs <= __libc_stack_end - sizeof(void *);
 	     offs += sizeof(void *)) {
 		code_ptr = (void *) *(ptr_t *) offs;
-		if (code_ptr > bt_saddr && code_ptr <= bt_eaddr) {
+		if (code_ptr >= bt_saddr && code_ptr <= bt_eaddr) {
 			if (stage == 4 &&
 			    (code_addr == NULL ||
 			     code_ptr == code_addr)) {
