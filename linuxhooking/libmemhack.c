@@ -84,6 +84,7 @@ memhack_init(void) {
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = {0};
 	int i, j, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0, scanned = 0;
+	int read_tries;
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
@@ -103,10 +104,13 @@ memhack_init(void) {
 	}
 	printf("ofd: %d\n", ofd);
 
-	rbytes = read(ifd, ibuf, sizeof(ibuf));
-	if (rbytes <= 0) {
-		fprintf(stderr, "Can't read config, disabling output.\n");
-		return;
+	for (read_tries = 5; ; --read_tries) {
+		rbytes = read(ifd, ibuf, sizeof(ibuf));
+		if (rbytes > 0)
+			break;
+		if (read_tries <= 0)
+			goto read_err;
+		usleep(250 * 1000);
 	}
 
 	scanned = sscanf(ibuf + ibuf_offs, "%d", &num_cfg);
@@ -150,6 +154,9 @@ memhack_init(void) {
 		active = 1;
 	return;
 
+read_err:
+	fprintf(stderr, "Can't read config, disabling output.\n");
+	return;
 err:
 	fprintf(stderr, "Error while reading config!\n");
 	return;
