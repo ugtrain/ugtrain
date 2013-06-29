@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # The issue is that code address and stack offset for mallocs can differ
 # from distribution to distribution. But the thing which remains constant
