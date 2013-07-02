@@ -401,6 +401,9 @@ static i32 run_preloader (char *preload_lib, char *proc_name)
 	cmdv[2] = proc_name;
 	cmdv[3] = NULL;
 
+	cout << "$ " << cmdv[0] << " " << cmdv[1]
+	     << " " << cmdv[2] << endl;
+
 	ret = run_cmd(cmd, cmdv);
 	if (ret)
 		goto err;
@@ -479,8 +482,6 @@ static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
 	/* Run the preloaded game but not as root */
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting preloaded game.." << endl;
-		cout << "$ " << PRELOADER << " " << opt->preload_lib
-		     << " " << proc_name << endl;
 		run_preloader(opt->preload_lib, proc_name);
 	}
 
