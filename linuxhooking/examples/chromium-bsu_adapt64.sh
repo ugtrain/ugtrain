@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# The issue is that memory areas for mallocs can differ from distribution to
-# distribution. But the thing which remains constant is often the way how
-# the code internally works.
+# The issue is that code address and stack offset for mallocs can differ
+# from distribution to distribution. But the thing which remains constant
+# is often the way how the code internally works.
 
 # chromium-bsu 0.9.14.1 or 0.9.15
 

@@ -11,13 +11,34 @@
 # calls malloc internally.
 # And from previous discovery runs we already know the malloc size (272 or
 # 0x110) for the object in which the NUMBER OF LIVES is stored.
-objdump -xD `which chromium-bsu` | grep "_Znwj" -B 2 -A 1 | grep -A 3 0x110
+
+CWD=`dirname $0`
+cd "$CWD"
+APP_PATH=`which chromium-bsu`
+
+IFS=`printf '\n+'`
+CODE_PART=`objdump -D "$APP_PATH" | grep "_Znwj" -B 2 -A 1 | grep -A 2 0x110`
+if [ "$CODE_PART" == "" ]; then exit 1; fi
+
+CODE_LINES=`echo -e "$CODE_PART" | wc -l`
+if [ $CODE_LINES -ne 3 ]; then exit 1; fi
+
+CODE_CALL=`echo -e "$CODE_PART" | cut -d '
+' -f 2 | grep call`
+if [ "$CODE_CALL" == "" ]; then exit 1; fi
+
+CODE_ADDR=`echo -e "$CODE_PART" | cut -d '
+' -f 3 | cut -d ':' -f 1 | tr -d [:blank:]`
+if [ "$CODE_ADDR" == "" ]; then exit 1; fi
+IFS=''
+
+RESULT=`echo "1;HeroAircraft;0x$CODE_ADDR"`
+echo "$RESULT"
 
 # Should return something like this:
 #  805720d:	c7 04 24 10 01 00 00 	movl   $0x110,(%esp)
 #  8057214:	e8 db 36 ff ff       	call   804a8f4 <_Znwj@plt>
 #  8057219:	89 c3                	mov    %eax,%ebx
-#--
 
 # This shows us that 0x8057219 is the relevant code address.
 
