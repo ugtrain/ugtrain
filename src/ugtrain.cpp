@@ -502,9 +502,73 @@ static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
 	return 0;
 }
 
-static i32 adapt_config (char *adp_script)
+static i32 parse_adapt_result (list<CfgEntry> *cfg, char *buf,
+			       ssize_t buf_len)
+{
+	char *part_end = buf;
+	ssize_t part_size, ppos = 0;
+	u32 i, num_obj = 0;
+	string *obj_name = NULL;
+	void *code_addr = NULL;
+	list<CfgEntry>::iterator it;
+	int found;
+
+	part_end = strchr(buf, ';');
+	if (part_end == NULL)
+		goto parse_err;
+	if (sscanf(buf, "%u", &num_obj) != 1)
+		goto parse_err;
+	part_size = part_end - buf;
+	ppos += part_size + 1;
+
+	for (i = 1; i <= num_obj; i++) {
+		part_end = strchr(buf + ppos, ';');
+		if (part_end == NULL)
+			goto parse_err;
+		part_size = part_end - (buf + ppos);
+		obj_name = new string(buf + ppos, part_size);
+		ppos += part_size + 1;
+
+		if (sscanf(buf + ppos, "%p", &code_addr) != 1)
+			goto parse_err;
+
+		// find object and set mem_addr
+		found = 0;
+		for (it = cfg->begin(); it != cfg->end(); it++) {
+			if (it->dynmem && !it->dynmem->adp_addr &&
+			    it->dynmem->name == *obj_name) {
+				it->dynmem->adp_addr = code_addr;
+				it->dynmem->code_addr = code_addr;
+				found = 1;
+				break;
+			}
+		}
+		if (!found)
+			goto parse_err;
+		if (i == num_obj)
+			break;
+
+		part_end = strchr(buf + ppos, ';');
+		if (part_end == NULL)
+			goto parse_err;
+		part_size = part_end - (buf + ppos);
+		ppos += part_size + 1;
+	}
+
+	return 0;
+parse_err:
+	cerr << "Error while parsing adaption output!" << endl;
+	if (buf[buf_len - 1] == '\n')
+		cerr << "-->" << (buf + ppos);
+	else
+		cerr << "-->" << (buf + ppos) << endl;
+	return -1;
+}
+
+static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script)
 {
 	char pbuf[PIPE_BUF] = { 0 };
+	ssize_t read_bytes;
 	const char *cmd = (const char *) adp_script;
 	char *cmdv[] = {
 		adp_script,
@@ -514,10 +578,17 @@ static i32 adapt_config (char *adp_script)
 	if (getuid() == 0)
 		goto err;
 
-	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
+	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf));
+	if (read_bytes <= 0)
 		goto err;
 	cout << "Adaption return:" << endl;
-	cout << pbuf;
+	if (pbuf[read_bytes - 1] == '\n')
+		cout << pbuf;
+	else
+		cout << pbuf << endl;
+
+	if (parse_adapt_result(cfg, pbuf, read_bytes) != 0)
+		goto err;
 
 	return 0;
 err:
@@ -662,7 +733,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (cfg.empty())
 		return -1;
 
-	if (opt.do_adapt && adapt_config(adp_script) != 0) {
+	if (opt.do_adapt && adapt_config(&cfg, adp_script) != 0) {
 		cerr << "Error while code address adaption!" << endl;
 		return -1;
 	}

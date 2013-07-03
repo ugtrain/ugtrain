@@ -62,6 +62,7 @@ public:
 	void *code_addr;
 	void *stack_offs;
 	void *mem_addr;  /* filled by malloc for free */
+	void *adp_addr;
 };
 
 class CfgEntry {

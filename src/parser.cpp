@@ -347,6 +347,7 @@ list<CfgEntry*> *read_config (char *cfg_path,
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
 			dynmem_enp->stack_offs = parse_address(&line, lnr, &start);
 			dynmem_enp->mem_addr = NULL;
+			dynmem_enp->adp_addr = NULL;
 			break;
 
 		case NAME_DYNMEM_END:
