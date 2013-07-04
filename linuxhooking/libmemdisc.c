@@ -30,6 +30,11 @@
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 
+#define DEBUG 0
+#if !DEBUG
+	#define printf(...) do { } while (0);
+#endif
+
 typedef unsigned long long u64;
 typedef unsigned int u32;
 
