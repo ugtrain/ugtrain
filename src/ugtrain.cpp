@@ -430,9 +430,22 @@ static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
 	size_t written;
 	void *old_code_addr = NULL;
+	list<CfgEntry>::iterator it;
+
+	// check for discovery first
+	if (opt->disc_str) {
+		pos += snprintf(obuf + pos, sizeof(obuf) - pos, "%s",
+				opt->disc_str);
+		if (pos + 2 > sizeof(obuf)) {
+			fprintf(stderr, "Buffer overflow\n");
+			return 1;
+		}
+		obuf[pos++] = '\n';  // add cfg end
+		obuf[pos++] = '\0';
+		goto skip_memhack;
+	}
 
 	// fill the output buffer with the dynmem cfg
-	list<CfgEntry>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
 			num_cfg++;
@@ -457,6 +470,7 @@ static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
 	if (num_cfg <= 0)
 		return 0;
 
+skip_memhack:
 	// set up and open FIFOs
 	if (mkfifo(DYNMEM_IN, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
@@ -539,7 +553,11 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 				disc_str += ";";
 				disc_str += to_string(it->dynmem->code_addr);
 			}
-			cout << "disc_str: " << disc_str << endl;
+			opt->disc_str = new char[disc_str.size() + 1];
+			opt->disc_str[disc_str.size()] = '\0';
+			memcpy(opt->disc_str, disc_str.c_str(),
+				disc_str.size());
+			cout << "disc_str: " << opt->disc_str << endl;
 		}
 		break;
 	default:
@@ -644,6 +662,94 @@ static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script)
 err:
 	cerr << "Error while running adaption script!" << endl;
 	return -1;
+}
+
+void read_disc_buf (list<CfgEntry> *cfg, i32 ifd)
+{
+	void *mem_addr, *code_addr, *stack_offs;
+	static ssize_t mem_size, ipos = 0, ilen = 0;
+	ssize_t tmp_ilen, ppos = 0;
+	char *msg_end, *sep_pos;
+	char ibuf[4096] = { 0 };
+	char scan_ch;
+
+	// read from FIFO and concat. incomplete msgs
+	tmp_ilen = read(ifd, ibuf + ipos, sizeof(ibuf) - 1 - ipos);  // always '\0' at end
+	if (tmp_ilen > 0) {
+		//cout << "ibuf: " << string(ibuf) << endl;
+		ilen += tmp_ilen;
+		//cout << "ilen: " << ilen << " tmp_ilen " << tmp_ilen << endl;
+		ipos += tmp_ilen;
+
+		// parse messages
+next:
+		msg_end = strchr(ibuf, '\n');
+		if (msg_end == NULL)
+			return;
+		if (sscanf(ibuf, "%c", &scan_ch) != 1)
+			goto parse_err;
+		switch (scan_ch) {
+		case 'm':
+			ppos = 1;
+			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
+				goto parse_err;
+			sep_pos = strchr(ibuf + ppos, ';');
+			if (!sep_pos)
+				goto parse_err;
+			ppos = sep_pos + 1 - ibuf;
+			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
+			    scan_ch != 's')
+				goto parse_err;
+			ppos++;
+			if (sscanf(ibuf + ppos, "%zd", &mem_size) != 1)
+				goto parse_err;
+			sep_pos = strchr(ibuf + ppos, ';');
+			if (!sep_pos)
+				goto parse_err;
+			ppos = sep_pos + 1 - ibuf;
+			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
+			    scan_ch != 'c')
+				goto parse_err;
+			ppos++;
+			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
+				goto parse_err;
+			sep_pos = strchr(ibuf + ppos, ';');
+			if (!sep_pos)
+				goto parse_err;
+			ppos = sep_pos + 1 - ibuf;
+			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
+			    scan_ch != 'o')
+				goto parse_err;
+			ppos++;
+			if (sscanf(ibuf + ppos, "%p", &stack_offs) != 1)
+				goto parse_err;
+			cout << "Discovery output: " << endl;
+			cout << "m" << hex << mem_addr << dec << ";s"
+				<< mem_size << hex << ";c" << code_addr
+				<< ";o" << stack_offs << dec << endl;
+			break;
+		}
+		// prepare for next msg parsing
+
+		tmp_ilen = msg_end + 1 - ibuf;
+		// move rest to the front
+		memmove(ibuf, ibuf + tmp_ilen, ilen - tmp_ilen);
+		// zero what's behind the rest
+		memset(ibuf + ilen - tmp_ilen, 0, tmp_ilen);
+		ilen -= tmp_ilen;
+		ipos -= tmp_ilen;
+		//cout << "ilen: " << ilen << " ipos " << ipos << endl;
+
+		goto next;
+	}
+	return;
+
+parse_err:
+	cerr << "parse error at ppos: " << ppos << endl;
+	memset(ibuf, 0, sizeof(ibuf));
+	ilen = 0;
+	ipos = 0;
+	return;
 }
 
 void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd)
@@ -800,6 +906,19 @@ i32 main (i32 argc, char **argv, char **env)
 	if (pid < 0)
 		return -1;
 	cout << "PID: " << pid << endl;
+
+	if (opt.disc_str) {
+		while (1) {
+			sleep(1);
+			read_disc_buf(&cfg, ifd);
+			if (memattach_test(pid) != 0) {
+				cerr << "PTRACE ERROR PID[" << pid << "]!"
+				     << endl;
+				return -1;
+			}
+		}
+		return 0;
+	}
 
 	if (prepare_getch_nb() != 0) {
 		cerr << "Error while terminal preparation!" << endl;
