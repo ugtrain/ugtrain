@@ -87,6 +87,7 @@ static void *code_addr = NULL;
 void __attribute ((constructor))
 memhack_init(void) {
 	ssize_t rbytes;
+	int read_tries;
 	char ibuf[128] = {0};
 
 	sigignore(SIGPIPE);
@@ -107,10 +108,13 @@ memhack_init(void) {
 	}
 	printf("ofile: %p\n", ofile);
 
-	rbytes = read(ifd, ibuf, 2);
-	if (rbytes <= 0) {
-		fprintf(stderr, "Can't read config, disabling output.\n");
-		return;
+	for (read_tries = 5; ; --read_tries) {
+		rbytes = read(ifd, ibuf, 2);
+		if (rbytes > 0)
+			break;
+		if (read_tries <= 0)
+			goto read_err;
+		usleep(250 * 1000);
 	}
 
 	switch (ibuf[0]) {
@@ -171,6 +175,11 @@ memhack_init(void) {
 
 	if (heap_eaddr <= heap_saddr)
 		heap_eaddr = (void *) -1UL;
+
+	return;
+read_err:
+	fprintf(stderr, "Can't read config, disabling output.\n");
+	return;
 }
 
 #if 0
