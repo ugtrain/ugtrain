@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <list>
 #include <vector>
@@ -41,6 +42,14 @@ using namespace std;
 #define DYNMEM_IN  "/tmp/memhack_out"
 #define DYNMEM_OUT "/tmp/memhack_in"
 
+template <typename T>
+string to_string (T val)
+{
+	ostringstream ss;
+
+	ss << val;
+	return ss.str();
+}
 
 void output_configp (list<CfgEntry*> *cfg)
 {
@@ -502,6 +511,47 @@ static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
 	return 0;
 }
 
+static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
+{
+	string disc_str;
+	int i, found = 0;
+	list<CfgEntry>::iterator it;
+
+	if (!opt->disc_str)
+		return 0;
+
+	switch (opt->disc_str[0]) {
+	case '4':
+		if (strlen(opt->disc_str) == 1) {
+			for (it = cfg->begin(); it != cfg->end(); it++) {
+				if (it->dynmem && it->dynmem->code_addr) {
+					found = 1;
+					break;
+				}
+			}
+			if (!found)
+				goto err;
+
+			disc_str += opt->disc_str;
+			disc_str += ";0x0;0x0;";
+			disc_str += to_string(it->dynmem->mem_size);
+			for (i = 0; i < 3; i++) {
+				disc_str += ";";
+				disc_str += to_string(it->dynmem->code_addr);
+			}
+			cout << "disc_str: " << disc_str << endl;
+		}
+		break;
+	default:
+		goto err;
+	}
+
+	return 0;
+err:
+	cerr << "Error while preparing discovery!" << endl;
+	return -1;
+}
+
 static i32 parse_adapt_result (list<CfgEntry> *cfg, char *buf,
 			       ssize_t buf_len)
 {
@@ -737,6 +787,9 @@ i32 main (i32 argc, char **argv, char **env)
 		cerr << "Error while code address adaption!" << endl;
 		return -1;
 	}
+
+	if (prepare_discovery(&opt, &cfg) != 0)
+		return -1;
 
 	if (prepare_dynmem(&opt, proc_name, &cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;

@@ -25,6 +25,7 @@
 struct app_options {
 	int do_adapt;
 	char *preload_lib;
+	char *disc_str;
 };
 
 #ifdef __cplusplus
