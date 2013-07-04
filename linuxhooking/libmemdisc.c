@@ -52,7 +52,7 @@ static char obuf[BUF_SIZE];
 static int active = 0;
 static int stage = 0;  /* 0: no output */
 static int g_col = 0;
-#define MAX_COLS 4
+#define MAX_COLS 1
 
 /* Input parameters */
 /* Output filtering */
@@ -219,12 +219,12 @@ static int find_code_pointers(int obuf_offs)
 			if (stage == 4 &&
 			    (code_addr == NULL ||
 			     code_ptr == code_addr)) {
-				obuf_offs += sprintf(obuf + obuf_offs, ",c%p,o%p",
+				obuf_offs += sprintf(obuf + obuf_offs, ";c%p;o%p",
 					code_ptr,
 					(void *) (__libc_stack_end - offs));
 				found = 1;
 			} else if (stage == 3) {
-				obuf_offs += sprintf(obuf + obuf_offs, ",c%p",
+				obuf_offs += sprintf(obuf + obuf_offs, ";c%p",
 					code_ptr);
 				found = 1;
 			}
@@ -258,7 +258,7 @@ void *malloc(size_t size)
 	if (active && mem_addr > heap_saddr && mem_addr < heap_eaddr) {
 		if (malloc_size > 0 && size != malloc_size)
 			goto out;
-		obuf_offs = sprintf(obuf, "m%p,s%zd", mem_addr, size);
+		obuf_offs = sprintf(obuf, "m%p;s%zd", mem_addr, size);
 
 		if (stage >= 3) {
 			found = find_code_pointers(obuf_offs);
