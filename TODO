@@ -1,7 +1,7 @@
 Version 0.2
 This tool is still under heavy development. Dyn. mem. support is new.
-There is still a lot of work to do. I appreciate any help I can get.
-Just drop me an email with your contribution wish to:
+There is still a lot of work to do. We appreciate any help we can get.
+Just drop an e-mail with your contribution wish to:
 sebastian.riemer@gmx.de
 
 Autotools:
@@ -14,10 +14,8 @@ Config files:
 + support vector and list pointers to take over a dynamic structure in memory
 
 Options:
-+ support option parsing (getopt)
-+ support common linux options (-V, -v, --help, ...)
++ support common linux options (-V, -v, ...)
 + support option to enable external control
-+ support auto adaption of dynamic memory configs (--adapt)
 
 External control (using ugtrain as backend):
 + support config from stdin or command line
@@ -29,7 +27,8 @@ Multi-platform support:
 + support mingw compilation
 + put process name to PID function into separate multi-platform files
 + check boost libraries for help with that
-+ add dyn. mem. support for WINE
++ add dyn. mem. support for Windows (Inline Hooking)
++ add dyn. mem. support for WINE (Inline Hooking)
 
 Trainer:
 + support list and vector processing (hook 'memmove' as well)
@@ -37,11 +36,11 @@ Trainer:
 + simplify dyn. mem. discovery and adaption
 
 Documentation:
-+ create man page
++ create man pages
 
 Languages:
 + support gettext
 
 Other:
-+ record a video of cheating "Chromium B.S.U." on skill "impossible"
-+ upload the video to youtube
++ record more videos of ugtrain cheating FOSS games and upload them to YouTube
++ evaluate "Cheat Engine" (source code) for Windows stuff
