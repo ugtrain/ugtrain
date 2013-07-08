@@ -5,6 +5,8 @@
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
  *
+ * powered by the Open Game Cheating Association
+ *
  * This file may be used subject to the terms and conditions of the
  * GNU Library General Public License Version 2, or any later version
  * at your option, as published by the Free Software Foundation.
@@ -25,7 +27,11 @@
 typedef unsigned long long u64;
 typedef unsigned int u32;
 
-int env_append(const char *name, const char *val, char separator)
+/*
+ * This function has been taken from 'glc' by nullkey aka
+ * Pyry Haulos <pyry.haulos@gmail.com>
+ */
+int env_append (const char *name, const char *val, char separator)
 {
 	size_t env_len;
 	const char *old_env;

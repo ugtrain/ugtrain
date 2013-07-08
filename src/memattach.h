@@ -5,6 +5,7 @@
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
  *
+ * powered by the Open Game Cheating Association
  * based on libgcheater by Alf <h980501427@hotmail.com>
  *
  * This file may be used subject to the terms and conditions of the

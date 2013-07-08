@@ -5,6 +5,8 @@
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
  *
+ * powered by the Open Game Cheating Association
+ *
  * This file may be used subject to the terms and conditions of the
  * GNU Library General Public License Version 2, or any later version
  * at your option, as published by the Free Software Foundation.
