@@ -8,6 +8,8 @@
 # The ugtrain uses one simple config file per game which can be exchanged
 # with others. Examples are included.
 #
+# The ugtrain is powered by the Open Game Cheating Association.
+#
 # ### Current Limitations ###
 #
 # CPU Architecture:	x86 and x86_64 only
@@ -41,7 +43,7 @@
 # Where is the difference?
 #
 # Well, this tool is for the CLI and has much more trainer features. It will
-# become muliti-platform and the simple config files give you a lot of
+# become multi-platform and the simple config files give you a lot of
 # flexibility.
 #
 # There are universal checks implemented. These prevent changing values e.g.
@@ -72,7 +74,8 @@
 ############################
 ### HOW TO BUILD AND USE ###
 ############################
-# Make sure that the "autotools" package is installed on your system.
+# Make sure that the "autotools-dev" package is installed on your system
+# together with "autoconf", "automake" and "libtool".
 
 # Run the following command to generate the missing autotools files:
 ./autogen.sh
@@ -83,7 +86,7 @@
 # Build the ugtrain binary with:
 make
 
-# install ugtrain and libgcheater to /usr/local
+# install ugtrain, ugpreload and the libs to /usr/local
 sudo make install
 
 # Use the compiled tool as follows:
@@ -104,3 +107,11 @@ ugrain test    # 'ugtrain test.conf' is also possible
 #########################
 # Please send your patches and improvement suggestions to:
 sebastian.riemer@gmx.de
+
+# And/or if you like Open Game Cheating and want to show it
+# by becoming a member of the Open Game Cheating Association,
+# just write an e-mail to the founder Sebastian Riemer with
+# your request:
+sebastian.riemer@gmx.de
+
+http://www.github.com/sriemer/og-cheating
