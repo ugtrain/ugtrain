@@ -666,11 +666,72 @@ err:
 	return -1;
 }
 
-void read_disc_buf (list<CfgEntry> *cfg, i32 ifd)
+// mf() callback for read_dynmem_buf()
+void process_disc_output (list<CfgEntry> *cfg,
+			  void *mem_addr,
+			  ssize_t mem_size,
+			  void *code_addr,
+			  void *stack_offs)
 {
-	void *mem_addr, *code_addr, *stack_offs;
-	static ssize_t mem_size, ipos = 0, ilen = 0;
-	ssize_t tmp_ilen, ppos = 0;
+	cout << "Discovery output: " << endl;
+	cout << "m" << hex << mem_addr << dec << ";s"
+	     << mem_size << hex << ";c" << code_addr
+	     << ";o" << stack_offs << dec << endl;
+}
+
+// mf() callback for read_dynmem_buf()
+void set_dynmem_addr (list<CfgEntry> *cfg,
+		      void *mem_addr,
+		      ssize_t mem_size,
+		      void *code_addr,
+		      void *stack_offs)
+{
+	list<CfgEntry>::iterator it;
+
+	//cout << "m" << hex << mem_addr << ";c"
+	//	<< code_addr << dec << endl;
+
+	// find object and set mem_addr
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->dynmem &&
+		    it->dynmem->code_addr == code_addr) {
+			it->dynmem->mem_addr = mem_addr;
+			cout << "Obj. " << it->dynmem->name << "; c"
+				<< it->dynmem->code_addr << "; s"
+				<< it->dynmem->mem_size << "; created at "
+				<< it->dynmem->mem_addr << endl;
+			break;
+		}
+	}
+}
+
+// ff() callback for read_dynmem_buf()
+void unset_dynmem_addr (list<CfgEntry> *cfg, void *mem_addr)
+{
+	list<CfgEntry>::iterator it;
+
+	//cout << "f" << hex << mem_addr << dec << endl;
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->dynmem &&
+		    it->dynmem->mem_addr == mem_addr) {
+			it->dynmem->mem_addr = NULL;
+			cout << "Obj. " << it->dynmem->name << "; c"
+				<< it->dynmem->code_addr << "; s"
+				<< it->dynmem->mem_size << "; freed from "
+				<< mem_addr << endl;
+			break;
+		}
+	}
+}
+
+void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd, u8 *pmask,
+		      void (*mf)(list<CfgEntry> *, void *,
+				 ssize_t, void *, void *),
+		      void (*ff)(list<CfgEntry> *, void *))
+{
+	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
+	static ssize_t ipos = 0, ilen = 0;
+	ssize_t mem_size = 0, tmp_ilen, ppos = 0;
 	char *msg_end, *sep_pos;
 	char ibuf[4096] = { 0 };
 	char scan_ch;
@@ -695,6 +756,9 @@ next:
 			ppos = 1;
 			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
 				goto parse_err;
+
+			if (!pmask[1])
+				goto skip_s;
 			sep_pos = strchr(ibuf + ppos, ';');
 			if (!sep_pos)
 				goto parse_err;
@@ -705,6 +769,9 @@ next:
 			ppos++;
 			if (sscanf(ibuf + ppos, "%zd", &mem_size) != 1)
 				goto parse_err;
+skip_s:
+			if (!pmask[2])
+				goto skip_c;
 			sep_pos = strchr(ibuf + ppos, ';');
 			if (!sep_pos)
 				goto parse_err;
@@ -715,6 +782,9 @@ next:
 			ppos++;
 			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
 				goto parse_err;
+skip_c:
+			if (!pmask[3])
+				goto skip_o;
 			sep_pos = strchr(ibuf + ppos, ';');
 			if (!sep_pos)
 				goto parse_err;
@@ -725,10 +795,19 @@ next:
 			ppos++;
 			if (sscanf(ibuf + ppos, "%p", &stack_offs) != 1)
 				goto parse_err;
-			cout << "Discovery output: " << endl;
-			cout << "m" << hex << mem_addr << dec << ";s"
-				<< mem_size << hex << ";c" << code_addr
-				<< ";o" << stack_offs << dec << endl;
+skip_o:
+			// call post parsing function
+			mf(cfg, mem_addr, mem_size, code_addr, stack_offs);
+			break;
+		case 'f':
+			if (!ff)
+				break;
+			ppos = 1;
+			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
+				goto parse_err;
+
+			// call post parsing function
+			ff(cfg, mem_addr);
 			break;
 		}
 		// prepare for next msg parsing
@@ -754,102 +833,6 @@ parse_err:
 	return;
 }
 
-void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd)
-{
-	void *mem_addr, *code_addr;
-	static ssize_t ipos = 0, ilen = 0;
-	ssize_t tmp_ilen, ppos;
-	char *msg_end, *sep_pos;
-	char ibuf[4096] = { 0 };
-	char scan_ch;
-	list<CfgEntry>::iterator it;
-
-	// read from FIFO and concat. incomplete msgs
-	tmp_ilen = read(ifd, ibuf + ipos, sizeof(ibuf) - 1 - ipos);  // always '\0' at end
-	if (tmp_ilen > 0) {
-		//cout << "ibuf: " << string(ibuf) << endl;
-		ilen += tmp_ilen;
-		//cout << "ilen: " << ilen << " tmp_ilen " << tmp_ilen << endl;
-		ipos += tmp_ilen;
-
-		// parse messages
-next:
-		msg_end = strchr(ibuf, '\n');
-		if (msg_end == NULL)
-			return;
-		if (sscanf(ibuf, "%c", &scan_ch) != 1)
-			goto parse_err;
-		switch (scan_ch) {
-		case 'm':
-			ppos = 1;
-			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
-				goto parse_err;
-			sep_pos = strchr(ibuf + ppos, ';');
-			if (!sep_pos)
-				goto parse_err;
-			ppos = sep_pos + 1 - ibuf;
-			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
-			    scan_ch != 'c')
-				goto parse_err;
-			ppos++;
-			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
-				goto parse_err;
-			//cout << "m" << hex << mem_addr << ";c"
-			//	<< code_addr << dec << endl;
-
-			// find object and set mem_addr
-			for (it = cfg->begin(); it != cfg->end(); it++) {
-				if (it->dynmem &&
-				    it->dynmem->code_addr == code_addr) {
-					it->dynmem->mem_addr = mem_addr;
-					cout << "Obj. " << it->dynmem->name << "; c"
-						<< it->dynmem->code_addr << "; s"
-						<< it->dynmem->mem_size << "; created at "
-						<< it->dynmem->mem_addr << endl;
-					break;
-				}
-			}
-			break;
-		case 'f':
-			ppos = 1;
-			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
-				goto parse_err;
-			//cout << "f" << hex << mem_addr << dec << endl;
-			for (it = cfg->begin(); it != cfg->end(); it++) {
-				if (it->dynmem &&
-				    it->dynmem->mem_addr == mem_addr) {
-					it->dynmem->mem_addr = NULL;
-					cout << "Obj. " << it->dynmem->name << "; c"
-						<< it->dynmem->code_addr << "; s"
-						<< it->dynmem->mem_size << "; freed from "
-						<< mem_addr << endl;
-					break;
-				}
-			}
-			break;
-		}
-		// prepare for next msg parsing
-
-		tmp_ilen = msg_end + 1 - ibuf;
-		// move rest to the front
-		memmove(ibuf, ibuf + tmp_ilen, ilen - tmp_ilen);
-		// zero what's behind the rest
-		memset(ibuf + ilen - tmp_ilen, 0, tmp_ilen);
-		ilen -= tmp_ilen;
-		ipos -= tmp_ilen;
-		//cout << "ilen: " << ilen << " ipos " << ipos << endl;
-
-		goto next;
-	}
-	return;
-
-parse_err:
-	memset(ibuf, 0, sizeof(ibuf));
-	ilen = 0;
-	ipos = 0;
-	return;
-}
-
 i32 main (i32 argc, char **argv, char **env)
 {
 	char *proc_name = NULL;
@@ -864,6 +847,7 @@ i32 main (i32 argc, char **argv, char **env)
 	char *home;
 	char def_home[] = "~";
 	u8 buf[sizeof(i64)] = { 0 };
+	u8 pmask[] = {1, 0, 1, 0};
 	char ch;
 	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
@@ -910,9 +894,11 @@ i32 main (i32 argc, char **argv, char **env)
 	cout << "PID: " << pid << endl;
 
 	if (opt.disc_str) {
+		pmask[0] = pmask[1] = pmask[2] = pmask[3] = 1;
 		while (1) {
 			sleep(1);
-			read_disc_buf(&cfg, ifd);
+			read_dynmem_buf(&cfg, ifd, pmask, process_disc_output,
+					NULL);
 			if (memattach_test(pid) != 0) {
 				cerr << "PTRACE ERROR PID[" << pid << "]!"
 				     << endl;
@@ -938,7 +924,8 @@ i32 main (i32 argc, char **argv, char **env)
 		if (ch > 0 && cfgp_map[(i32)ch])
 			toggle_cfg(cfgp_map[(i32)ch], cfg_act);
 
-		read_dynmem_buf(&cfg, ifd);
+		read_dynmem_buf(&cfg, ifd, pmask, set_dynmem_addr,
+				unset_dynmem_addr);
 
 		if (memattach(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
