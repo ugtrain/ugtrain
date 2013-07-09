@@ -9,12 +9,12 @@
  * based on libgcheater by Alf <h980501427@hotmail.com>
  *
  * This file may be used subject to the terms and conditions of the
- * GNU Library General Public License Version 2, or any later version
+ * GNU General Public License Version 2, or any later version
  * at your option, as published by the Free Software Foundation.
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Library General Public License for more details.
+ * GNU General Public License for more details.
  */
 
 #ifndef MEMATTACH_H
