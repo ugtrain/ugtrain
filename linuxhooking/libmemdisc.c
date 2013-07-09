@@ -64,6 +64,9 @@ static int g_col = 0;
 /* Input parameters */
 /* Output filtering */
 
+/* heap start, helps against heap randomization */
+static void *heap_start = NULL;
+
 /* relevant start and end memory addresses on the heap */
 static void *heap_saddr = NULL, *heap_eaddr = NULL;
 
@@ -99,6 +102,17 @@ memhack_init(void) {
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
+
+	fprintf(stdout, "Stack end: %p\n", __libc_stack_end);
+	/*
+	 * Don't you dare call malloc for another purpose in this lib!
+	 * We can only do this safely as (active == 0).
+	 */
+	heap_start = malloc(1);
+	if (heap_start) {
+		fprintf(stdout, "Heap start: %p\n", heap_start);
+		free(heap_start);
+	}
 
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
@@ -163,7 +177,6 @@ memhack_init(void) {
 		READ_STAGE_CFG();
 		sscanf(ibuf, "%p;%p;%zd;%p;%p", &heap_saddr, &heap_eaddr,
 		       &malloc_size, &bt_saddr, &bt_eaddr);
-		printf("Stack end: %p\n", __libc_stack_end);
 		stage = 3;
 		active = 1;
 		break;
@@ -171,7 +184,6 @@ memhack_init(void) {
 		READ_STAGE_CFG();
 		sscanf(ibuf, "%p;%p;%zd;%p;%p;%p", &heap_saddr, &heap_eaddr,
 		       &malloc_size, &bt_saddr, &bt_eaddr, &code_addr);
-		printf("Stack end: %p\n", __libc_stack_end);
 		stage = 4;
 		active = 1;
 		break;
