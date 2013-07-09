@@ -538,9 +538,15 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 
 	switch (opt->disc_str[0]) {
 	case '4':
+		if (!opt->do_adapt) {
+			for (it = cfg->begin(); it != cfg->end(); it++) {
+				if (it->dynmem && !it->dynmem->adp_addr)
+					it->dynmem->adp_addr = it->dynmem->code_addr;
+			}
+		}
 		if (strlen(opt->disc_str) == 1) {
 			for (it = cfg->begin(); it != cfg->end(); it++) {
-				if (it->dynmem && it->dynmem->code_addr) {
+				if (it->dynmem && it->dynmem->adp_addr) {
 					found = 1;
 					break;
 				}
@@ -553,13 +559,16 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			disc_str += to_string(it->dynmem->mem_size);
 			for (i = 0; i < 3; i++) {
 				disc_str += ";";
-				disc_str += to_string(it->dynmem->code_addr);
+				disc_str += to_string(it->dynmem->adp_addr);
 			}
 			opt->disc_str = new char[disc_str.size() + 1];
 			opt->disc_str[disc_str.size()] = '\0';
 			memcpy(opt->disc_str, disc_str.c_str(),
 				disc_str.size());
 			cout << "disc_str: " << opt->disc_str << endl;
+		} else {
+			cerr << "Sorry, not supported, yet!" << endl;
+			goto err;
 		}
 		break;
 	default:
@@ -602,13 +611,12 @@ static i32 parse_adapt_result (list<CfgEntry> *cfg, char *buf,
 		if (sscanf(buf + ppos, "%p", &code_addr) != 1)
 			goto parse_err;
 
-		// find object and set mem_addr
+		// find object and set adp_addr
 		found = 0;
 		for (it = cfg->begin(); it != cfg->end(); it++) {
 			if (it->dynmem && !it->dynmem->adp_addr &&
 			    it->dynmem->name == *obj_name) {
 				it->dynmem->adp_addr = code_addr;
-				it->dynmem->code_addr = code_addr;
 				found = 1;
 				break;
 			}
@@ -673,10 +681,21 @@ void process_disc_output (list<CfgEntry> *cfg,
 			  void *code_addr,
 			  void *stack_offs)
 {
+	list<CfgEntry>::iterator it;
+
 	cout << "Discovery output: " << endl;
 	cout << "m" << hex << mem_addr << dec << ";s"
 	     << mem_size << hex << ";c" << code_addr
 	     << ";o" << stack_offs << dec << endl;
+
+	// find object and set adp_stack
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->dynmem &&
+		    it->dynmem->adp_addr == code_addr) {
+			it->dynmem->adp_stack = stack_offs;
+			break;
+		}
+	}
 }
 
 // mf() callback for read_dynmem_buf()
@@ -839,6 +858,7 @@ i32 main (i32 argc, char **argv, char **env)
 	char *adp_script = NULL;
 	list<CfgEntry> cfg;
 	list<CfgEntry*> *cfg_act;
+	list<CfgEntry>::iterator cfg_it;
 	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
 	CfgEntry *cfg_en;
@@ -902,9 +922,17 @@ i32 main (i32 argc, char **argv, char **env)
 			if (memattach_test(pid) != 0) {
 				cerr << "PTRACE ERROR PID[" << pid << "]!"
 				     << endl;
+				break;
+			}
+		}
+		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
+			if (cfg_it->dynmem && !(cfg_it->dynmem->adp_addr &&
+			    cfg_it->dynmem->adp_stack)) {
+				cerr << "Discovery failed!" << endl;
 				return -1;
 			}
 		}
+		cout << "Discovery successful!" << endl;
 		return 0;
 	}
 

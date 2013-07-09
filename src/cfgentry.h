@@ -1,6 +1,6 @@
 /* cfgentry.h:     classes for config read from a file
  *
- * Copyright (c) 2012, by:      Sebastian Riemer
+ * Copyright (c) 2012..13, by:  Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
@@ -63,8 +63,10 @@ public:
 	size_t mem_size;
 	void *code_addr;
 	void *stack_offs;
-	void *mem_addr;  /* filled by malloc for free */
-	void *adp_addr;
+	/* later determined values */
+	void *mem_addr;    /* set by malloc call */
+	void *adp_addr;    /* adapted code address */
+	void *adp_stack;   /* adapted stack offset */
 };
 
 class CfgEntry {
