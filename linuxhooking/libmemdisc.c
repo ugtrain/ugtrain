@@ -49,6 +49,10 @@ register void *reg_sp __asm__ ("rsp");
 typedef u64 ptr_t;
 #endif
 
+#define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
+#define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)
+#define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
+
 
 /* File descriptors and output buffer */
 static int ifd = -1;
@@ -99,6 +103,7 @@ memhack_init(void) {
 	ssize_t rbytes;
 	int read_tries;
 	char ibuf[128] = {0};
+	void *heap_soffs = NULL, *heap_eoffs = NULL;
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
@@ -111,6 +116,7 @@ memhack_init(void) {
 	heap_start = malloc(1);
 	if (heap_start) {
 		fprintf(stdout, "Heap start: %p\n", heap_start);
+		heap_saddr = heap_eaddr = heap_start;
 		free(heap_start);
 	}
 
@@ -148,9 +154,12 @@ memhack_init(void) {
 	 */
 	case '1':
 		READ_STAGE_CFG();
-		sscanf(ibuf, "%p;%p", &heap_saddr, &heap_eaddr);
-		stage = 1;
-		active = 1;
+		if (sscanf(ibuf, "%p;%p", &heap_soffs, &heap_eoffs) == 2) {
+			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
+			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+			stage = 1;
+			active = 1;
+		}
 		break;
 	/*
 	 * stage 2: Verify malloc size
@@ -161,10 +170,13 @@ memhack_init(void) {
 	 */
 	case '2':
 		READ_STAGE_CFG();
-		sscanf(ibuf, "%p;%p;%zd", &heap_saddr, &heap_eaddr,
-		       &malloc_size);
-		stage = 2;
-		active = 1;
+		if (sscanf(ibuf, "%p;%p;%zd", &heap_soffs, &heap_eoffs,
+		    &malloc_size) == 3) {
+			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
+			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+			stage = 2;
+			active = 1;
+		}
 		break;
 	/*
 	 * stage 3: Get the code addresses  (by backtracing)
@@ -175,17 +187,23 @@ memhack_init(void) {
 	 */
 	case '3':
 		READ_STAGE_CFG();
-		sscanf(ibuf, "%p;%p;%zd;%p;%p", &heap_saddr, &heap_eaddr,
-		       &malloc_size, &bt_saddr, &bt_eaddr);
-		stage = 3;
-		active = 1;
+		if (sscanf(ibuf, "%p;%p;%zd;%p;%p", &heap_soffs, &heap_eoffs,
+		    &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
+			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
+			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+			stage = 3;
+			active = 1;
+		}
 		break;
 	case '4':
 		READ_STAGE_CFG();
-		sscanf(ibuf, "%p;%p;%zd;%p;%p;%p", &heap_saddr, &heap_eaddr,
-		       &malloc_size, &bt_saddr, &bt_eaddr, &code_addr);
-		stage = 4;
-		active = 1;
+		if (sscanf(ibuf, "%p;%p;%zd;%p;%p;%p", &heap_soffs, &heap_eoffs,
+		    &malloc_size, &bt_saddr, &bt_eaddr, &code_addr) >= 5) {
+			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
+			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+			stage = 4;
+			active = 1;
+		}
 		break;
 	/* stage 0: static memory search: do nothing */
 	default:
