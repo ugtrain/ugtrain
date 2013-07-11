@@ -17,6 +17,7 @@
 
 # The offset on the stack is relative to the stack end as the stack end isn't
 # a static value between multiple application runs.
+# The same applies for the heap filter as Linux likely uses heap randomization.
 
 CWD=`dirname $0`
 cd "$CWD"
@@ -30,14 +31,14 @@ mkfifo -m 0666 /tmp/memhack_out > /dev/null 2>&1
 
 # set config for 32-bit chromium-bsu 0.9.15-1 (Ubuntu Precise)
 # Format: "1 char stage number (1..4);"
-# Stage1: "heap addr min; heap addr max;"  <-- use 0x0 on both to get all mallocs (and frees)
+# Stage1: "heap offs min; heap offs max;"  <-- use 0x0 on both to get all mallocs (and frees)
 # Stage2: "malloc size;"
 # Stage3: "code addr min; code addr max;" (from .text for backtracing)
 # Stage4: "[unique code addr of the interesting malloc]" <-- optional
 #bash -c 'echo "1;0x0;0x0" > /tmp/memhack_in; cat /tmp/memhack_out > `dirname $0`/memhack_file' &
-#bash -c 'echo "2;0x0;0x0;272" > /tmp/memhack_in; cat /tmp/memhack_out' &
-#bash -c 'echo "3;0x8000000;0xa000000;272;0x804b590;0x806bebb" > /tmp/memhack_in; cat /tmp/memhack_out' &
-bash -c 'echo "4;0x0;0x0;272;0x804b590;0x806bebb;0x8057219" > /tmp/memhack_in; cat /tmp/memhack_out' &
+#bash -c 'echo "2;0x200000;0x350000;272" > /tmp/memhack_in; cat /tmp/memhack_out' &
+#bash -c 'echo "3;0x200000;0x350000;272;0x804b590;0x806bebb" > /tmp/memhack_in; cat /tmp/memhack_out' &
+bash -c 'echo "4;0x200000;0x350000;272;0x804b590;0x806bebb;0x8057219" > /tmp/memhack_in; cat /tmp/memhack_out' &
 
 # discovered stack offset:     0x174    (after stage 4)
 # discovered offset in object: 0xb0     (LIVES)
