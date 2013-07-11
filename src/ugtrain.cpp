@@ -537,6 +537,10 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		return 0;
 
 	switch (opt->disc_str[0]) {
+	case '0':
+		// just get stack end and heap start
+		opt->disc_str = "0";
+		break;
 	case '4':
 		if (!opt->do_adapt) {
 			for (it = cfg->begin(); it != cfg->end(); it++) {
