@@ -68,9 +68,6 @@ static int g_col = 0;
 /* Input parameters */
 /* Output filtering */
 
-/* heap start, helps against heap randomization */
-static void *heap_start = NULL;
-
 /* relevant start and end memory addresses on the heap */
 static void *heap_saddr = NULL, *heap_eaddr = NULL;
 
@@ -103,7 +100,7 @@ memhack_init(void) {
 	ssize_t rbytes;
 	int read_tries;
 	char ibuf[128] = {0};
-	void *heap_soffs = NULL, *heap_eoffs = NULL;
+	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
