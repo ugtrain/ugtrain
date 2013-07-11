@@ -36,9 +36,9 @@ mkfifo -m 0666 /tmp/memhack_out > /dev/null 2>&1
 # Stage3: "code addr min; code addr max;" (from .text for backtracing)
 # Stage4: "[unique code addr of the interesting malloc]" <-- optional
 #bash -c 'echo "1;0x0;0x0" > /tmp/memhack_in; cat /tmp/memhack_out > `dirname $0`/memhack_file' &
-#bash -c 'echo "2;0x0;0x350000;288" > /tmp/memhack_in; cat /tmp/memhack_out' &
-#bash -c 'echo "3;0x0;0x350000;288;0x404d50;0x425c88" > /tmp/memhack_in; cat /tmp/memhack_out' &
-bash -c 'echo "4;0x0;0x350000;288;0x404d50;0x425c88;0x411097" > /tmp/memhack_in; cat /tmp/memhack_out' &
+#bash -c 'echo "2;0x200000;0x350000;288" > /tmp/memhack_in; cat /tmp/memhack_out' &
+bash -c 'echo "3;0x200000;0x350000;288;0x404d50;0x425c88" > /tmp/memhack_in; cat /tmp/memhack_out' &
+#bash -c 'echo "4;0x200000;0x350000;288;0x404d50;0x425c88;0x411097" > /tmp/memhack_in; cat /tmp/memhack_out' &
 
 # discovered stack offset:     0x198    (after stage 4)
 # discovered offset in object: 0xbc     (LIVES)
