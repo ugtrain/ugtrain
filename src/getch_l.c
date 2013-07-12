@@ -29,6 +29,8 @@ int prepare_getch (void)
 {
 	struct termios new_tty;
 
+	if (tty_changed)
+		return 0;
 	if (tcgetattr(STDIN_FILENO, &saved_tty) == -1)
 		return -1;
 	new_tty = saved_tty;
@@ -65,6 +67,18 @@ char do_getch (void)
 	if (cnt < 0)
 		return -1;
 	return ch;
+}
+
+void set_getch_nb (int nb)
+{
+	int flags;
+
+	if (!nb) {
+		flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+		fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+	} else {
+		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	}
 }
 
 void restore_getch (void)

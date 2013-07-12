@@ -539,7 +539,7 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	switch (opt->disc_str[0]) {
 	case '0':
 		// just get stack end and heap start
-		opt->disc_str = "0";
+		opt->disc_str = (char *) "0";
 		break;
 	case '4':
 		if (!opt->do_adapt) {
@@ -550,7 +550,8 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		}
 		if (strlen(opt->disc_str) == 1) {
 			for (it = cfg->begin(); it != cfg->end(); it++) {
-				if (it->dynmem && it->dynmem->adp_addr) {
+				if (it->dynmem && it->dynmem->adp_addr &&
+				    !it->dynmem->adp_stack) {
 					found = 1;
 					break;
 				}
@@ -569,6 +570,9 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			opt->disc_str[disc_str.size()] = '\0';
 			memcpy(opt->disc_str, disc_str.c_str(),
 				disc_str.size());
+			cout << "Discovering object " << it->dynmem->name
+			     << "." << endl
+			     << "Please ensure that it gets allocated!" << endl;
 			cout << "disc_str: " << opt->disc_str << endl;
 		} else {
 			cerr << "Sorry, not supported, yet!" << endl;
@@ -904,6 +908,7 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
+discover_next:
 	if (prepare_discovery(&opt, &cfg) != 0)
 		return -1;
 
@@ -917,7 +922,13 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	cout << "PID: " << pid << endl;
 
+	if (prepare_getch_nb() != 0) {
+		cerr << "Error while terminal preparation!" << endl;
+		return -1;
+	}
+
 	if (opt.disc_str) {
+		set_getch_nb(0);
 		pmask[0] = pmask[1] = pmask[2] = pmask[3] = 1;
 		while (1) {
 			sleep(1);
@@ -932,17 +943,22 @@ i32 main (i32 argc, char **argv, char **env)
 		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
 			if (cfg_it->dynmem && !(cfg_it->dynmem->adp_addr &&
 			    cfg_it->dynmem->adp_stack)) {
+				cout << "Undiscovered objects found!" << endl
+				     << "Next discovery run (y/n)? : ";
+				fflush(stdout);
+				ch = 'n';
+				ch = do_getch();
+				cout << ch << endl;
+				if (ch == 'y') {
+					opt.disc_str[1] = '\0';
+					goto discover_next;
+				}
 				cerr << "Discovery failed!" << endl;
 				return -1;
 			}
 		}
 		cout << "Discovery successful!" << endl;
 		return 0;
-	}
-
-	if (prepare_getch_nb() != 0) {
-		cerr << "Error while terminal preparation!" << endl;
-		return -1;
 	}
 
 	if (memattach_test(pid) != 0) {

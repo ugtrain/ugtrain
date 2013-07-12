@@ -25,6 +25,7 @@ extern "C" {
 	int  prepare_getch (void);
 	int  prepare_getch_nb (void);
 	char do_getch      (void);
+	void set_getch_nb  (int nb);
 	void restore_getch (void);
 #ifdef __cplusplus
 };
