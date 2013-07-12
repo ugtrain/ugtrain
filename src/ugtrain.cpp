@@ -940,6 +940,8 @@ discover_next:
 				break;
 			}
 		}
+		if (opt.disc_str[0] != '4')
+			return 0;
 		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
 			if (cfg_it->dynmem && !(cfg_it->dynmem->adp_addr &&
 			    cfg_it->dynmem->adp_stack)) {
