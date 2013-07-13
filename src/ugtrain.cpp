@@ -752,7 +752,12 @@ void unset_dynmem_addr (list<CfgEntry> *cfg, void *mem_addr)
 	}
 }
 
-void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd, u8 *pmask,
+#define PARSE_M 1
+#define PARSE_S 2
+#define PARSE_C 4
+#define PARSE_O 8
+
+void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd, int pmask,
 		      void (*mf)(list<CfgEntry> *, void *,
 				 ssize_t, void *, void *),
 		      void (*ff)(list<CfgEntry> *, void *))
@@ -785,7 +790,7 @@ next:
 			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
 				goto parse_err;
 
-			if (!pmask[1])
+			if (!(pmask & PARSE_S))
 				goto skip_s;
 			sep_pos = strchr(ibuf + ppos, ';');
 			if (!sep_pos)
@@ -798,7 +803,7 @@ next:
 			if (sscanf(ibuf + ppos, "%zd", &mem_size) != 1)
 				goto parse_err;
 skip_s:
-			if (!pmask[2])
+			if (!(pmask & PARSE_C))
 				goto skip_c;
 			sep_pos = strchr(ibuf + ppos, ';');
 			if (!sep_pos)
@@ -811,7 +816,7 @@ skip_s:
 			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
 				goto parse_err;
 skip_c:
-			if (!pmask[3])
+			if (!(pmask & PARSE_O))
 				goto skip_o;
 			sep_pos = strchr(ibuf + ppos, ';');
 			if (!sep_pos)
@@ -855,6 +860,7 @@ skip_o:
 
 parse_err:
 	cerr << "parse error at ppos: " << ppos << endl;
+	cerr << ibuf;
 	memset(ibuf, 0, sizeof(ibuf));
 	ilen = 0;
 	ipos = 0;
@@ -873,7 +879,7 @@ i32 main (i32 argc, char **argv, char **env)
 	pid_t pid;
 	char def_home[] = "~";
 	u8 buf[sizeof(i64)] = { 0 };
-	u8 pmask[] = {1, 0, 1, 0};
+	int pmask = PARSE_M | PARSE_C;
 	char ch;
 	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
@@ -911,6 +917,7 @@ discover_next:
 	if (prepare_discovery(&opt, &cfg) != 0)
 		return -1;
 
+prepare_dynmem:
 	if (prepare_dynmem(&opt, &cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
@@ -928,7 +935,7 @@ discover_next:
 
 	if (opt.disc_str) {
 		set_getch_nb(0);
-		pmask[0] = pmask[1] = pmask[2] = pmask[3] = 1;
+		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
 		while (1) {
 			sleep(1);
 			read_dynmem_buf(&cfg, ifd, pmask, process_disc_output,
@@ -968,7 +975,19 @@ discover_next:
 			}
 		}
 		cout << "Discovery successful!" << endl;
-		return 0;
+		// Take over discovery
+		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
+			if (!cfg_it->dynmem)
+				continue;
+			cfg_it->dynmem->code_addr = cfg_it->dynmem->adp_addr;
+			cfg_it->dynmem->stack_offs = cfg_it->dynmem->adp_stack;
+		}
+		// Run game with libmemhack
+		opt.do_adapt = 0;
+		opt.disc_str = NULL;
+		use_libmemhack(&opt);
+		pmask = PARSE_M | PARSE_C;
+		goto prepare_dynmem;
 	}
 
 	if (memattach_test(pid) != 0) {

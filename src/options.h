@@ -39,6 +39,7 @@ struct app_options {
 extern "C" {
 #endif
 	void usage();
+	void use_libmemhack (struct app_options *opt);
 	void parse_options (int argc, char **argv, struct app_options *opt);
 #ifdef __cplusplus
 };

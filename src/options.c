@@ -21,6 +21,7 @@
 #include "options.h"
 
 #define LDISC_PRE "libmemdisc"
+#define LHACK_PRE "libmemhack"
 #define LIB_END   ".so"
 
 const char Help[] =
@@ -58,7 +59,15 @@ static struct option long_options[] = {
 	{0, 0, 0, 0}
 };
 
-void do_assumptions (struct app_options *opt)
+void use_libmemhack (struct app_options *opt)
+{
+	if (sizeof(long) == 8)
+		opt->preload_lib = (char *) LHACK_PRE "64" LIB_END;
+	else if (sizeof(long) == 4)
+		opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
+}
+
+static void do_assumptions (struct app_options *opt)
 {
 	/* '-A' --> '-A -D 4' */
 	if (opt->do_adapt && !opt->disc_str)
