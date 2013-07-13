@@ -32,6 +32,7 @@ struct app_options {
 	char *home;
 	char *proc_name;
 	char *adp_script;
+	void *disc_addr;
 };
 
 #ifdef __cplusplus

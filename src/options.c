@@ -81,6 +81,7 @@ static void init_options (struct app_options *opt)
 	opt->home = NULL;
 	opt->proc_name = NULL;
 	opt->adp_script = NULL;
+	opt->disc_addr = NULL;
 }
 
 void parse_options (int argc, char **argv, struct app_options *opt)

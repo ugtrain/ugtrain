@@ -552,6 +552,7 @@ static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			for (it = cfg->begin(); it != cfg->end(); it++) {
 				if (it->dynmem && it->dynmem->adp_addr &&
 				    !it->dynmem->adp_stack) {
+					opt->disc_addr = it->dynmem->adp_addr;
 					found = 1;
 					break;
 				}
@@ -877,6 +878,7 @@ i32 main (i32 argc, char **argv, char **env)
 	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
+	int discovered;
 
 	atexit(restore_getch);
 
@@ -905,6 +907,7 @@ i32 main (i32 argc, char **argv, char **env)
 	}
 
 discover_next:
+	discovered = 0;
 	if (prepare_discovery(&opt, &cfg) != 0)
 		return -1;
 
@@ -939,17 +942,26 @@ discover_next:
 		if (opt.disc_str[0] != '4')
 			return 0;
 		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
-			if (cfg_it->dynmem && !(cfg_it->dynmem->adp_addr &&
-			    cfg_it->dynmem->adp_stack)) {
-				cout << "Undiscovered objects found!" << endl
-				     << "Next discovery run (y/n)? : ";
-				fflush(stdout);
-				ch = 'n';
-				ch = do_getch();
-				cout << ch << endl;
-				if (ch == 'y') {
-					opt.disc_str[1] = '\0';
-					goto discover_next;
+			if (!cfg_it->dynmem)
+				continue;
+			if (cfg_it->dynmem->adp_addr == opt.disc_addr &&
+			    cfg_it->dynmem->adp_stack) {
+				discovered = 1;
+				continue;
+			}
+			if (!(cfg_it->dynmem->adp_addr &&
+			      cfg_it->dynmem->adp_stack)) {
+				cout << "Undiscovered objects found!" << endl;
+				if (discovered) {
+					cout << "Next discovery run (y/n)? : ";
+					fflush(stdout);
+					ch = 'n';
+					ch = do_getch();
+					cout << ch << endl;
+					if (ch == 'y') {
+						opt.disc_str[1] = '\0';
+						goto discover_next;
+					}
 				}
 				cerr << "Discovery failed!" << endl;
 				return -1;
