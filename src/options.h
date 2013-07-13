@@ -28,6 +28,10 @@ struct app_options {
 	int do_adapt;
 	char *preload_lib;
 	char *disc_str;
+	/* no direct CLI input */
+	char *home;
+	char *proc_name;
+	char *adp_script;
 };
 
 #ifdef __cplusplus

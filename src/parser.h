@@ -22,11 +22,10 @@
 #include <list>
 #include <string>
 #include "cfgentry.h"
+#include "options.h"
 
 list<CfgEntry*> *read_config (char *cfg_name,
-			      char *env_home,
-			      char **proc_name,
-			      char **adp_script,
+			      struct app_options *opt,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map);
 

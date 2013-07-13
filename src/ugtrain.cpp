@@ -425,8 +425,8 @@ err:
 	return ret;
 }
 
-static i32 prepare_dynmem (struct app_options *opt, char *proc_name,
-			   list<CfgEntry> *cfg, i32 *ifd, i32 *ofd)
+static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
+			   i32 *ifd, i32 *ofd)
 {
 	char obuf[4096] = {0};
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
@@ -507,7 +507,7 @@ skip_memhack:
 	/* Run the preloaded game but not as root */
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting preloaded game.." << endl;
-		run_preloader(opt->preload_lib, proc_name);
+		run_preloader(opt->preload_lib, opt->proc_name);
 	}
 
 	cout << "Waiting for preloaded game.." << endl;
@@ -862,8 +862,6 @@ parse_err:
 
 i32 main (i32 argc, char **argv, char **env)
 {
-	char *proc_name = NULL;
-	char *adp_script = NULL;
 	list<CfgEntry> cfg;
 	list<CfgEntry*> *cfg_act;
 	list<CfgEntry>::iterator cfg_it;
@@ -872,7 +870,6 @@ i32 main (i32 argc, char **argv, char **env)
 	CfgEntry *cfg_en;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
-	char *home;
 	char def_home[] = "~";
 	u8 buf[sizeof(i64)] = { 0 };
 	u8 pmask[] = {1, 0, 1, 0};
@@ -888,13 +885,12 @@ i32 main (i32 argc, char **argv, char **env)
 
 	parse_options(argc, argv, &opt);
 
-	home = getenv(HOME_VAR);
-	if (!home)
-		home = def_home;
+	opt.home = getenv(HOME_VAR);
+	if (!opt.home)
+		opt.home = def_home;
 
-	cfg_act = read_config(argv[optind - 1], home, &proc_name,
-			      &adp_script, &cfg, cfgp_map);
-	cout << "Found config for \"" << proc_name << "\"." << endl;
+	cfg_act = read_config(argv[optind - 1], &opt, &cfg, cfgp_map);
+	cout << "Found config for \"" << opt.proc_name << "\"." << endl;
 
 	cout << "Config:" << endl;
 	output_config(&cfg);
@@ -903,7 +899,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (cfg.empty())
 		return -1;
 
-	if (opt.do_adapt && adapt_config(&cfg, adp_script) != 0) {
+	if (opt.do_adapt && adapt_config(&cfg, opt.adp_script) != 0) {
 		cerr << "Error while code address adaption!" << endl;
 		return -1;
 	}
@@ -912,12 +908,12 @@ discover_next:
 	if (prepare_discovery(&opt, &cfg) != 0)
 		return -1;
 
-	if (prepare_dynmem(&opt, proc_name, &cfg, &ifd, &ofd) != 0) {
+	if (prepare_dynmem(&opt, &cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}
 
-	pid = proc_to_pid(proc_name);
+	pid = proc_to_pid(opt.proc_name);
 	if (pid < 0)
 		return -1;
 	cout << "PID: " << pid << endl;

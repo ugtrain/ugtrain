@@ -288,9 +288,7 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 }
 
 list<CfgEntry*> *read_config (char *cfg_path,
-			      char *env_home,
-			      char **proc_name,
-			      char **adp_script,
+			      struct app_options *opt,
 			      list<CfgEntry> *cfg,
 			      list<CfgEntry*> **cfgp_map)
 {
@@ -305,7 +303,7 @@ list<CfgEntry*> *read_config (char *cfg_path,
 	bool in_dynmem = false;
 	string line;
 	vector<string> lines;
-	string path(cfg_path), home(env_home);
+	string path(cfg_path), home(opt->home);
 	string adp_str;
 	char *ascript;
 	size_t pos;
@@ -314,7 +312,7 @@ list<CfgEntry*> *read_config (char *cfg_path,
 	read_config_vect(&path, &home, &lines);
 
 	// parse config
-	*proc_name = parse_proc_name(&lines.at(0), &start);
+	opt->proc_name = parse_proc_name(&lines.at(0), &start);
 
 	for (lnr = 1; lnr < lines.size(); lnr++) {
 		line = lines.at(lnr);
@@ -377,7 +375,7 @@ list<CfgEntry*> *read_config (char *cfg_path,
 			ascript = new char[adp_str.size() + 1];
 			ascript[adp_str.size()] = '\0';
 			memcpy(ascript, adp_str.c_str(), adp_str.size());
-			*adp_script = ascript;
+			opt->adp_script = ascript;
 			break;
 
 		default:

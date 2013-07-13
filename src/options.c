@@ -72,12 +72,22 @@ void do_assumptions (struct app_options *opt)
 	}
 }
 
-void parse_options (int argc, char **argv, struct app_options *opt)
+static void init_options (struct app_options *opt)
 {
-	int ch, opt_idx;
 	opt->do_adapt = 0;
 	opt->preload_lib = NULL;
 	opt->disc_str = NULL;
+	/* no direct CLI input */
+	opt->home = NULL;
+	opt->proc_name = NULL;
+	opt->adp_script = NULL;
+}
+
+void parse_options (int argc, char **argv, struct app_options *opt)
+{
+	int ch, opt_idx;
+
+	init_options(opt);
 
 	while (1) {
 		ch = getopt_long (argc, argv, short_options,
