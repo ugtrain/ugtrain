@@ -25,15 +25,17 @@
 #define LIB_END   ".so"
 
 const char Help[] =
-PROG_NAME " is an universal game trainer for the CLI\n"
+PROG_NAME " is an advanced universal game trainer for the CLI\n"
 "\n"
 "Usage: " PROG_NAME " [opts] <config_path>\n"
 "\n"
 "--help, -h:		show this information\n"
 "\n"
 "Dynamic Memory Options\n"
-"--preload, -P <lib>:	start the game preloaded with the given lib\n"
-"			(ignored for root)\n"
+"--preload, -P [lib]:	start the game preloaded with the given lib -\n"
+"			without argument \'-P " LHACK_PRE "32/64"
+				LIB_END "\' is assumed\n"
+"			(depending on \'sizeof(long)\', ignored for root)\n"
 "--discover, -D <str>:	do discovery by sending the string to the discovery\n"
 "			library - without \'-P\' \'-P "
 				LDISC_PRE "32/64" LIB_END "\'\n"
@@ -50,12 +52,12 @@ void usage()
 	exit(-1);
 }
 
-static const char short_options[] = "-hAD:P:";
+static const char short_options[] = "-hAD:P::";
 static struct option long_options[] = {
 	{"help",           0, 0, 'h'},
 	{"adapt",          0, 0, 'A'},
 	{"discover",       1, 0, 'D'},
-	{"preload",        1, 0, 'P'},
+	{"preload",        2, 0, 'P'},
 	{0, 0, 0, 0}
 };
 
@@ -95,11 +97,12 @@ static void init_options (struct app_options *opt)
 
 void parse_options (int argc, char **argv, struct app_options *opt)
 {
-	int ch, opt_idx;
+	int ch = '\0', prev_ch = '\0', opt_idx;
 
 	init_options(opt);
 
 	while (1) {
+		prev_ch = ch;
 		ch = getopt_long (argc, argv, short_options,
 				  long_options, &opt_idx);
 		if (ch < 0)
@@ -118,13 +121,18 @@ void parse_options (int argc, char **argv, struct app_options *opt)
 			opt->disc_str = optarg;
 			break;
 		case 'P':
-			if (optind == argc)
-				usage();
-			opt->preload_lib = optarg;
+			if (optind == argc || !optarg)
+				use_libmemhack(opt);
+			else
+				opt->preload_lib = optarg;
 			break;
 		default:
-			if (optind != argc)
-				usage();
+			if (optind != argc) {
+				if (prev_ch == 'P')
+					opt->preload_lib = optarg;
+				else
+					usage();
+			}
 			break;
 		}
 	}
