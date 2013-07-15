@@ -67,6 +67,7 @@ public:
 	void *mem_addr;    /* set by malloc call */
 	void *adp_addr;    /* adapted code address */
 	void *adp_stack;   /* adapted stack offset */
+	u32 cfg_line;      /* to write back new cfg */
 };
 
 class CfgEntry {

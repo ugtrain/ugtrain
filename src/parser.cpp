@@ -50,6 +50,24 @@ static inline void cfg_parse_err (string *line, u32 lnr, u32 lidx)
 	exit(-1);
 }
 
+void write_config_vect (string *path, vector<string> *lines)
+{
+	ofstream cfg_file;
+	vector<string>::iterator it;
+
+	lines->pop_back();
+
+	cfg_file.open(path->c_str(), fstream::trunc);
+	if (!cfg_file.is_open()) {
+		cerr << "File \"" << *path << "\" doesn't exist!" << endl;
+		exit(-1);
+	}
+	for (it = lines->begin(); it != lines->end(); ++it)
+		cfg_file << (*it) << endl;
+
+	cfg_file.close();
+}
+
 static void read_config_vect (string *path, string *home, vector<string> *lines)
 {
 	ifstream cfg_file;
@@ -287,10 +305,11 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 	}
 }
 
-list<CfgEntry*> *read_config (char *cfg_path,
+list<CfgEntry*> *read_config (string *path,
 			      struct app_options *opt,
 			      list<CfgEntry> *cfg,
-			      list<CfgEntry*> **cfgp_map)
+			      list<CfgEntry*> **cfgp_map,
+			      vector<string> *lines)
 {
 	CfgEntry cfg_en;
 	CfgEntry *cfg_enp;
@@ -302,20 +321,19 @@ list<CfgEntry*> *read_config (char *cfg_path,
 	i32 name_type, tmp;
 	bool in_dynmem = false;
 	string line;
-	vector<string> lines;
-	string path(cfg_path), home(opt->home);
+	string home(opt->home);
 	string adp_str;
 	char *ascript;
 	size_t pos;
 
 	// read config into string vector
-	read_config_vect(&path, &home, &lines);
+	read_config_vect(path, &home, lines);
 
 	// parse config
-	opt->proc_name = parse_proc_name(&lines.at(0), &start);
+	opt->proc_name = parse_proc_name(&lines->at(0), &start);
 
-	for (lnr = 1; lnr < lines.size(); lnr++) {
-		line = lines.at(lnr);
+	for (lnr = 1; lnr < lines->size(); lnr++) {
+		line = lines->at(lnr);
 		start = 0;
 		if (line.length() <= 0 || line[0] == '#')
 			continue;
@@ -349,6 +367,7 @@ list<CfgEntry*> *read_config (char *cfg_path,
 			dynmem_enp->mem_addr = NULL;
 			dynmem_enp->adp_addr = NULL;
 			dynmem_enp->adp_stack = NULL;
+			dynmem_enp->cfg_line = lnr;
 			break;
 
 		case NAME_DYNMEM_END:
@@ -365,9 +384,9 @@ list<CfgEntry*> *read_config (char *cfg_path,
 				cfg_parse_err(&line, lnr, start);
 			}
 			adp_str = string("");
-			pos = path.rfind("/");
+			pos = path->rfind("/");
 			if (pos != string::npos)
-				adp_str.append(path.substr(0, pos + 1));
+				adp_str.append(path->substr(0, pos + 1));
 			adp_str.append(parse_value_name(&line,
 				       lnr, &start, &name_type));
 

@@ -869,12 +869,16 @@ parse_err:
 
 i32 main (i32 argc, char **argv, char **env)
 {
+	string *cfg_path;
+	vector<string> lines;
 	list<CfgEntry> cfg;
 	list<CfgEntry*> *cfg_act;
 	list<CfgEntry>::iterator cfg_it;
 	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
 	CfgEntry *cfg_en;
+	DynMemEntry *tmp = NULL;
+	u8 lnr;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
 	char def_home[] = "~";
@@ -897,7 +901,8 @@ i32 main (i32 argc, char **argv, char **env)
 	if (!opt.home)
 		opt.home = def_home;
 
-	cfg_act = read_config(argv[optind - 1], &opt, &cfg, cfgp_map);
+	cfg_path = new string(argv[optind - 1]);
+	cfg_act = read_config(cfg_path, &opt, &cfg, cfgp_map, &lines);
 	cout << "Found config for \"" << opt.proc_name << "\"." << endl;
 
 	cout << "Config:" << endl;
@@ -977,11 +982,27 @@ prepare_dynmem:
 		cout << "Discovery successful!" << endl;
 		// Take over discovery
 		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
-			if (!cfg_it->dynmem)
+			if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
 				continue;
-			cfg_it->dynmem->code_addr = cfg_it->dynmem->adp_addr;
-			cfg_it->dynmem->stack_offs = cfg_it->dynmem->adp_stack;
+			tmp = cfg_it->dynmem;
+			cout << "Obj. " << tmp->name
+			     << ", old_code: " << hex << tmp->code_addr
+			     << ", new_code: " << tmp->adp_addr << dec << endl;
+			cfg_it->dynmem->code_addr = tmp->adp_addr;
+			cout << "Obj. " << tmp->name
+			     << ", old_offs: " << hex << tmp->stack_offs
+			     << ", new_offs: " << tmp->adp_stack << dec << endl;
+			tmp->stack_offs = tmp->adp_stack;
+			lnr = tmp->cfg_line;
+			lines.at(lnr) = "dynmemstart " + tmp->name + " "
+				+ to_string(tmp->mem_size) + " "
+				+ to_string(tmp->code_addr) + " "
+				+ to_string(tmp->stack_offs);
 		}
+		// Write back config
+		cout << "Writing back config.." << endl;
+		write_config_vect(cfg_path, &lines);
+
 		// Run game with libmemhack
 		opt.do_adapt = 0;
 		opt.disc_str = NULL;
