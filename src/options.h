@@ -32,6 +32,7 @@ struct app_options {
 	char *home;
 	char *proc_name;
 	char *adp_script;
+	int adp_required;
 	void *disc_addr;
 };
 
@@ -40,6 +41,7 @@ extern "C" {
 #endif
 	void usage();
 	void use_libmemhack (struct app_options *opt);
+	void do_assumptions (struct app_options *opt);
 	void parse_options (int argc, char **argv, struct app_options *opt);
 #ifdef __cplusplus
 };

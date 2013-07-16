@@ -912,9 +912,38 @@ i32 main (i32 argc, char **argv, char **env)
 	if (cfg.empty())
 		return -1;
 
-	if (opt.do_adapt && adapt_config(&cfg, opt.adp_script) != 0) {
-		cerr << "Error while code address adaption!" << endl;
+	if (prepare_getch() != 0) {
+		cerr << "Error while terminal preparation!" << endl;
 		return -1;
+	}
+
+	if (opt.adp_required && !opt.do_adapt) {
+		if (!opt.adp_script) {
+			cerr << "Error, adaption required but no adaption script!" << endl;
+			return -1;
+		}
+		cout << "Adaption to your compiler/game version is required." << endl;
+		cout << "Adaption script: " << opt.adp_script << endl;
+		cout << "Run the adaption script, now (y/n)? : ";
+		fflush(stdout);
+		ch = 'n';
+		ch = do_getch();
+		cout << ch << endl;
+		if (ch == 'y') {
+			opt.do_adapt = 1;
+			do_assumptions(&opt);
+		}
+	}
+
+	if (opt.do_adapt) {
+		if (!opt.adp_script) {
+			cerr << "Error, no adaption script!" << endl;
+			return -1;
+		}
+		if (adapt_config(&cfg, opt.adp_script) != 0) {
+			cerr << "Error while code address adaption!" << endl;
+			return -1;
+		}
 	}
 
 discover_next:
@@ -933,13 +962,7 @@ prepare_dynmem:
 		return -1;
 	cout << "PID: " << pid << endl;
 
-	if (prepare_getch_nb() != 0) {
-		cerr << "Error while terminal preparation!" << endl;
-		return -1;
-	}
-
 	if (opt.disc_str) {
-		set_getch_nb(0);
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
 		while (1) {
 			sleep(1);
@@ -1010,6 +1033,7 @@ prepare_dynmem:
 		pmask = PARSE_M | PARSE_C;
 		goto prepare_dynmem;
 	}
+	set_getch_nb(1);
 
 	if (memattach_test(pid) != 0) {
 		cerr << "PTRACE ERROR PID[" << pid << "]!" << endl;

@@ -69,11 +69,16 @@ void use_libmemhack (struct app_options *opt)
 		opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
 }
 
-static void do_assumptions (struct app_options *opt)
+void do_assumptions (struct app_options *opt)
 {
 	/* '-A' --> '-A -D 4' */
-	if (opt->do_adapt && !opt->disc_str)
-		opt->disc_str = (char *) "4";
+	if (opt->do_adapt) {
+		if (!opt->disc_str)
+			opt->disc_str = (char *) "4";
+		if (opt->preload_lib && strncmp(opt->preload_lib, LHACK_PRE,
+		    sizeof(LHACK_PRE) - 1) == 0)
+			opt->preload_lib = NULL;
+	}
 	/* '-D <str>' --> '-D <str> -P libmemdisc32/64.so' */
 	if (opt->disc_str && !opt->preload_lib) {
 		if (sizeof(long) == 8)
@@ -92,6 +97,7 @@ static void init_options (struct app_options *opt)
 	opt->home = NULL;
 	opt->proc_name = NULL;
 	opt->adp_script = NULL;
+	opt->adp_required = 0;
 	opt->disc_addr = NULL;
 }
 

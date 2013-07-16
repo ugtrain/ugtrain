@@ -33,7 +33,8 @@ enum {
 	NAME_CHECK,
 	NAME_DYNMEM_START,
 	NAME_DYNMEM_END,
-	NAME_ADAPT
+	NAME_ADAPT,
+	NAME_ADP_REQ
 };
 
 static inline void proc_name_err (string *line, u32 lidx)
@@ -152,6 +153,8 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 		*name_type = NAME_DYNMEM_END;
 	else if (ret == "adapt_script")
 		*name_type = NAME_ADAPT;
+	else if (ret == "adapt_required")
+		*name_type = NAME_ADP_REQ;
 	else
 		*name_type = NAME_REGULAR;
 
@@ -244,6 +247,10 @@ static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
 	double tmp_dval;
 
 	lidx = *start;
+	if (!check)
+		goto skip_check;
+
+	// determine check
 	if (lidx + 2 > line->length())
 		cfg_parse_err(line, lnr, --lidx);
 	if (line->at(lidx) == 'l' && line->at(lidx + 1) == ' ') {
@@ -256,6 +263,7 @@ static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
 		*check = DO_UNCHECKED;
 	}
 
+skip_check:
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ' ') {
 			break;
@@ -380,9 +388,9 @@ list<CfgEntry*> *read_config (string *path,
 			break;
 
 		case NAME_ADAPT:
-			if (in_dynmem) {
+			if (in_dynmem)
 				cfg_parse_err(&line, lnr, start);
-			}
+
 			adp_str = string("");
 			pos = path->rfind("/");
 			if (pos != string::npos)
@@ -395,6 +403,14 @@ list<CfgEntry*> *read_config (string *path,
 			ascript[adp_str.size()] = '\0';
 			memcpy(ascript, adp_str.c_str(), adp_str.size());
 			opt->adp_script = ascript;
+			break;
+
+		case NAME_ADP_REQ:
+			if (in_dynmem)
+				cfg_parse_err(&line, lnr, start);
+
+			opt->adp_required = parse_value(&line, lnr, &start,
+							false, false, NULL);
 			break;
 
 		default:
