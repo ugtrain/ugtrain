@@ -1,14 +1,23 @@
 ###################
 ### DESCRIPTION ###
 ###################
-# The ugtrain is a free universal game trainer for the CLI under GPLv2
-# license uploaded on GitHub. The dynamic memory support sets it apart.
-# A preloader, a malloc discovery and a memory hacking library are included
+# The ugtrain is an advanced free universal game trainer for the CLI under
+# GPLv2 license uploaded on GitHub. The dynamic memory support sets it apart.
+# A preloader, a memory discovery and a memory hacking library are included
 # for this.
 # The ugtrain uses one simple config file per game which can be exchanged
-# with others. Examples are included.
+# with others. Examples for games which allow cheating are included.
 #
 # The ugtrain is powered by the Open Game Cheating Association.
+#
+# ### LEGAL WARNING ###
+#
+# Don't use game trainers or any other cheating software for commercial
+# closed source games, for multi-player games or for online games! Please
+# don't use "ugtrain" for that! You may violate copyright and other laws
+# by doing so. Recording videos of doing so makes the situation even worse
+# in terms of law. Please always read the end user license agreement (EULA)
+# of the game to be very sure if you are really allowed to do so or not!
 #
 # ### Current Limitations ###
 #
@@ -25,10 +34,19 @@
 #
 # GUI:			can't serve as a backend, yet
 #
+# ### Why this tool if only FOSS games allow cheating? ###
+#
+# For the challange of cheating them without looking at the source or
+# even modifying the source code and also for education purposes. Advanced
+# reverse engineering methods are often used by computer criminals
+# (Crackers) for cheating games. They don't tell you how they do it. The
+# goal is to get to know the operating system and the memory management
+# better.
+#
 # ### Why a CLI tool? ###
 #
 # CLI is important e.g. if you play full screen in WINE. Some people
-# start another X session for the game but I don't like that. Moreover,
+# start another X session for the game but we don't like that. Moreover,
 # you will be able to write your own GUI frontend for it. CLI tools can
 # last decades while GUIs change more frequently.
 #
