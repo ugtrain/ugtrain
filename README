@@ -114,11 +114,11 @@ ugtrain <config>
 # If it can't find it there it tries ~/.ugtrain/<config>.conf.
 # Do e.g. the following:
 cd examples
-ugrain test    # 'ugtrain test.conf' is also possible
+ugtrain chromium-bsu64    # 'ugtrain chromium-bsu64.conf' is also possible
 
-# This parses the test.conf from the examples, searches for the running
-# instance of the game and starts freezing the configured values.
-# In the examples the config syntax is described.
+# This parses the chromium-bsu64.conf from the examples, searches
+# for the running instance of the game and starts freezing the
+# configured values. In the examples the config syntax is described.
 
 #########################
 ### HOW TO CONTRIBUTE ###
