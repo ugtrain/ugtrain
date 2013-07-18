@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "options.h"
 
 #define LDISC_PRE "libmemdisc"
@@ -98,6 +99,7 @@ static void init_options (struct app_options *opt)
 	opt->proc_name = NULL;
 	opt->adp_script = NULL;
 	opt->adp_required = 0;
+	opt->adp_req_line = 0;
 	opt->disc_addr = NULL;
 }
 

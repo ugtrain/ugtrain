@@ -1022,6 +1022,11 @@ prepare_dynmem:
 				+ to_string(tmp->code_addr) + " "
 				+ to_string(tmp->stack_offs);
 		}
+		// Adaption isn't required anymore
+		lnr = opt.adp_req_line;
+		if (lnr > 0)
+			lines.at(lnr) = "adapt_required 0";
+
 		// Write back config
 		cout << "Writing back config.." << endl;
 		write_config_vect(cfg_path, &lines);

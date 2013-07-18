@@ -411,6 +411,7 @@ list<CfgEntry*> *read_config (string *path,
 
 			opt->adp_required = parse_value(&line, lnr, &start,
 							false, false, NULL);
+			opt->adp_req_line = lnr;
 			break;
 
 		default:

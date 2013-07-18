@@ -33,6 +33,7 @@ struct app_options {
 	char *proc_name;
 	char *adp_script;
 	int adp_required;
+	unsigned int adp_req_line;
 	void *disc_addr;
 };
 
