@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "common.h"
-#include "common.cpp"
+#include "commont.cpp"
 #include "getch.h"
 #include "cfgparser.h"
 #include "discovery.h"
@@ -120,6 +120,14 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		// just get stack end and heap start
 		opt->disc_str = (char *) "0";
 		break;
+	case '1':
+		if (strlen(opt->disc_str) == 1) {
+			disc_str += opt->disc_str;
+			disc_str += ";0x0;0x0";
+			opt->disc_str = to_c_str(&disc_str);
+		}
+		cout << "disc_str: " << opt->disc_str << endl;
+		break;
 	case '4':
 		if (!opt->do_adapt) {
 			for (it = cfg->begin(); it != cfg->end(); it++) {
@@ -146,10 +154,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 				disc_str += ";";
 				disc_str += to_string(it->dynmem->adp_addr);
 			}
-			opt->disc_str = new char[disc_str.size() + 1];
-			opt->disc_str[disc_str.size()] = '\0';
-			memcpy(opt->disc_str, disc_str.c_str(),
-				disc_str.size());
+			opt->disc_str = to_c_str(&disc_str);
 			cout << "Discovering object " << it->dynmem->name
 			     << "." << endl
 			     << "Please ensure that it gets allocated!" << endl;

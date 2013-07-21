@@ -6,6 +6,7 @@ ugtrain_SOURCES = common.h \
                   cfgparser.h \
                   fifoparser.h \
                   discovery.h \
+                  commont.cpp \
                   common.cpp \
                   ugtrain.cpp \
                   options.c \

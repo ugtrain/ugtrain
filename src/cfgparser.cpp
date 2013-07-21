@@ -69,9 +69,7 @@ static char *parse_proc_name (string *line, u32 *start)
 	*start = lidx;
 
 	// copy process name as we need it as C string
-	pname = new char[line->size() + 1];
-	pname[line->size()] = '\0';
-	memcpy(pname, line->c_str(), line->size());
+	pname = to_c_str(line);
 
 	return pname;
 }
@@ -313,7 +311,6 @@ list<CfgEntry*> *read_config (string *path,
 	string line;
 	string home(opt->home);
 	string adp_str;
-	char *ascript;
 	size_t pos;
 
 	// read config into string vector
@@ -381,10 +378,7 @@ list<CfgEntry*> *read_config (string *path,
 				       lnr, &start, &name_type));
 
 			// Copy into C string
-			ascript = new char[adp_str.size() + 1];
-			ascript[adp_str.size()] = '\0';
-			memcpy(ascript, adp_str.c_str(), adp_str.size());
-			opt->adp_script = ascript;
+			opt->adp_script = to_c_str(&adp_str);
 			break;
 
 		case NAME_ADP_REQ:

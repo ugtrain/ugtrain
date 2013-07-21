@@ -31,7 +31,7 @@
 
 // local includes
 #include "common.h"
-#include "common.cpp"
+#include "commont.cpp"
 #include "options.h"
 #include "cfgentry.h"
 #include "cfgparser.h"
@@ -683,10 +683,10 @@ void unset_dynmem_addr (list<CfgEntry> *cfg, void *mem_addr)
 
 i32 main (i32 argc, char **argv, char **env)
 {
-	string *cfg_path;
+	string input_str, *cfg_path = NULL;
 	vector<string> lines;
 	list<CfgEntry> cfg;
-	list<CfgEntry*> *cfg_act;
+	list<CfgEntry*> *cfg_act = NULL;
 	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
 	CfgEntry *cfg_en;
@@ -711,9 +711,23 @@ i32 main (i32 argc, char **argv, char **env)
 	if (!opt.home)
 		opt.home = def_home;
 
-	cfg_path = new string(argv[optind - 1]);
-	cfg_act = read_config(cfg_path, &opt, &cfg, cfgp_map, &lines);
-	cout << "Found config for \"" << opt.proc_name << "\"." << endl;
+	if (strncmp(argv[optind - 1], "NONE", sizeof("NONE") - 1) != 0) {
+		cfg_path = new string(argv[optind - 1]);
+		cfg_act = read_config(cfg_path, &opt, &cfg, cfgp_map, &lines);
+		cout << "Found config for \"" << opt.proc_name << "\"." << endl;
+	} else {
+		cfg_path = new string("NONE");
+		if (!opt.disc_str ||
+		    (opt.disc_str[0] < '0' || opt.disc_str[0] > '3')) {
+			cerr << "Error: Config required!" << endl;
+			return -1;
+		}
+
+		cout << "Process name: ";
+		fflush(stdout);
+		cin >> input_str;
+		opt.proc_name = to_c_str(&input_str);
+	}
 
 	cout << "Config:" << endl;
 	output_config(&cfg);

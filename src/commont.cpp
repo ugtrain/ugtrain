@@ -1,4 +1,4 @@
-/* common.h:    common C/C++ helpers
+/* commont.cpp:    common C++ template helpers
  *
  * Copyright (c) 2013, by:      Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
@@ -16,40 +16,15 @@
  * GNU General Public License for more details.
  */
 
-#ifndef COMMON_H
-#define COMMON_H
+#include <sstream>
+#include "common.h"
 
-#ifdef __cplusplus
-#include <iostream>
-#include <string>
-using namespace std;
-#endif
-
-// Common types
-typedef char i8;
-typedef unsigned char u8;
-typedef short i16;
-typedef unsigned short u16;
-typedef int i32;
-typedef unsigned int u32;
-typedef long long i64;
-typedef unsigned long long u64;
-
-#ifdef __i386__
-typedef u32 ptr_t;
-#else
-typedef u64 ptr_t;
-#endif
-
-// Common macros
-#define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
-#define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
-
-// Common functions
-#ifdef __cplusplus
+/* cpp file needs to be included */
 template <class T>
-string to_string (T val);
-char *to_c_str(string *str);
-#endif
+string to_string (T val)
+{
+	ostringstream ss;
 
-#endif
+	ss << val;
+	return ss.str();
+}

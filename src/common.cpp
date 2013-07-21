@@ -16,15 +16,14 @@
  * GNU General Public License for more details.
  */
 
-#include <sstream>
+#include <cstring>
 #include "common.h"
-using namespace std;
 
-template <class T>
-string to_string (T val)
+char *to_c_str(string *str)
 {
-	ostringstream ss;
+	char *cstr = new char[str->size() + 1];
 
-	ss << val;
-	return ss.str();
+	cstr[str->size()] = '\0';
+	memcpy(cstr, str->c_str(), str->size());
+	return cstr;
 }
