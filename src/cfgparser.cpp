@@ -1,4 +1,4 @@
-/* parser.cpp:    parsing functions to read in the config file
+/* cfgparser.cpp:    parsing functions to read in the config file
  *
  * Copyright (c) 2012..13, by:  Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
@@ -16,12 +16,12 @@
  * GNU General Public License for more details.
  */
 
-#include <iostream>
 #include <fstream>
 #include <vector>
-#include <stdlib.h>
 #include <cstring>
-#include "parser.h"
+#include <stdlib.h>
+#include "common.h"
+#include "cfgparser.h"
 using namespace std;
 
 
@@ -49,55 +49,6 @@ static inline void cfg_parse_err (string *line, u32 lnr, u32 lidx)
 	cerr << "Error while parsing config (line " << ++lnr << ")!" << endl;
 	cerr << string(*line, 0, lidx) << "<--" << endl;
 	exit(-1);
-}
-
-void write_config_vect (string *path, vector<string> *lines)
-{
-	ofstream cfg_file;
-	vector<string>::iterator it;
-
-	lines->pop_back();
-
-	cfg_file.open(path->c_str(), fstream::trunc);
-	if (!cfg_file.is_open()) {
-		cerr << "File \"" << *path << "\" doesn't exist!" << endl;
-		exit(-1);
-	}
-	for (it = lines->begin(); it != lines->end(); ++it)
-		cfg_file << (*it) << endl;
-
-	cfg_file.close();
-}
-
-static void read_config_vect (string *path, string *home, vector<string> *lines)
-{
-	ifstream cfg_file;
-	string line;
-
-	if (path->rfind('~', 0) != string::npos)
-		path->replace(0, 1, *home);
-
-	if (path->find(CFG_EXT, path->size() - sizeof(CFG_EXT) + 1) == string::npos)
-		*path += string(CFG_EXT);
-
-	cfg_file.open(path->c_str());
-	if (!cfg_file.is_open()) {
-		*path = string(CFG_DIR) + *path;
-		if (path->rfind('~', 0) != string::npos)
-			path->replace(0, 1, *home);
-
-		cfg_file.open(path->c_str());
-		if (!cfg_file.is_open()) {
-			cerr << "File \"" << *path << "\" doesn't exist!" << endl;
-			exit(-1);
-		}
-	}
-	cout << "Loading config file \"" << *path << "\"." << endl;
-	while (cfg_file.good()) {
-		getline(cfg_file, line);
-		lines->push_back(line);
-	}
-	cfg_file.close();
 }
 
 static char *parse_proc_name (string *line, u32 *start)
@@ -313,6 +264,37 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 	}
 }
 
+static void read_config_vect (string *path, string *home, vector<string> *lines)
+{
+	ifstream cfg_file;
+	string line;
+
+	if (path->rfind('~', 0) != string::npos)
+		path->replace(0, 1, *home);
+
+	if (path->find(CFG_EXT, path->size() - sizeof(CFG_EXT) + 1) == string::npos)
+		*path += string(CFG_EXT);
+
+	cfg_file.open(path->c_str());
+	if (!cfg_file.is_open()) {
+		*path = string(CFG_DIR) + *path;
+		if (path->rfind('~', 0) != string::npos)
+			path->replace(0, 1, *home);
+
+		cfg_file.open(path->c_str());
+		if (!cfg_file.is_open()) {
+			cerr << "File \"" << *path << "\" doesn't exist!" << endl;
+			exit(-1);
+		}
+	}
+	cout << "Loading config file \"" << *path << "\"." << endl;
+	while (cfg_file.good()) {
+		getline(cfg_file, line);
+		lines->push_back(line);
+	}
+	cfg_file.close();
+}
+
 list<CfgEntry*> *read_config (string *path,
 			      struct app_options *opt,
 			      list<CfgEntry> *cfg,
@@ -441,4 +423,22 @@ list<CfgEntry*> *read_config (string *path,
 	}
 
 	return cfg_act;
+}
+
+void write_config_vect (string *path, vector<string> *lines)
+{
+	ofstream cfg_file;
+	vector<string>::iterator it;
+
+	lines->pop_back();
+
+	cfg_file.open(path->c_str(), fstream::trunc);
+	if (!cfg_file.is_open()) {
+		cerr << "File \"" << *path << "\" doesn't exist!" << endl;
+		exit(-1);
+	}
+	for (it = lines->begin(); it != lines->end(); ++it)
+		cfg_file << (*it) << endl;
+
+	cfg_file.close();
 }

@@ -16,10 +16,7 @@
  * GNU General Public License for more details.
  */
 
-#include <iostream>
 #include <fstream>
-#include <sstream>
-#include <string>
 #include <list>
 #include <vector>
 #include <cstring>
@@ -33,25 +30,20 @@
 #include <sys/stat.h>
 
 // local includes
+#include "common.h"
+#include "common.cpp"
 #include "options.h"
 #include "cfgentry.h"
-#include "parser.h"
+#include "cfgparser.h"
 #include "getch.h"
 #include "memattach.h"
-using namespace std;
+#include "fifoparser.h"
+#include "discovery.h"
 
 #define HOME_VAR   "HOME"
 #define DYNMEM_IN  "/tmp/memhack_out"
 #define DYNMEM_OUT "/tmp/memhack_in"
 
-template <typename T>
-string to_string (T val)
-{
-	ostringstream ss;
-
-	ss << val;
-	return ss.str();
-}
 
 void output_configp (list<CfgEntry*> *cfg)
 {
@@ -527,69 +519,6 @@ skip_memhack:
 	return 0;
 }
 
-static i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
-{
-	string disc_str;
-	int i, found = 0;
-	list<CfgEntry>::iterator it;
-
-	if (!opt->disc_str)
-		return 0;
-
-	switch (opt->disc_str[0]) {
-	case '0':
-		// just get stack end and heap start
-		opt->disc_str = (char *) "0";
-		break;
-	case '4':
-		if (!opt->do_adapt) {
-			for (it = cfg->begin(); it != cfg->end(); it++) {
-				if (it->dynmem && !it->dynmem->adp_addr)
-					it->dynmem->adp_addr = it->dynmem->code_addr;
-			}
-		}
-		if (strlen(opt->disc_str) == 1) {
-			for (it = cfg->begin(); it != cfg->end(); it++) {
-				if (it->dynmem && it->dynmem->adp_addr &&
-				    !it->dynmem->adp_stack) {
-					opt->disc_addr = it->dynmem->adp_addr;
-					found = 1;
-					break;
-				}
-			}
-			if (!found)
-				goto err;
-
-			disc_str += opt->disc_str;
-			disc_str += ";0x0;0x0;";
-			disc_str += to_string(it->dynmem->mem_size);
-			for (i = 0; i < 3; i++) {
-				disc_str += ";";
-				disc_str += to_string(it->dynmem->adp_addr);
-			}
-			opt->disc_str = new char[disc_str.size() + 1];
-			opt->disc_str[disc_str.size()] = '\0';
-			memcpy(opt->disc_str, disc_str.c_str(),
-				disc_str.size());
-			cout << "Discovering object " << it->dynmem->name
-			     << "." << endl
-			     << "Please ensure that it gets allocated!" << endl;
-			cout << "disc_str: " << opt->disc_str << endl;
-		} else {
-			cerr << "Sorry, not supported, yet!" << endl;
-			goto err;
-		}
-		break;
-	default:
-		goto err;
-	}
-
-	return 0;
-err:
-	cerr << "Error while preparing discovery!" << endl;
-	return -1;
-}
-
 static i32 parse_adapt_result (list<CfgEntry> *cfg, char *buf,
 			       ssize_t buf_len)
 {
@@ -750,121 +679,6 @@ void unset_dynmem_addr (list<CfgEntry> *cfg, void *mem_addr)
 			break;
 		}
 	}
-}
-
-#define PARSE_M 1
-#define PARSE_S 2
-#define PARSE_C 4
-#define PARSE_O 8
-
-void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd, int pmask,
-		      void (*mf)(list<CfgEntry> *, void *,
-				 ssize_t, void *, void *),
-		      void (*ff)(list<CfgEntry> *, void *))
-{
-	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
-	static ssize_t ipos = 0, ilen = 0;
-	ssize_t mem_size = 0, tmp_ilen, ppos = 0;
-	char *msg_end, *sep_pos;
-	char ibuf[4096] = { 0 };
-	char scan_ch;
-
-	// read from FIFO and concat. incomplete msgs
-	tmp_ilen = read(ifd, ibuf + ipos, sizeof(ibuf) - 1 - ipos);  // always '\0' at end
-	if (tmp_ilen > 0) {
-		//cout << "ibuf: " << string(ibuf) << endl;
-		ilen += tmp_ilen;
-		//cout << "ilen: " << ilen << " tmp_ilen " << tmp_ilen << endl;
-		ipos += tmp_ilen;
-
-		// parse messages
-next:
-		msg_end = strchr(ibuf, '\n');
-		if (msg_end == NULL)
-			return;
-		if (sscanf(ibuf, "%c", &scan_ch) != 1)
-			goto parse_err;
-		switch (scan_ch) {
-		case 'm':
-			ppos = 1;
-			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
-				goto parse_err;
-
-			if (!(pmask & PARSE_S))
-				goto skip_s;
-			sep_pos = strchr(ibuf + ppos, ';');
-			if (!sep_pos)
-				goto parse_err;
-			ppos = sep_pos + 1 - ibuf;
-			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
-			    scan_ch != 's')
-				goto parse_err;
-			ppos++;
-			if (sscanf(ibuf + ppos, "%zd", &mem_size) != 1)
-				goto parse_err;
-skip_s:
-			if (!(pmask & PARSE_C))
-				goto skip_c;
-			sep_pos = strchr(ibuf + ppos, ';');
-			if (!sep_pos)
-				goto parse_err;
-			ppos = sep_pos + 1 - ibuf;
-			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
-			    scan_ch != 'c')
-				goto parse_err;
-			ppos++;
-			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
-				goto parse_err;
-skip_c:
-			if (!(pmask & PARSE_O))
-				goto skip_o;
-			sep_pos = strchr(ibuf + ppos, ';');
-			if (!sep_pos)
-				goto parse_err;
-			ppos = sep_pos + 1 - ibuf;
-			if (sscanf(ibuf + ppos, "%c", &scan_ch) != 1 ||
-			    scan_ch != 'o')
-				goto parse_err;
-			ppos++;
-			if (sscanf(ibuf + ppos, "%p", &stack_offs) != 1)
-				goto parse_err;
-skip_o:
-			// call post parsing function
-			mf(cfg, mem_addr, mem_size, code_addr, stack_offs);
-			break;
-		case 'f':
-			if (!ff)
-				break;
-			ppos = 1;
-			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
-				goto parse_err;
-
-			// call post parsing function
-			ff(cfg, mem_addr);
-			break;
-		}
-		// prepare for next msg parsing
-
-		tmp_ilen = msg_end + 1 - ibuf;
-		// move rest to the front
-		memmove(ibuf, ibuf + tmp_ilen, ilen - tmp_ilen);
-		// zero what's behind the rest
-		memset(ibuf + ilen - tmp_ilen, 0, tmp_ilen);
-		ilen -= tmp_ilen;
-		ipos -= tmp_ilen;
-		//cout << "ilen: " << ilen << " ipos " << ipos << endl;
-
-		goto next;
-	}
-	return;
-
-parse_err:
-	cerr << "parse error at ppos: " << ppos << endl;
-	cerr << ibuf;
-	memset(ibuf, 0, sizeof(ibuf));
-	ilen = 0;
-	ipos = 0;
-	return;
 }
 
 i32 main (i32 argc, char **argv, char **env)

@@ -1,4 +1,4 @@
-/* cfgentry.h:     classes for config read from a file
+/* cfgparser.h:    parsing functions to read in the config file
  *
  * Copyright (c) 2012..13, by:  Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
@@ -16,53 +16,19 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CFGENTRY_H
-#define CFGENTRY_H
+#ifndef CFGPARSER_H
+#define CFGPARSER_H
 
 #include <list>
 #include "common.h"
+#include "options.h"
+#include "cfgentry.h"
 
-enum {
-	DO_UNCHECKED,
-	DO_LT,
-	DO_GT
-};
+list<CfgEntry*> *read_config (string *cfg_path,
+			      struct app_options *opt,
+			      list<CfgEntry> *cfg,
+			      list<CfgEntry*> **cfgp_map,
+			      vector<string> *lines);
 
-class CheckEntry {
-public:
-	void *addr;
-	bool is_signed;
-	bool is_float;
-	i32 size;
-	i64 value;
-	i32 check;
-};
-
-class DynMemEntry {
-public:
-	string name;
-	size_t mem_size;
-	void *code_addr;
-	void *stack_offs;
-	/* later determined values */
-	void *mem_addr;    /* set by malloc call */
-	void *adp_addr;    /* adapted code address */
-	void *adp_stack;   /* adapted stack offset */
-	u32 cfg_line;      /* to write back new cfg */
-};
-
-class CfgEntry {
-public:
-	string name;
-	void *addr;
-	bool is_signed;
-	bool is_float;
-	i32 size;
-	i64 value;
-	i64 old_val;
-	i32 check;
-	list<CheckEntry> *checks;
-	DynMemEntry *dynmem;
-};
-
+void write_config_vect (string *path, vector<string> *lines);
 #endif

@@ -1,6 +1,6 @@
-/* parser.h:    parsing functions to read in the config file
+/* common.h:    common C/C++ helpers
  *
- * Copyright (c) 2012..13, by:  Sebastian Riemer
+ * Copyright (c) 2013, by:      Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
  *                              10369 Berlin, Germany
  *                             <sebastian.riemer@gmx.de>
@@ -16,19 +16,39 @@
  * GNU General Public License for more details.
  */
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef COMMON_H
+#define COMMON_H
 
-#include <list>
+#ifdef __cplusplus
+#include <iostream>
 #include <string>
-#include "cfgentry.h"
-#include "options.h"
+using namespace std;
+#endif
 
-list<CfgEntry*> *read_config (string *cfg_path,
-			      struct app_options *opt,
-			      list<CfgEntry> *cfg,
-			      list<CfgEntry*> **cfgp_map,
-			      vector<string> *lines);
+// Common types
+typedef char i8;
+typedef unsigned char u8;
+typedef short i16;
+typedef unsigned short u16;
+typedef int i32;
+typedef unsigned int u32;
+typedef long long i64;
+typedef unsigned long long u64;
 
-void write_config_vect (string *path, vector<string> *lines);
+#ifdef __i386__
+typedef u32 ptr_t;
+#else
+typedef u64 ptr_t;
+#endif
+
+// Common macros
+#define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
+#define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
+
+// Common functions
+#ifdef __cplusplus
+template <class T>
+string to_string (T val);
+#endif
+
 #endif
