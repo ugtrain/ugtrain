@@ -20,21 +20,22 @@
 #define OPTIONS_H
 
 #include <getopt.h>
+#include "common.h"
 
 #define PROG_NAME  "ugtrain"
 #define PRELOADER  "ugpreload"
 
 struct app_options {
-	int do_adapt;
-	char *preload_lib;
-	char *disc_str;
+	u8	do_adapt;
+	char	*preload_lib;
+	char	*disc_str;
 	/* no direct CLI input */
-	char *home;
-	char *proc_name;
-	char *adp_script;
-	int adp_required;
-	unsigned int adp_req_line;
-	void *disc_addr;
+	u8	adp_required;
+	u32	adp_req_line;
+	char	*adp_script;
+	char	*home;
+	char	*proc_name;
+	void	*disc_addr;
 };
 
 #ifdef __cplusplus
@@ -43,7 +44,7 @@ extern "C" {
 	void usage();
 	void use_libmemhack (struct app_options *opt);
 	void do_assumptions (struct app_options *opt);
-	void parse_options (int argc, char **argv, struct app_options *opt);
+	void parse_options (i32 argc, char **argv, struct app_options *opt);
 #ifdef __cplusplus
 };
 #endif

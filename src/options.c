@@ -103,9 +103,9 @@ static void init_options (struct app_options *opt)
 	opt->disc_addr = NULL;
 }
 
-void parse_options (int argc, char **argv, struct app_options *opt)
+void parse_options (i32 argc, char **argv, struct app_options *opt)
 {
-	int ch = '\0', prev_ch = '\0', opt_idx;
+	i32 ch = '\0', prev_ch = '\0', opt_idx;
 
 	init_options(opt);
 
