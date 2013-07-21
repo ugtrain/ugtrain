@@ -308,7 +308,7 @@ list<CfgEntry*> *read_config (string *path,
 	list<CheckEntry> *chk_lp;
 	DynMemEntry *dynmem_enp = NULL;
 	u32 lnr, start = 0;
-	i32 name_type, tmp;
+	i32 name_type;
 	bool in_dynmem = false;
 	string line;
 	string home(opt->home);
@@ -351,7 +351,7 @@ list<CfgEntry*> *read_config (string *path,
 			dynmem_enp->name = parse_value_name(&line, lnr,
 				&start, &name_type);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
-				&start, false, false, &tmp);
+				&start, false, false, NULL);
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
 			dynmem_enp->stack_offs = parse_address(&line, lnr, &start);
 			dynmem_enp->mem_addr = NULL;
