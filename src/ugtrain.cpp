@@ -687,22 +687,18 @@ i32 main (i32 argc, char **argv, char **env)
 	vector<string> lines;
 	list<CfgEntry> cfg;
 	list<CfgEntry*> *cfg_act;
-	list<CfgEntry>::iterator cfg_it;
 	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
 	CfgEntry *cfg_en;
-	DynMemEntry *tmp = NULL;
-	u8 lnr;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
 	char def_home[] = "~";
 	u8 buf[sizeof(i64)] = { 0 };
-	int pmask = PARSE_M | PARSE_C;
+	i32 ret, pmask = PARSE_M | PARSE_C;
 	char ch;
 	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
-	int discovered;
 
 	atexit(restore_getch);
 
@@ -761,7 +757,6 @@ i32 main (i32 argc, char **argv, char **env)
 	}
 
 discover_next:
-	discovered = 0;
 	if (prepare_discovery(&opt, &cfg) != 0)
 		return -1;
 
@@ -788,69 +783,18 @@ prepare_dynmem:
 				break;
 			}
 		}
-		if (opt.disc_str[0] != '4')
-			return 0;
-		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
-			if (!cfg_it->dynmem)
-				continue;
-			if (cfg_it->dynmem->adp_addr == opt.disc_addr &&
-			    cfg_it->dynmem->adp_stack) {
-				discovered = 1;
-				continue;
-			}
-			if (!(cfg_it->dynmem->adp_addr &&
-			      cfg_it->dynmem->adp_stack)) {
-				cout << "Undiscovered objects found!" << endl;
-				if (discovered) {
-					cout << "Next discovery run (y/n)? : ";
-					fflush(stdout);
-					ch = 'n';
-					ch = do_getch();
-					cout << ch << endl;
-					if (ch == 'y') {
-						opt.disc_str[1] = '\0';
-						goto discover_next;
-					}
-				}
-				cerr << "Discovery failed!" << endl;
-				return -1;
-			}
+		ret = postproc_discovery(&opt, &cfg, cfg_path, &lines);
+		switch (ret) {
+		case DISC_NEXT:
+			goto discover_next;
+			break;
+		case DISC_OKAY:
+			pmask = PARSE_M | PARSE_C;
+			goto prepare_dynmem;
+			break;
+		default:
+			break;
 		}
-		cout << "Discovery successful!" << endl;
-		// Take over discovery
-		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
-			if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
-				continue;
-			tmp = cfg_it->dynmem;
-			cout << "Obj. " << tmp->name
-			     << ", old_code: " << hex << tmp->code_addr
-			     << ", new_code: " << tmp->adp_addr << dec << endl;
-			cfg_it->dynmem->code_addr = tmp->adp_addr;
-			cout << "Obj. " << tmp->name
-			     << ", old_offs: " << hex << tmp->stack_offs
-			     << ", new_offs: " << tmp->adp_stack << dec << endl;
-			tmp->stack_offs = tmp->adp_stack;
-			lnr = tmp->cfg_line;
-			lines.at(lnr) = "dynmemstart " + tmp->name + " "
-				+ to_string(tmp->mem_size) + " "
-				+ to_string(tmp->code_addr) + " "
-				+ to_string(tmp->stack_offs);
-		}
-		// Adaption isn't required anymore
-		lnr = opt.adp_req_line;
-		if (lnr > 0)
-			lines.at(lnr) = "adapt_required 0";
-
-		// Write back config
-		cout << "Writing back config.." << endl;
-		write_config_vect(cfg_path, &lines);
-
-		// Run game with libmemhack
-		opt.do_adapt = 0;
-		opt.disc_str = NULL;
-		use_libmemhack(&opt);
-		pmask = PARSE_M | PARSE_C;
-		goto prepare_dynmem;
 	}
 	set_getch_nb(1);
 

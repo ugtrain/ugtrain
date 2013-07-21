@@ -16,10 +16,95 @@
  * GNU General Public License for more details.
  */
 
+#include <vector>
 #include <cstring>
+#include <stdlib.h>
+#include <stdio.h>
 #include "common.h"
 #include "common.cpp"
+#include "getch.h"
+#include "cfgparser.h"
 #include "discovery.h"
+
+static i32 postproc_step4 (struct app_options *opt, list<CfgEntry> *cfg,
+			   string *cfg_path, vector<string> *lines)
+{
+	list<CfgEntry>::iterator cfg_it;
+	DynMemEntry *tmp = NULL;
+	u8 discovered = 0;
+	u32 lnr;
+	char ch;
+
+	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
+		if (!cfg_it->dynmem)
+			continue;
+		if (cfg_it->dynmem->adp_addr == opt->disc_addr &&
+		    cfg_it->dynmem->adp_stack) {
+			discovered = 1;
+			continue;
+		}
+		if (!(cfg_it->dynmem->adp_addr &&
+		      cfg_it->dynmem->adp_stack)) {
+			cout << "Undiscovered objects found!" << endl;
+			if (discovered) {
+				cout << "Next discovery run (y/n)? : ";
+				fflush(stdout);
+				ch = 'n';
+				ch = do_getch();
+				cout << ch << endl;
+				if (ch == 'y') {
+					opt->disc_str[1] = '\0';
+					return DISC_NEXT;
+				}
+			}
+			cerr << "Discovery failed!" << endl;
+			exit(-1);
+		}
+	}
+	cout << "Discovery successful!" << endl;
+
+	// Take over discovery
+	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
+		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
+			continue;
+		tmp = cfg_it->dynmem;
+		cout << "Obj. " << tmp->name
+		     << ", old_code: " << hex << tmp->code_addr
+		     << ", new_code: " << tmp->adp_addr << dec << endl;
+		cfg_it->dynmem->code_addr = tmp->adp_addr;
+		cout << "Obj. " << tmp->name
+		     << ", old_offs: " << hex << tmp->stack_offs
+		     << ", new_offs: " << tmp->adp_stack << dec << endl;
+		tmp->stack_offs = tmp->adp_stack;
+		lnr = tmp->cfg_line;
+		lines->at(lnr) = "dynmemstart " + tmp->name + " "
+			+ to_string(tmp->mem_size) + " "
+			+ to_string(tmp->code_addr) + " "
+			+ to_string(tmp->stack_offs);
+	}
+	// Adaption isn't required anymore
+	lnr = opt->adp_req_line;
+	if (lnr > 0)
+		lines->at(lnr) = "adapt_required 0";
+
+	// Write back config
+	cout << "Writing back config.." << endl;
+	write_config_vect(cfg_path, lines);
+
+	// Run game with libmemhack
+	opt->do_adapt = 0;
+	opt->disc_str = NULL;
+	use_libmemhack(opt);
+	return DISC_OKAY;
+}
+
+i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
+			string *cfg_path, vector<string> *lines)
+{
+	if (opt->disc_str[0] != '4')
+		exit(0);
+	return postproc_step4(opt, cfg, cfg_path, lines);
+}
 
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {

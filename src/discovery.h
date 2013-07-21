@@ -22,6 +22,12 @@
 #include "options.h"
 #include "cfgentry.h"
 
+#define DISC_EXIT	0
+#define DISC_NEXT	1
+#define DISC_OKAY	2
+
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg);
+i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
+			string *cfg_path, vector<string> *lines);
 
 #endif
