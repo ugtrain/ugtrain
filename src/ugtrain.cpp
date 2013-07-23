@@ -465,6 +465,13 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		return 0;
 
 skip_memhack:
+	// remove FIFOs first for empty FIFOs
+	if ((unlink(DYNMEM_IN) && errno != ENOENT) ||
+	    (unlink(DYNMEM_OUT) && errno != ENOENT)) {
+		perror("unlink FIFO");
+		return 1;
+	}
+
 	// set up and open FIFOs
 	if (mkfifo(DYNMEM_IN, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
