@@ -613,30 +613,6 @@ err:
 }
 
 // mf() callback for read_dynmem_buf()
-void process_disc_output (list<CfgEntry> *cfg,
-			  void *mem_addr,
-			  ssize_t mem_size,
-			  void *code_addr,
-			  void *stack_offs)
-{
-	list<CfgEntry>::iterator it;
-
-	cout << "Discovery output: " << endl;
-	cout << "m" << hex << mem_addr << dec << ";s"
-	     << mem_size << hex << ";c" << code_addr
-	     << ";o" << stack_offs << dec << endl;
-
-	// find object and set adp_stack
-	for (it = cfg->begin(); it != cfg->end(); it++) {
-		if (it->dynmem &&
-		    it->dynmem->adp_addr == code_addr) {
-			it->dynmem->adp_stack = stack_offs;
-			break;
-		}
-	}
-}
-
-// mf() callback for read_dynmem_buf()
 void set_dynmem_addr (list<CfgEntry> *cfg,
 		      void *mem_addr,
 		      ssize_t mem_size,
@@ -787,15 +763,9 @@ prepare_dynmem:
 
 	if (opt.disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
-		while (1) {
-			sleep(1);
-			read_dynmem_buf(&cfg, ifd, pmask, process_disc_output,
-					NULL);
-			if (memattach_test(pid) != 0) {
-				cerr << "PTRACE ERROR PID[" << pid << "]!"
-				     << endl;
-				break;
-			}
+		if (opt.disc_str[0] != '4') {
+		} else {
+			run_stage4_loop(&cfg, ifd, pmask, pid);
 		}
 		ret = postproc_discovery(&opt, &cfg, cfg_path, &lines);
 		switch (ret) {

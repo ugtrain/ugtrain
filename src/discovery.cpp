@@ -24,6 +24,8 @@
 #include "commont.cpp"
 #include "getch.h"
 #include "cfgparser.h"
+#include "fifoparser.h"
+#include "memattach.h"
 #include "discovery.h"
 
 static i32 postproc_step4 (struct app_options *opt, list<CfgEntry> *cfg,
@@ -104,6 +106,44 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 	if (opt->disc_str[0] != '4')
 		exit(0);
 	return postproc_step4(opt, cfg, cfg_path, lines);
+}
+
+// mf() callback for read_dynmem_buf()
+static void process_disc_output (list<CfgEntry> *cfg,
+				 void *mem_addr,
+				 ssize_t mem_size,
+				 void *code_addr,
+				 void *stack_offs)
+{
+	list<CfgEntry>::iterator it;
+
+	cout << "Discovery output: " << endl;
+	cout << "m" << hex << mem_addr << dec << ";s"
+	     << mem_size << hex << ";c" << code_addr
+	     << ";o" << stack_offs << dec << endl;
+
+	// find object and set adp_stack
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->dynmem &&
+		    it->dynmem->adp_addr == code_addr) {
+			it->dynmem->adp_stack = stack_offs;
+			break;
+		}
+	}
+}
+
+void run_stage4_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
+{
+	while (1) {
+		sleep(1);
+		read_dynmem_buf(cfg, ifd, pmask, process_disc_output,
+				NULL);
+		if (memattach_test(pid) != 0) {
+			cerr << "PTRACE ERROR PID[" << pid << "]!"
+			     << endl;
+			break;
+		}
+	}
 }
 
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
