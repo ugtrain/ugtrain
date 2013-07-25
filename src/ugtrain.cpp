@@ -682,6 +682,7 @@ i32 main (i32 argc, char **argv, char **env)
 	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
+	u8 emptycfg = 0;
 
 	atexit(restore_getch);
 
@@ -712,11 +713,15 @@ i32 main (i32 argc, char **argv, char **env)
 		opt.proc_name = to_c_str(&input_str);
 	}
 
+	if (opt.disc_str &&
+	    (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '3'))
+		emptycfg = 1;
+
 	cout << "Config:" << endl;
 	output_config(&cfg);
 	cout << "Activated:" << endl;
 	output_configp(cfg_act);
-	if (cfg.empty())
+	if (cfg.empty() && !emptycfg)
 		return -1;
 
 	if (prepare_getch() != 0) {
@@ -770,10 +775,10 @@ prepare_dynmem:
 
 	if (opt.disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
-		if (opt.disc_str[0] != '4') {
-		} else {
+		if (opt.disc_str[0] >= '1' && opt.disc_str[0] <= '3')
+			run_stage123_loop(ifd, pid);
+		else if (opt.disc_str[0] == '4')
 			run_stage4_loop(&cfg, ifd, pmask, pid);
-		}
 		ret = postproc_discovery(&opt, &cfg, cfg_path, &lines);
 		switch (ret) {
 		case DISC_NEXT:

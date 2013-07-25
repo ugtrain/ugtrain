@@ -21,12 +21,14 @@
 
 #include "options.h"
 #include "cfgentry.h"
+#include "common.h"
 
 #define DISC_EXIT	0
 #define DISC_NEXT	1
 #define DISC_OKAY	2
 
 i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
+void run_stage123_loop  (i32 ifd, pid_t pid);
 void run_stage4_loop    (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid);
 i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			 string *cfg_path, vector<string> *lines);

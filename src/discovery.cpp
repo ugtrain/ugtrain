@@ -146,6 +146,40 @@ void run_stage4_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 	}
 }
 
+void run_stage123_loop (i32 ifd, pid_t pid)
+{
+	size_t n;
+	FILE *ifp, *ofp;
+	char buf[4096];
+
+	//TODO fork a reader process, wait for pid to detect app exit
+	ifp = fdopen(ifd, "r");
+	if (!ifp) {
+		perror("fdopen ifp");
+		exit(1);
+	}
+	ofp = fopen("/tmp/memhack_file", "w+");
+	if (!ofp) {
+		perror("fopen ofp");
+		exit(1);
+	}
+
+	while (1) {
+		n = fread(buf, sizeof(buf), 1, ifp);
+		if (n == 0)
+			continue;
+		if (n != 1) {
+			cerr << "fread error!" << endl;
+			break;
+		}
+		n = fwrite(buf, sizeof(buf), 1, ofp);
+		if (n != 1) {
+			cout << "fwrite error! " << endl;
+			break;
+		}
+	}
+}
+
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str;
