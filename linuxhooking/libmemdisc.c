@@ -26,6 +26,7 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 
+#define PFX "[memdisc] "
 #define OW_MALLOC 1
 #define OW_FREE 1
 #define BUF_SIZE PIPE_BUF
@@ -89,13 +90,13 @@ static void *code_addr = NULL;
 #define READ_STAGE_CFG()  \
 	rbytes = read(ifd, ibuf, sizeof(ibuf)); \
 	if (rbytes <= 0) { \
-		fprintf(stderr, "Can't read config for stage %c, " \
+		fprintf(stderr, PFX "Can't read config for stage %c, " \
 			"disabling output.\n", ibuf[0]); \
 		return; \
 	}
 
 /* prepare memory hacking on library load */
-void __attribute ((constructor)) memhack_init (void)
+void __attribute ((constructor)) memdisc_init (void)
 {
 	ssize_t rbytes;
 	int read_tries;
@@ -105,32 +106,32 @@ void __attribute ((constructor)) memhack_init (void)
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
 
-	fprintf(stdout, "Stack end: %p\n", __libc_stack_end);
+	fprintf(stdout, PFX "Stack end:  %p\n", __libc_stack_end);
 	/*
 	 * Don't you dare call malloc for another purpose in this lib!
 	 * We can only do this safely as (active == 0).
 	 */
 	heap_start = malloc(1);
 	if (heap_start) {
-		fprintf(stdout, "Heap start: %p\n", heap_start);
+		fprintf(stdout, PFX "Heap start: %p\n", heap_start);
 		heap_saddr = heap_eaddr = heap_start;
 		free(heap_start);
 	}
 
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
-		perror("open input");
+		perror(PFX "open input");
 		exit(1);
 	}
-	printf("ifd: %d\n", ifd);
+	printf(PFX "ifd: %d\n", ifd);
 
-	printf("Waiting for output FIFO opener..\n");
+	printf(PFX "Waiting for output FIFO opener..\n");
 	ofile = fopen(DYNMEM_OUT, "w");
 	if (!ofile) {
-		perror("fopen output");
+		perror(PFX "fopen output");
 		exit(1);
 	}
-	printf("ofile: %p\n", ofile);
+	printf(PFX "ofile: %p\n", ofile);
 
 	for (read_tries = 5; ; --read_tries) {
 		rbytes = read(ifd, ibuf, 2);
@@ -156,6 +157,8 @@ void __attribute ((constructor)) memhack_init (void)
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 1;
 			active = 1;
+		} else {
+			goto parse_err;
 		}
 		break;
 	/*
@@ -173,6 +176,8 @@ void __attribute ((constructor)) memhack_init (void)
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 2;
 			active = 1;
+		} else {
+			goto parse_err;
 		}
 		break;
 	/*
@@ -190,6 +195,8 @@ void __attribute ((constructor)) memhack_init (void)
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 3;
 			active = 1;
+		} else {
+			goto parse_err;
 		}
 		break;
 	case '4':
@@ -200,6 +207,8 @@ void __attribute ((constructor)) memhack_init (void)
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 4;
 			active = 1;
+		} else {
+			goto parse_err;
 		}
 		break;
 	/* stage 0: static memory search: do nothing */
@@ -212,7 +221,10 @@ void __attribute ((constructor)) memhack_init (void)
 
 	return;
 read_err:
-	fprintf(stderr, "Can't read config, disabling output.\n");
+	fprintf(stderr, PFX "Can't read config, disabling output.\n");
+	return;
+parse_err:
+	fprintf(stderr, PFX "Error while discovery input parsing! Ignored.\n");
 	return;
 }
 
@@ -253,7 +265,7 @@ static int find_code_pointers (int obuf_offs)
 	int i = 0;
 	int found = 0;
 
-	printf("reg_sp: %p\n", reg_sp);
+	printf(PFX "reg_sp: %p\n", reg_sp);
 	for (offs = reg_sp;
 	     offs <= __libc_stack_end - sizeof(void *);
 	     offs += sizeof(void *)) {
@@ -318,7 +330,7 @@ void *malloc (size_t size)
 		}
 		wbytes = fprintf(ofile, "%s", obuf);
 		if (wbytes < 0) {
-			//perror("fprintf");
+			//perror(PFX "fprintf");
 			//exit(1);
 		}
 	}
@@ -348,7 +360,7 @@ void free (void *ptr)
 		}
 		wbytes = fprintf(ofile, "%s", obuf);
 		if (wbytes < 0) {
-			//perror("fprintf");
+			//perror(PFX "fprintf");
 			//exit(1);
 		}
 	}
