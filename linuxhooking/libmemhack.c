@@ -26,11 +26,17 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 
+#define PFX "[memhack] "
 #define OW_MALLOC 1
 #define OW_FREE 1
 #define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
+
+#define DEBUG 0
+#if !DEBUG
+	#define printf(...) do { } while (0);
+#endif
 
 typedef unsigned long long u64;
 typedef unsigned int u32;
@@ -95,18 +101,18 @@ void __attribute ((constructor)) memhack_init (void)
 
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
-		perror("open input");
+		perror(PFX "open input");
 		exit(1);
 	}
-	printf("ifd: %d\n", ifd);
+	printf(PFX "ifd: %d\n", ifd);
 
-	printf("Waiting for output FIFO opener..\n");
+	printf(PFX "Waiting for output FIFO opener..\n");
 	ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (ofd < 0) {
-		perror("open output");
+		perror(PFX "open output");
 		exit(1);
 	}
-	printf("ofd: %d\n", ofd);
+	printf(PFX "ofd: %d\n", ofd);
 
 	for (read_tries = 5; ; --read_tries) {
 		rbytes = read(ifd, ibuf, sizeof(ibuf));
@@ -130,7 +136,8 @@ void __attribute ((constructor)) memhack_init (void)
 		if ((ptr_t) config[i] + sizeof(cfg_s) - (ptr_t) config
 		    > PIPE_BUF || ibuf_offs >= BUF_SIZE) {
 			/* config doesn't fit, truncate it */
-			fprintf(stderr, "Config buffer too small, truncating!\n");
+			fprintf(stderr, PFX "Config buffer too "
+					"small, truncating!\n");
 			config[i] = NULL;
 			num_cfg = i;
 			break;
@@ -146,10 +153,10 @@ void __attribute ((constructor)) memhack_init (void)
 		goto err;
 
 	/* debug config */
-	printf("num_cfg: %d, cfg_offs: %d\n", num_cfg, cfg_offs);
+	printf(PFX "num_cfg: %d, cfg_offs: %d\n", num_cfg, cfg_offs);
 	for (i = 0; config[i] != NULL; i++) {
-		printf("config[%d]: %p; mem_size: %zd; code_addr: %p; "
-			"stack_offs: %p; mem_addr: %p\n", i, config[i],
+		fprintf(stdout, PFX "config[%d]: mem_size: %zd; "
+			"code_addr: %p; stack_offs: %p; mem_addr: %p\n", i,
 			config[i]->mem_size, config[i]->code_addr,
 			config[i]->stack_offs, config[i]->mem_addr);
 	}
@@ -159,10 +166,10 @@ void __attribute ((constructor)) memhack_init (void)
 	return;
 
 read_err:
-	fprintf(stderr, "Can't read config, disabling output.\n");
+	fprintf(stderr, PFX "Can't read config, disabling output.\n");
 	return;
 err:
-	fprintf(stderr, "Error while reading config!\n");
+	fprintf(stderr, PFX "Error while reading config!\n");
 	return;
 }
 
@@ -197,8 +204,8 @@ void *malloc (size_t size)
 			    (ptr_t) config[i]->code_addr)
 				continue;
 
-			//printf("malloc: mem_addr: %p, code_addr: %p\n",
-				//mem_addr, config[i]->code_addr);
+			printf(PFX "malloc: mem_addr: %p, code_addr: %p\n",
+				mem_addr, config[i]->code_addr);
 			wbytes = sprintf(obuf, "m%p;c%p\n",
 				mem_addr, config[i]->code_addr);
 
@@ -225,7 +232,7 @@ void free (void *ptr)
 			if (ptr != config[i]->mem_addr || ptr == NULL)
 				continue;
 
-			//printf("free: mem_addr: %p\n", ptr);
+			printf(PFX "free: mem_addr: %p\n", ptr);
 			wbytes = sprintf(obuf, "f%p\n", ptr);
 
 			wbytes = write(ofd, obuf, wbytes);
