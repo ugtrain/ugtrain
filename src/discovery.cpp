@@ -20,6 +20,8 @@
 #include <cstring>
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "common.h"
 #include "commont.cpp"
 #include "getch.h"
@@ -148,33 +150,29 @@ void run_stage4_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 
 void run_stage123_loop (i32 ifd, pid_t pid)
 {
-	size_t n;
-	FILE *ifp, *ofp;
+	ssize_t rbytes, wbytes;
+	i32 ofd;
 	char buf[4096];
 
 	//TODO fork a reader process, wait for pid to detect app exit
-	ifp = fdopen(ifd, "r");
-	if (!ifp) {
-		perror("fdopen ifp");
-		exit(1);
-	}
-	ofp = fopen("/tmp/memhack_file", "w+");
-	if (!ofp) {
-		perror("fopen ofp");
+	ofd = open("/tmp/memhack_file", O_WRONLY | O_CREAT | O_TRUNC,
+		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (ofd < 0) {
+		perror("open ofd");
 		exit(1);
 	}
 
 	while (1) {
-		n = fread(buf, sizeof(buf), 1, ifp);
-		if (n == 0)
+		rbytes = read(ifd, buf, sizeof(buf));
+		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN))
 			continue;
-		if (n != 1) {
-			cerr << "fread error!" << endl;
+		if (rbytes < 0) {
+			perror("read");
 			break;
 		}
-		n = fwrite(buf, sizeof(buf), 1, ofp);
-		if (n != 1) {
-			cout << "fwrite error! " << endl;
+		wbytes = write(ofd, buf, rbytes);
+		if (wbytes != rbytes) {
+			perror("write");
 			break;
 		}
 	}
