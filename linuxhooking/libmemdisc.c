@@ -24,11 +24,11 @@
 #include <fcntl.h>
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
+#include <limits.h>     /* PIPE_BUF */
 
 #define OW_MALLOC 1
 #define OW_FREE 1
-#define PAGE_SIZE 4096
-#define BUF_SIZE PAGE_SIZE
+#define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 
@@ -95,11 +95,11 @@ static void *code_addr = NULL;
 	}
 
 /* prepare memory hacking on library load */
-void __attribute ((constructor))
-memhack_init(void) {
+void __attribute ((constructor)) memhack_init (void)
+{
 	ssize_t rbytes;
 	int read_tries;
-	char ibuf[128] = {0};
+	char ibuf[128] = { 0 };
 	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
 
 	sigignore(SIGPIPE);
@@ -218,7 +218,7 @@ read_err:
 
 #if 0
 /* debugging for stack backtracing */
-static void dump_stack_raw(void)
+static void dump_stack_raw (void)
 {
 	void *offs;
 	int col = 0;
@@ -243,11 +243,11 @@ static void dump_stack_raw(void)
 /*
  * Backtrace by searching for code addresses on the stack whithout respecting
  * stack frames in contrast to GNU backtrace. If malloc is called deep inside
- * of C++ ("_Znwm" function) then GNU backtrace tends to crash with SIGSEGV.
+ * of C++ ("_Znwm" function), then GNU backtrace tends to crash with SIGSEGV.
  *
  * We expect the stack pointer to be (32/64 bit) memory aligned here.
  */
-static int find_code_pointers(int obuf_offs)
+static int find_code_pointers (int obuf_offs)
 {
 	void *offs, *code_ptr;
 	int i = 0;
@@ -279,13 +279,13 @@ static int find_code_pointers(int obuf_offs)
 	return found;
 }
 
-/* void *malloc(size_t size); */
-/* void *calloc(size_t nmemb, size_t size); */
-/* void *realloc(void *ptr, size_t size); */
-/* void free(void *ptr); */
+/* void *malloc (size_t size); */
+/* void *calloc (size_t nmemb, size_t size); */
+/* void *realloc (void *ptr, size_t size); */
+/* void free (void *ptr); */
 
 #ifdef OW_MALLOC
-void *malloc(size_t size)
+void *malloc (size_t size)
 {
 	void *mem_addr;
 	int wbytes;
@@ -329,7 +329,7 @@ out:
 
 
 #ifdef OW_FREE
-void free(void *ptr)
+void free (void *ptr)
 {
 	int wbytes;
 	static void (*orig_free)(void *ptr) = NULL;

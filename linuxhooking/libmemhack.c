@@ -24,11 +24,11 @@
 #include <fcntl.h>
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
+#include <limits.h>     /* PIPE_BUF */
 
 #define OW_MALLOC 1
 #define OW_FREE 1
-#define PAGE_SIZE 4096
-#define BUF_SIZE PAGE_SIZE
+#define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 
@@ -59,7 +59,7 @@ typedef struct cfg cfg_s;
 
 
 /* cfg_s pointers followed by cfg structs */
-cfg_s *config[PAGE_SIZE/sizeof(cfg_s *)] = {NULL};
+cfg_s *config[PIPE_BUF/sizeof(cfg_s *)] = { NULL };
 
 /* File descriptors and output buffer */
 static int ofd = -1, ifd = -1;
@@ -69,8 +69,10 @@ static char obuf[BUF_SIZE];
 static int active = 0;
 
 /* Stack check */
-/* This is a global variable set at program start time. It marks the
-   highest used stack address. */
+/*
+ * This is a global variable set at program start time. It marks the
+ * highest used stack address.
+ */
 extern void *__libc_stack_end;
 
 
@@ -80,11 +82,11 @@ extern void *__libc_stack_end;
 			i++; \
 	}
 
-/* prepare memory hacking on library load */
-void __attribute ((constructor))
-memhack_init(void) {
+/* prepare memory hacking upon library load */
+void __attribute ((constructor)) memhack_init (void)
+{
 	ssize_t rbytes;
-	char ibuf[BUF_SIZE] = {0};
+	char ibuf[BUF_SIZE] = { 0 };
 	int i, j, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0, scanned = 0;
 	int read_tries;
 
@@ -126,7 +128,7 @@ memhack_init(void) {
 		config[i] = PTR_ADD2(cfg_s *, config, cfg_offs,
 			i * sizeof(cfg_s));
 		if ((ptr_t) config[i] + sizeof(cfg_s) - (ptr_t) config
-		    > PAGE_SIZE || ibuf_offs >= BUF_SIZE) {
+		    > PIPE_BUF || ibuf_offs >= BUF_SIZE) {
 			/* config doesn't fit, truncate it */
 			fprintf(stderr, "Config buffer too small, truncating!\n");
 			config[i] = NULL;
@@ -164,13 +166,13 @@ err:
 	return;
 }
 
-/* void *malloc(size_t size); */
-/* void *calloc(size_t nmemb, size_t size); */
-/* void *realloc(void *ptr, size_t size); */
-/* void free(void *ptr); */
+/* void *malloc (size_t size); */
+/* void *calloc (size_t nmemb, size_t size); */
+/* void *realloc (void *ptr, size_t size); */
+/* void free (void *ptr); */
 
 #ifdef OW_MALLOC
-void *malloc(size_t size)
+void *malloc (size_t size)
 {
 	void *mem_addr, *stack_addr;
 	int i, wbytes;
@@ -213,7 +215,7 @@ void *malloc(size_t size)
 
 
 #ifdef OW_FREE
-void free(void *ptr)
+void free (void *ptr)
 {
 	int i, wbytes;
 	static void (*orig_free)(void *ptr) = NULL;
