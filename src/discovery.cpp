@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <limits.h>
 #include "common.h"
 #include "commont.cpp"
 #include "getch.h"
@@ -148,13 +149,13 @@ void run_stage4_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 	}
 }
 
-void run_stage123_loop (i32 ifd, pid_t pid)
+void run_stage123_loop (void *argp)
 {
-	ssize_t rbytes, wbytes;
+	i32 ifd = *(i32 *) argp;
 	i32 ofd;
-	char buf[4096];
+	char buf[PIPE_BUF];
+	ssize_t rbytes, wbytes;
 
-	//TODO fork a reader process, wait for pid to detect app exit
 	ofd = open("/tmp/memhack_file", O_WRONLY | O_CREAT | O_TRUNC,
 		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (ofd < 0) {

@@ -29,6 +29,7 @@ extern "C" {
 	i32     run_cmd (const char *cmd, char *const cmdv[]);
 	ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
 			      char *pbuf, size_t pbuf_size);
+	i32     fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp);
 #ifdef __cplusplus
 };
 #endif

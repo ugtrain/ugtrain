@@ -20,9 +20,34 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <limits.h>
+#include <signal.h>
 #include <sys/wait.h>
 #include "common.h"
 #include "system.h"
+
+i32 fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp)
+{
+	pid_t pid;
+	i32 status;
+
+	pid = fork();
+	if (pid < 0) {
+		perror("fork");
+		goto err;
+	} else if (pid == 0) {
+		task(argp);
+	} else {
+		if (wpid < 0) {
+			waitpid(pid, &status, 0);
+		} else {
+			waitpid(wpid, &status, 0);
+			kill(pid, SIGINT);
+		}
+	}
+	return 0;
+err:
+	return -1;
+}
 
 i32 run_cmd (const char *cmd, char *const cmdv[])
 {
