@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <sys/wait.h>
 #include <sys/stat.h>
 
 // local includes
@@ -35,6 +34,7 @@
 #include "options.h"
 #include "cfgentry.h"
 #include "cfgparser.h"
+#include "system.h"
 #include "getch.h"
 #include "memattach.h"
 #include "fifoparser.h"
@@ -139,108 +139,6 @@ static void output_config (list<CfgEntry> *cfg)
 		}
 		output_checks(&cfg_en);
 	}
-}
-
-static i32 run_cmd (const char *cmd, char *const cmdv[])
-{
-	pid_t pid;
-
-	pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		goto err;
-	} else if (pid == 0) {
-		if (execvp(cmd, cmdv) < 0) {
-			perror("execvp");
-			goto child_err;
-		}
-	}
-	return 0;
-err:
-	return -1;
-child_err:
-	exit(-1);
-}
-
-static ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
-			     char *pbuf, size_t pbuf_size)
-{
-	pid_t pid;
-	i32 status, fds[2];
-	ssize_t bytes_read = 0;
-
-	if (pipe(fds) < 0) {
-		perror("pipe");
-		goto err;
-	}
-	pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		close(fds[STDOUT_FILENO]);
-		close(fds[STDIN_FILENO]);
-		goto err;
-	} else if (pid == 0) {
-		if (dup2(fds[STDOUT_FILENO], STDOUT_FILENO) < 0) {
-			perror("dup2");
-			close(fds[STDOUT_FILENO]);
-			close(fds[STDIN_FILENO]);
-			goto child_err;
-		}
-		close(fds[STDIN_FILENO]);
-		if (execvp(cmd, cmdv) < 0) {
-			perror("execvp");
-			close(fds[STDOUT_FILENO]);
-			goto child_err;
-		}
-	} else {
-		close(fds[STDOUT_FILENO]);
-		waitpid(pid, &status, 0);
-		bytes_read = read(fds[STDIN_FILENO], pbuf, pbuf_size);
-		if (bytes_read < 0) {
-			perror("pipe read");
-			goto parent_err;
-		} else if (bytes_read <= 1) {
-			cerr << "The command did not return anything." << endl;
-			goto parent_err;
-		}
-	}
-	close(fds[STDIN_FILENO]);
-	return bytes_read;
-
-parent_err:
-	close(fds[STDIN_FILENO]);
-err:
-	return -1;
-child_err:
-	exit(-1);
-}
-
-static pid_t proc_to_pid (char *proc_name)
-{
-	pid_t pid;
-	char pbuf[PIPE_BUF] = {0};
-	const char *cmd = (const char *) "pidof";
-	char *cmdv[4];
-
-	cmdv[0] = (char *) "pidof";
-	cmdv[1] = (char *) "-s";
-	cmdv[2] = proc_name;
-	cmdv[3] = NULL;
-
-	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
-		goto err;
-
-	if (!isdigit(pbuf[0]))
-		goto err;
-
-	pid = atoi(pbuf);
-	if (pid <= 1)
-		goto err;
-
-	return pid;
-err:
-	cerr << "PID not found or invalid!" << endl;
-	return -1;
 }
 
 void toggle_cfg (list<CfgEntry*> *cfg, list<CfgEntry*> *cfg_act)
