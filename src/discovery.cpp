@@ -31,8 +31,11 @@
 #include "memattach.h"
 #include "discovery.h"
 
-static i32 postproc_step4 (struct app_options *opt, list<CfgEntry> *cfg,
-			   string *cfg_path, vector<string> *lines)
+#define DYNMEM_FILE "/tmp/memhack_file"
+
+
+static i32 postproc_stage4 (struct app_options *opt, list<CfgEntry> *cfg,
+			    string *cfg_path, vector<string> *lines)
 {
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
@@ -103,20 +106,86 @@ static i32 postproc_step4 (struct app_options *opt, list<CfgEntry> *cfg,
 	return DISC_OKAY;
 }
 
+// mf() callback for read_dynmem_buf()
+static void process_disc1_malloc (list<CfgEntry> *cfg,
+				  void *argp,
+				  void *mem_addr,
+				  ssize_t mem_size,
+				  void *code_addr,
+				  void *stack_offs)
+{
+	void *in_addr = argp;
+
+	if (in_addr >= mem_addr &&
+	    in_addr < PTR_ADD(void *,mem_addr, mem_size))
+		cout << "m" << mem_addr << ";" << "s" << mem_size
+		     << " contains " << in_addr << endl;
+	//else
+		//cout << "m" << mem_addr << ";" << "s" << mem_size << endl;
+}
+
+// ff() callback for read_dynmem_buf()
+static void process_disc1_free (list<CfgEntry> *cfg,
+				void *argp,
+				void *mem_addr)
+{
+	//cout << "f" << mem_addr << endl;
+}
+
+static i32 postproc_stage1 (struct app_options *opt, list<CfgEntry> *cfg)
+{
+	i32 ifd, pmask = PARSE_M | PARSE_S;
+	void *mem_addr;
+
+	ifd = open(DYNMEM_FILE, O_RDONLY);
+	if (ifd < 0) {
+		perror("open ifd");
+		return -1;
+	}
+
+	restore_getch();
+
+	cout << "Memory address (e.g. 0xdeadbeef): ";
+	fflush(stdout);
+	cin >> hex >> mem_addr;
+	if (mem_addr == NULL) {
+		cerr << "Error: Invalid memory address!" << endl;
+		return -1;
+	}
+	cout << hex << "Searing for " << mem_addr << dec
+	     << " in discovery output.." << endl;
+
+	while (1) {
+		if (read_dynmem_buf(cfg, mem_addr, ifd, pmask,
+		    process_disc1_malloc, process_disc1_free))
+			break;
+	}
+
+	if (prepare_getch() != 0) {
+		cerr << "Error while terminal preparation!" << endl;
+		return -1;
+	}
+
+	return 0;
+}
+
 i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			string *cfg_path, vector<string> *lines)
 {
+	if (opt->disc_str[0] == '1')
+		return postproc_stage1(opt, cfg);
 	if (opt->disc_str[0] != '4')
 		exit(0);
-	return postproc_step4(opt, cfg, cfg_path, lines);
+	return postproc_stage4(opt, cfg, cfg_path, lines);
 }
 
 // mf() callback for read_dynmem_buf()
-static void process_disc_output (list<CfgEntry> *cfg,
-				 void *mem_addr,
-				 ssize_t mem_size,
-				 void *code_addr,
-				 void *stack_offs)
+static void process_disc4_output (list<CfgEntry> *cfg,
+				  void *argp,
+				  void *mem_addr,
+				  ssize_t mem_size,
+				  void *code_addr,
+				  void *stack_offs)
 {
 	list<CfgEntry>::iterator it;
 
@@ -139,7 +208,7 @@ void run_stage4_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 {
 	while (1) {
 		sleep(1);
-		read_dynmem_buf(cfg, ifd, pmask, process_disc_output,
+		read_dynmem_buf(cfg, NULL, ifd, pmask, process_disc4_output,
 				NULL);
 		if (memattach_test(pid) != 0) {
 			cerr << "PTRACE ERROR PID[" << pid << "]!"
@@ -156,7 +225,7 @@ void run_stage123_loop (void *argp)
 	char buf[PIPE_BUF];
 	ssize_t rbytes, wbytes;
 
-	ofd = open("/tmp/memhack_file", O_WRONLY | O_CREAT | O_TRUNC,
+	ofd = open(DYNMEM_FILE, O_WRONLY | O_CREAT | O_TRUNC,
 		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (ofd < 0) {
 		perror("open ofd");

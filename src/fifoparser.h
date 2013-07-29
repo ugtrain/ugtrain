@@ -28,8 +28,8 @@
 #define PARSE_C 4
 #define PARSE_O 8
 
-void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd, int pmask,
-		      void (*mf)(list<CfgEntry> *, void *,
-				 ssize_t, void *, void *),
-		      void (*ff)(list<CfgEntry> *, void *));
+i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
+		     void (*mf)(list<CfgEntry> *, void *, void *,
+				ssize_t, void *, void *),
+		     void (*ff)(list<CfgEntry> *, void *, void *));
 #endif

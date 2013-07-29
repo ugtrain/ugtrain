@@ -18,18 +18,19 @@
 
 #include <cstring>
 #include <stdio.h>
+#include <limits.h>
 #include "fifoparser.h"
 
-void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd, int pmask,
-		      void (*mf)(list<CfgEntry> *, void *,
-				 ssize_t, void *, void *),
-		      void (*ff)(list<CfgEntry> *, void *))
+i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
+		     void (*mf)(list<CfgEntry> *, void *, void *,
+				ssize_t, void *, void *),
+		     void (*ff)(list<CfgEntry> *, void *, void *))
 {
 	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
 	static ssize_t ipos = 0, ilen = 0;
 	ssize_t mem_size = 0, tmp_ilen, ppos = 0;
 	char *msg_end, *sep_pos;
-	char ibuf[4096] = { 0 };
+	static char ibuf[PIPE_BUF] = { 0 };
 	char scan_ch;
 
 	// read from FIFO and concat. incomplete msgs
@@ -38,13 +39,14 @@ void read_dynmem_buf (list<CfgEntry> *cfg, i32 ifd, int pmask,
 		//cout << "ibuf: " << string(ibuf) << endl;
 		ilen += tmp_ilen;
 		//cout << "ilen: " << ilen << " tmp_ilen " << tmp_ilen << endl;
+		//cout << "ipos: " << ipos << endl;
 		ipos += tmp_ilen;
 
 		// parse messages
 next:
 		msg_end = strchr(ibuf, '\n');
 		if (msg_end == NULL)
-			return;
+			return 0;
 		if (sscanf(ibuf, "%c", &scan_ch) != 1)
 			goto parse_err;
 		switch (scan_ch) {
@@ -93,7 +95,8 @@ skip_c:
 				goto parse_err;
 skip_o:
 			// call post parsing function
-			mf(cfg, mem_addr, mem_size, code_addr, stack_offs);
+			mf(cfg, argp, mem_addr, mem_size,
+			   code_addr, stack_offs);
 			break;
 		case 'f':
 			if (!ff)
@@ -103,7 +106,7 @@ skip_o:
 				goto parse_err;
 
 			// call post parsing function
-			ff(cfg, mem_addr);
+			ff(cfg, argp, mem_addr);
 			break;
 		}
 		// prepare for next msg parsing
@@ -118,8 +121,10 @@ skip_o:
 		//cout << "ilen: " << ilen << " ipos " << ipos << endl;
 
 		goto next;
+	} else if (argp) {
+		return 1;
 	}
-	return;
+	return 0;
 
 parse_err:
 	cerr << "parse error at ppos: " << ppos << endl;
@@ -127,5 +132,5 @@ parse_err:
 	memset(ibuf, 0, sizeof(ibuf));
 	ilen = 0;
 	ipos = 0;
-	return;
+	return 0;
 }

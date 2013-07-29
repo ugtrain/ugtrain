@@ -519,6 +519,7 @@ err:
 
 // mf() callback for read_dynmem_buf()
 void set_dynmem_addr (list<CfgEntry> *cfg,
+		      void *argp,
 		      void *mem_addr,
 		      ssize_t mem_size,
 		      void *code_addr,
@@ -544,7 +545,7 @@ void set_dynmem_addr (list<CfgEntry> *cfg,
 }
 
 // ff() callback for read_dynmem_buf()
-void unset_dynmem_addr (list<CfgEntry> *cfg, void *mem_addr)
+void unset_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
 {
 	list<CfgEntry>::iterator it;
 
@@ -677,9 +678,9 @@ prepare_dynmem:
 			ret = fork_wait_kill(pid, run_stage123_loop, &ifd);
 			if (ret)
 				return ret;
-		}
-		else if (opt.disc_str[0] == '4')
+		} else if (opt.disc_str[0] == '4') {
 			run_stage4_loop(&cfg, ifd, pmask, pid);
+		}
 		ret = postproc_discovery(&opt, &cfg, cfg_path, &lines);
 		switch (ret) {
 		case DISC_NEXT:
@@ -706,7 +707,7 @@ prepare_dynmem:
 		if (ch > 0 && cfgp_map[(i32)ch])
 			toggle_cfg(cfgp_map[(i32)ch], cfg_act);
 
-		read_dynmem_buf(&cfg, ifd, pmask, set_dynmem_addr,
+		read_dynmem_buf(&cfg, NULL, ifd, pmask, set_dynmem_addr,
 				unset_dynmem_addr);
 
 		if (memattach(pid) != 0) {
