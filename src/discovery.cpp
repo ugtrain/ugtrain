@@ -172,7 +172,7 @@ static i32 postproc_stage1 (struct app_options *opt, list<CfgEntry> *cfg)
 i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			string *cfg_path, vector<string> *lines)
 {
-	if (opt->disc_str[0] == '1')
+	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '3')
 		return postproc_stage1(opt, cfg);
 	if (opt->disc_str[0] != '4')
 		exit(0);
@@ -263,11 +263,16 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		opt->disc_str = (char *) "0";
 		break;
 	case '1':
+	case '2':
 		if (strlen(opt->disc_str) == 1) {
 			disc_str += opt->disc_str;
 			disc_str += ";0x0;0x0";
+			disc_str += ";0";
 			opt->disc_str = to_c_str(&disc_str);
 		}
+		cout << "disc_str: " << opt->disc_str << endl;
+		break;
+	case '3':
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '4':
