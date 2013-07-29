@@ -29,7 +29,7 @@
 #define PFX "[memdisc] "
 #define OW_MALLOC 1
 #define OW_FREE 1
-#define BUF_SIZE PIPE_BUF
+#define BUF_SIZE PIPE_BUF/2
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 
@@ -58,13 +58,10 @@ typedef u64 ptr_t;
 /* File descriptors and output buffer */
 static int ifd = -1;
 static FILE *ofile = NULL;  /* much data - we need caching */
-static char obuf[BUF_SIZE];
 
 /* Output control */
 static int active = 0;
 static int stage = 0;  /* 0: no output */
-static int g_col = 0;
-#define MAX_COLS 1
 
 /* Input parameters */
 /* Output filtering */
@@ -259,7 +256,7 @@ static void dump_stack_raw (void)
  *
  * We expect the stack pointer to be (32/64 bit) memory aligned here.
  */
-static int find_code_pointers (int obuf_offs)
+static int find_code_pointers (char *obuf, int obuf_offs)
 {
 	void *offs, *code_ptr;
 	int i = 0;
@@ -301,6 +298,7 @@ void *malloc (size_t size)
 {
 	void *mem_addr;
 	int wbytes;
+	char obuf[BUF_SIZE];
 	int obuf_offs = 0, found = 1;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
@@ -316,18 +314,12 @@ void *malloc (size_t size)
 		obuf_offs = sprintf(obuf, "m%p;s%zd", mem_addr, size);
 
 		if (stage >= 3) {
-			found = find_code_pointers(obuf_offs);
+			found = find_code_pointers(obuf, obuf_offs);
 			if (!found)
 				goto out;
 		}
+		strcat(obuf, "\n");
 
-		g_col++;
-		if (g_col >= MAX_COLS) {
-			strcat(obuf, "\n");
-			g_col = 0;
-		} else {
-			strcat(obuf, "\t");
-		}
 		wbytes = fprintf(ofile, "%s", obuf);
 		if (wbytes < 0) {
 			//perror(PFX "fprintf");
@@ -344,20 +336,14 @@ out:
 void free (void *ptr)
 {
 	int wbytes;
+	char obuf[BUF_SIZE];
 	static void (*orig_free)(void *ptr) = NULL;
 
 	if (active && ptr > heap_saddr && ptr < heap_eaddr) {
 		if (stage > 1)
 			goto out;
-		sprintf(obuf, "f%p", ptr);
+		sprintf(obuf, "f%p\n", ptr);
 
-		g_col++;
-		if (g_col >= MAX_COLS) {
-			strcat(obuf, "\n");
-			g_col = 0;
-		} else {
-			strcat(obuf, "\t");
-		}
 		wbytes = fprintf(ofile, "%s", obuf);
 		if (wbytes < 0) {
 			//perror(PFX "fprintf");
