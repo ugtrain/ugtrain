@@ -119,7 +119,8 @@ static void process_disc1_malloc (list<CfgEntry> *cfg,
 	if (in_addr >= mem_addr &&
 	    in_addr < PTR_ADD(void *,mem_addr, mem_size))
 		cout << "m" << mem_addr << ";" << "s" << mem_size
-		     << " contains " << in_addr << endl;
+		     << " contains " << in_addr << ", offs: "
+		     << PTR_SUB(void *, in_addr, mem_addr) << endl;
 	//else
 		//cout << "m" << mem_addr << ";" << "s" << mem_size << endl;
 }
