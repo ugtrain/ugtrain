@@ -43,7 +43,7 @@ PROG_NAME " is an advanced universal game trainer for the CLI\n"
 "			is assumed depending on \'sizeof(long)\'\n"
 "--adapt, -A:		run the adaption script from config to determine\n"
 "			code addresses and their stack offsets - without\n"
-"			\'-D\' discovery step 4 (finding stack offset) is\n"
+"			\'-D\' discovery step 5 (finding stack offset) is\n"
 "			assumed	using the new code address (rejects if root)\n"
 ;
 
@@ -72,10 +72,11 @@ void use_libmemhack (struct app_options *opt)
 
 void do_assumptions (struct app_options *opt)
 {
-	/* '-A' --> '-A -D 4' */
+	/* '-A' --> '-A -D 5' */
 	if (opt->do_adapt) {
 		if (!opt->disc_str)
-			opt->disc_str = (char *) "4";
+			opt->disc_str = (char *) "5";
+		/* '-P libmemhack*' -> '' */
 		if (opt->preload_lib && strncmp(opt->preload_lib, LHACK_PRE,
 		    sizeof(LHACK_PRE) - 1) == 0)
 			opt->preload_lib = NULL;

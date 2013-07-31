@@ -35,7 +35,7 @@
 #define DYNMEM_FILE "/tmp/memhack_file"
 
 
-static i32 postproc_stage4 (struct app_options *opt, list<CfgEntry> *cfg,
+static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 			    string *cfg_path, vector<string> *lines)
 {
 	list<CfgEntry>::iterator cfg_it;
@@ -174,15 +174,15 @@ static i32 postproc_stage1 (struct app_options *opt, list<CfgEntry> *cfg)
 i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			string *cfg_path, vector<string> *lines)
 {
-	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '3')
+	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
 		return postproc_stage1(opt, cfg);
-	if (opt->disc_str[0] != '4')
+	if (opt->disc_str[0] != '5')
 		exit(0);
-	return postproc_stage4(opt, cfg, cfg_path, lines);
+	return postproc_stage5(opt, cfg, cfg_path, lines);
 }
 
 // mf() callback for read_dynmem_buf()
-static void process_disc4_output (list<CfgEntry> *cfg,
+static void process_disc5_output (list<CfgEntry> *cfg,
 				  void *argp,
 				  void *mem_addr,
 				  ssize_t mem_size,
@@ -206,11 +206,11 @@ static void process_disc4_output (list<CfgEntry> *cfg,
 	}
 }
 
-void run_stage4_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
+void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 {
 	while (1) {
 		sleep(1);
-		read_dynmem_buf(cfg, NULL, ifd, pmask, process_disc4_output,
+		read_dynmem_buf(cfg, NULL, ifd, pmask, process_disc5_output,
 				NULL);
 		if (memattach_test(pid) != 0) {
 			cerr << "PTRACE ERROR PID[" << pid << "]!"
@@ -220,7 +220,7 @@ void run_stage4_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 	}
 }
 
-void run_stage123_loop (void *argp)
+void run_stage1234_loop (void *argp)
 {
 	i32 ifd = *(i32 *) argp;
 	i32 ofd;
@@ -270,20 +270,21 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	case '1':
 	case '2':
 		if (strlen(opt->disc_str) == 1) {
-			disc_str += opt->disc_str;
-			disc_str += ";0x0;0x0";
-			disc_str += ";0";
+			disc_str = opt->disc_str[0];
+			disc_str += ";0x0;0x0;0";
 			opt->disc_str = to_c_str(&disc_str);
 		}
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '3':
+	case '4':
 		ret = sscanf(&opt->disc_str[1], ";%p;%p;%zd;%p;%p", &heap_soffs,
 			     &heap_eoffs, &mem_size, &bt_saddr, &bt_eaddr);
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
-				"stage 3!" << endl;
-			cerr << "Use at least \'3;0x0;0x0;<size>\'" << endl;
+				"stage " << opt->disc_str[0] << "!" << endl;
+			cerr << "Use at least \'" << opt->disc_str[0]
+			     << ";0x0;0x0;<size>\'" << endl;
 			goto err;
 		}
 		if (mem_size == 0) {
@@ -319,14 +320,18 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		}
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
-	case '4':
+	case '5':
 		if (!opt->do_adapt) {
 			for (it = cfg->begin(); it != cfg->end(); it++) {
 				if (it->dynmem && !it->dynmem->adp_addr)
 					it->dynmem->adp_addr = it->dynmem->code_addr;
 			}
 		}
-		if (strlen(opt->disc_str) == 1) {
+		if (strlen(opt->disc_str) != 1) {
+			cerr << "Sorry, but this stage is reserved for "
+				"auto-adaption!" << endl;
+			goto err;
+		} else {
 			for (it = cfg->begin(); it != cfg->end(); it++) {
 				if (it->dynmem && it->dynmem->adp_addr &&
 				    !it->dynmem->adp_stack) {
@@ -338,7 +343,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			if (!found)
 				goto err;
 
-			disc_str += opt->disc_str;
+			disc_str = opt->disc_str[0];
 			disc_str += ";0x0;0x0;";
 			disc_str += to_string(it->dynmem->mem_size);
 			for (i = 0; i < 3; i++) {
@@ -350,9 +355,6 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			     << "." << endl
 			     << "Please ensure that it gets allocated!" << endl;
 			cout << "disc_str: " << opt->disc_str << endl;
-		} else {
-			cerr << "Sorry, not supported, yet!" << endl;
-			goto err;
 		}
 		break;
 	default:

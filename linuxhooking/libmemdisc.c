@@ -197,6 +197,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		}
 		break;
 	case '4':
+	case '5':
 		READ_STAGE_CFG();
 		if (sscanf(ibuf, "%p;%p;%zd;%p;%p;%p", &heap_soffs, &heap_eoffs,
 		    &malloc_size, &bt_saddr, &bt_eaddr, &code_addr) >= 5) {

@@ -601,7 +601,7 @@ i32 main (i32 argc, char **argv, char **env)
 	} else {
 		cfg_path = new string("NONE");
 		if (!opt.disc_str ||
-		    (opt.disc_str[0] < '0' || opt.disc_str[0] > '3')) {
+		    (opt.disc_str[0] < '0' || opt.disc_str[0] > '4')) {
 			cerr << "Error: Config required!" << endl;
 			return -1;
 		}
@@ -613,7 +613,7 @@ i32 main (i32 argc, char **argv, char **env)
 	}
 
 	if (opt.disc_str &&
-	    (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '3'))
+	    (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '4'))
 		emptycfg = 1;
 
 	cout << "Config:" << endl;
@@ -674,12 +674,12 @@ prepare_dynmem:
 
 	if (opt.disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
-		if (opt.disc_str[0] >= '1' && opt.disc_str[0] <= '3') {
-			ret = fork_wait_kill(pid, run_stage123_loop, &ifd);
+		if (opt.disc_str[0] >= '1' && opt.disc_str[0] <= '4') {
+			ret = fork_wait_kill(pid, run_stage1234_loop, &ifd);
 			if (ret)
 				return ret;
-		} else if (opt.disc_str[0] == '4') {
-			run_stage4_loop(&cfg, ifd, pmask, pid);
+		} else if (opt.disc_str[0] == '5') {
+			run_stage5_loop(&cfg, ifd, pmask, pid);
 		}
 		ret = postproc_discovery(&opt, &cfg, cfg_path, &lines);
 		switch (ret) {
