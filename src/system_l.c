@@ -28,6 +28,21 @@
 #define SHELL "/bin/sh"
 
 
+/*
+ * Run a task in background, wait for a process to end and
+ * then kill the task in the background.
+ *
+ * If the pid to wait for is invalid, then we wait for the
+ * task to end without killing it.
+ *
+ * Parameters: pid to wait for, task function pointer,
+ *             void *argument for the task
+ * Returns: 0 for success, -1 for failure
+ *
+ * Please note: The task has to cast the argument pointer to its
+ *              correct type again. If more arguments are required,
+ *              please use a structure.
+ */
 i32 fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp)
 {
 	pid_t pid;
@@ -52,9 +67,16 @@ err:
 	return -1;
 }
 
-i32 run_cmd (const char *cmd, char *const cmdv[])
+/*
+ * Run a command with execvp in background.
+ *
+ * Parameters: execvp params, wait for the process 0/1
+ * Returns: 0 for success, -1 for failure
+ */
+i32 run_cmd_bg (const char *cmd, char *const cmdv[], u8 do_wait)
 {
 	pid_t pid;
+	i32 status;
 
 	pid = fork();
 	if (pid < 0) {
@@ -65,6 +87,8 @@ i32 run_cmd (const char *cmd, char *const cmdv[])
 			perror("execvp");
 			goto child_err;
 		}
+	} else if (do_wait) {
+		waitpid(pid, &status, 0);
 	}
 	return 0;
 err:
@@ -73,6 +97,17 @@ child_err:
 	exit(-1);
 }
 
+/*
+ * Run a command in the background, wait for it
+ * and get its result string from a pipe.
+ *
+ * Parameters: execvp params, pipe buffer, its size,
+ *             run the command in a shell 0/1
+ * Returns: what read() returns or -1
+ *
+ * Please note: If the shell is used, then execlp is
+ *              used with cmd and cmdv[] is ignored.
+ */
 ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
 		      size_t pbuf_size, u8 use_shell)
 {
@@ -130,6 +165,15 @@ child_err:
 	exit(-1);
 }
 
+/*
+ * Get the pid of a process name.
+ *
+ * We always get the first pid we find in case
+ * of multiple instances.
+ *
+ * Parameters: the process name
+ * Returns: the pid or -1
+ */
 pid_t proc_to_pid (char *proc_name)
 {
 	pid_t pid;

@@ -303,9 +303,9 @@ static i32 run_preloader (char *preload_lib, char *proc_name)
 	cmdv[3] = NULL;
 
 	cout << "$ " << cmdv[0] << " " << cmdv[1]
-	     << " " << cmdv[2] << endl;
+	     << " " << cmdv[2] << " &" << endl;
 
-	ret = run_cmd(cmd, cmdv);
+	ret = run_cmd_bg(cmd, cmdv, 0);
 	if (ret)
 		goto err;
 

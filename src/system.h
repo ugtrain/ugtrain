@@ -26,7 +26,8 @@
 extern "C" {
 #endif
 	pid_t   proc_to_pid (char *proc_name);
-	i32     run_cmd (const char *cmd, char *const cmdv[]);
+	i32     run_cmd_bg (const char *cmd, char *const cmdv[],
+			    u8 do_wait);
 	ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
 			      char *pbuf, size_t pbuf_size, u8 use_shell);
 	i32     fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp);
