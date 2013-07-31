@@ -25,6 +25,9 @@
 #include "common.h"
 #include "system.h"
 
+#define SHELL "/bin/sh"
+
+
 i32 fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp)
 {
 	pid_t pid;
@@ -70,8 +73,8 @@ child_err:
 	exit(-1);
 }
 
-ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
-		      char *pbuf, size_t pbuf_size)
+ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
+		      size_t pbuf_size, u8 use_shell)
 {
 	pid_t pid;
 	i32 status, fds[2];
@@ -95,7 +98,11 @@ ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
 			goto child_err;
 		}
 		close(fds[STDIN_FILENO]);
-		if (execvp(cmd, cmdv) < 0) {
+		if (use_shell && execlp(SHELL, SHELL, "-c", cmd, NULL) < 0) {
+			perror("execlp");
+			close(fds[STDOUT_FILENO]);
+			goto child_err;
+		} else if (execvp(cmd, cmdv) < 0) {
 			perror("execvp");
 			close(fds[STDOUT_FILENO]);
 			goto child_err;
@@ -135,7 +142,7 @@ pid_t proc_to_pid (char *proc_name)
 	cmdv[2] = proc_name;
 	cmdv[3] = NULL;
 
-	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
+	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), 0) <= 0)
 		goto err;
 
 	if (!isdigit(pbuf[0]))

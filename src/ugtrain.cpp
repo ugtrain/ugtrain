@@ -499,7 +499,7 @@ static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script)
 	if (getuid() == 0)
 		goto err;
 
-	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf));
+	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), 0);
 	if (read_bytes <= 0)
 		goto err;
 	cout << "Adaption return:" << endl;
