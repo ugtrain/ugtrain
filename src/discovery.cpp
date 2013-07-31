@@ -29,6 +29,7 @@
 #include "cfgparser.h"
 #include "fifoparser.h"
 #include "memattach.h"
+#include "system.h"
 #include "discovery.h"
 
 #define DYNMEM_FILE "/tmp/memhack_file"
@@ -251,9 +252,12 @@ void run_stage123_loop (void *argp)
 
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
-	string disc_str;
-	int i, found = 0;
+	string disc_str, cmd_str;
+	int i, ret, found = 0;
 	list<CfgEntry>::iterator it;
+	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr;
+	size_t mem_size;
+	char pbuf[PIPE_BUF] = { 0 };
 
 	if (!opt->disc_str)
 		return 0;
@@ -274,6 +278,45 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '3':
+		ret = sscanf(&opt->disc_str[1], ";%p;%p;%zd;%p;%p", &heap_soffs,
+			     &heap_eoffs, &mem_size, &bt_saddr, &bt_eaddr);
+		if (ret < 3) {
+			cerr << "Error: Not enough arguments for discovery "
+				"stage 3!" << endl;
+			cerr << "Use at least \'3;0x0;0x0;<size>\'" << endl;
+			goto err;
+		}
+		if (mem_size == 0) {
+			cerr << "Error: Too much data! Please discover the "
+				"size first!" << endl;
+			goto err;
+		}
+		if (ret < 5) {
+			cmd_str = "objdump -p `which ";
+			cmd_str += opt->proc_name;
+			cmd_str += "` | grep \"INIT\\|FINI\" "
+				   "| tr -d [:upper:] | tr -d [:blank:]";
+			cout << "$ " << cmd_str << endl;
+			if (run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
+			    sizeof(pbuf), 1) <= 0)
+				goto err;
+			if (sscanf(pbuf, "%p\n%p", &bt_saddr, &bt_eaddr) != 2) {
+				goto err;
+			} else {
+				disc_str = opt->disc_str[0];
+				disc_str += ";";
+				disc_str += to_string(heap_soffs);
+				disc_str += ";";
+				disc_str += to_string(heap_eoffs);
+				disc_str += ";";
+				disc_str += to_string(mem_size);
+				disc_str += ";";
+				disc_str += to_string(bt_saddr);
+				disc_str += ";";
+				disc_str += to_string(bt_eaddr);
+				opt->disc_str = to_c_str(&disc_str);
+			}
+		}
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '4':
