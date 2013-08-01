@@ -32,6 +32,7 @@
 #define BUF_SIZE PIPE_BUF/2
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
+#define MAX_BT 10
 
 #define DEBUG 0
 #if !DEBUG
@@ -251,9 +252,9 @@ static void dump_stack_raw (void)
 #endif
 
 /*
- * Backtrace by searching for code addresses on the stack whithout respecting
+ * Backtrace by searching for code addresses on the stack without respecting
  * stack frames in contrast to GNU backtrace. If malloc is called deep inside
- * of C++ ("_Znwm" function), then GNU backtrace tends to crash with SIGSEGV.
+ * C++ ("_Znwm" function), then GNU backtrace tends to crash with SIGSEGV.
  *
  * We expect the stack pointer to be (32/64 bit) memory aligned here.
  */
@@ -282,7 +283,7 @@ static int find_code_pointers (char *obuf, int obuf_offs)
 				found = 1;
 			}
 			i++;
-			if (i > 10)
+			if (i > MAX_BT)
 				break;
 		}
 	}
