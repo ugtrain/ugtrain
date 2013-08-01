@@ -33,7 +33,7 @@
 #include "discovery.h"
 
 #define DYNMEM_FILE "/tmp/memhack_file"
-#define MAX_BT 10
+#define MAX_BT 11
 
 // parameter for process_disc1234_malloc()
 struct disc_pp {

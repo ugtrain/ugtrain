@@ -32,7 +32,7 @@
 #define BUF_SIZE PIPE_BUF/2
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
-#define MAX_BT 10
+#define MAX_BT 11
 
 #define DEBUG 0
 #if !DEBUG
@@ -283,7 +283,7 @@ static int find_code_pointers (char *obuf, int obuf_offs)
 				found = 1;
 			}
 			i++;
-			if (i > MAX_BT)
+			if (i >= MAX_BT)
 				break;
 		}
 	}
