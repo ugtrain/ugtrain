@@ -150,7 +150,6 @@ ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
 			perror("pipe read");
 			goto parent_err;
 		} else if (bytes_read <= 1) {
-			fprintf(stderr, "No output from command!\n");
 			goto parent_err;
 		}
 	}

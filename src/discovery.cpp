@@ -35,6 +35,12 @@
 #define DYNMEM_FILE "/tmp/memhack_file"
 #define MAX_BT 10
 
+// parameter for process_disc1234_malloc()
+struct disc_pp {
+	void *in_addr;
+	struct app_options *opt;
+};
+
 
 static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 			    string *cfg_path, vector<string> *lines)
@@ -116,12 +122,16 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 				     void *code_addr,
 				     void *stack_offs)
 {
-	void *in_addr = pp->argp;
+	struct disc_pp *dpp = (struct disc_pp *) pp->argp;
+	void *in_addr = dpp->in_addr;
 	void *codes[MAX_BT] = { NULL };
 	void *soffs[MAX_BT] = { NULL };
 	char *sep_pos;
 	int i, ret, num_codes = 0, num_soffs = 0;
 	u8 is_stage4 = 0;
+	string cmd_str, tmp_str;
+	char pbuf[PIPE_BUF] = { 0 };
+	ssize_t rbytes = 0;
 
 	if (in_addr >= mem_addr &&
 	    in_addr < PTR_ADD(void *,mem_addr, mem_size)) {
@@ -158,11 +168,34 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 
 		/* stage 3 and 4 post-processing */
 		for (i = 0; i < num_codes; i++) {
+			// get the function call from disassembly
+			tmp_str = to_string(codes[i]);
+
+			cmd_str = "objdump -D `which ";
+			cmd_str += dpp->opt->proc_name;
+			cmd_str += "` | grep -B 1 -e \"^[ ]\\+";
+			cmd_str += tmp_str.substr(2, string::npos);  // no '0x'
+			cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
+				   "| grep -o -e \"<.*@plt>\"";
+			//cout << "$ " << cmd_str << endl;
+			rbytes = run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
+					      sizeof(pbuf), 1);
+			if (rbytes > 0) {
+				// remove trailing new line
+				if (pbuf[rbytes - 1] == '\n')
+					pbuf[rbytes - 1] = '\0';
+			}
+
+			// output one call from backtrace
 			cout << "c" << codes[i];
 			if (is_stage4)
 				cout << ";o" << soffs[i];
-			//TODO get and print function call from disassembly
+			cout << " " << pbuf;
 			cout << endl;
+
+			// cleanup pipe buffer
+			if (rbytes > 0)
+				memset(pbuf, 0, rbytes);
 		}
 	}
 	//else
@@ -177,10 +210,11 @@ static void process_disc1_free (list<CfgEntry> *cfg,
 	//cout << "f" << mem_addr << endl;
 }
 
-static i32 postproc_stage1 (struct app_options *opt, list<CfgEntry> *cfg)
+static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	i32 ifd, pmask = PARSE_M | PARSE_S;
 	void *mem_addr;
+	struct disc_pp dpp;
 
 	ifd = open(DYNMEM_FILE, O_RDONLY);
 	if (ifd < 0) {
@@ -200,8 +234,11 @@ static i32 postproc_stage1 (struct app_options *opt, list<CfgEntry> *cfg)
 	cout << hex << "Searing for " << mem_addr << dec
 	     << " in discovery output.." << endl;
 
+	dpp.in_addr = mem_addr;
+	dpp.opt = opt;
+
 	while (1) {
-		if (read_dynmem_buf(cfg, mem_addr, ifd, pmask,
+		if (read_dynmem_buf(cfg, &dpp, ifd, pmask,
 		    process_disc1234_malloc, process_disc1_free))
 			break;
 	}
@@ -218,7 +255,7 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			string *cfg_path, vector<string> *lines)
 {
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
-		return postproc_stage1(opt, cfg);
+		return postproc_stage1234(opt, cfg);
 	if (opt->disc_str[0] != '5')
 		exit(0);
 	return postproc_stage5(opt, cfg, cfg_path, lines);
