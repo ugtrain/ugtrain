@@ -291,6 +291,27 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	}
 }
 
+static i32 run_game (char *proc_name)
+{
+	i32 ret;
+	const char *cmd = (const char *) proc_name;
+	char *cmdv[2];
+
+	cmdv[0] = proc_name;
+	cmdv[1] = NULL;
+
+	cout << "$ " << cmdv[0] << " &" << endl;
+
+	ret = run_cmd_bg(cmd, cmdv, 0);
+	if (ret)
+		goto err;
+
+	return ret;
+err:
+	cerr << "Error while running the game!" << endl;
+	return ret;
+}
+
 static i32 run_preloader (char *preload_lib, char *proc_name)
 {
 	i32 ret;
@@ -668,8 +689,19 @@ prepare_dynmem:
 	}
 
 	pid = proc_to_pid(opt.proc_name);
-	if (pid < 0)
-		return -1;
+	if (pid < 0) {
+		/* Run the game but not as root */
+		if (opt.preload_lib && getuid() != 0) {
+			cout << "Starting the game.." << endl;
+			run_game(opt.proc_name);
+			sleep(1);
+			pid = proc_to_pid(opt.proc_name);
+			if (pid < 0)
+				return -1;
+		} else {
+			return -1;
+		}
+	}
 	cout << "PID: " << pid << endl;
 
 	if (opt.disc_str) {
