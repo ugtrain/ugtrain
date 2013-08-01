@@ -22,7 +22,7 @@
 #include "fifoparser.h"
 
 i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
-		     void (*mf)(list<CfgEntry> *, void *, void *,
+		     void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
 				ssize_t, void *, void *),
 		     void (*ff)(list<CfgEntry> *, void *, void *))
 {
@@ -32,6 +32,7 @@ i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
 	char *msg_end, *sep_pos;
 	static char ibuf[PIPE_BUF] = { 0 };
 	char scan_ch;
+	struct post_parse pp;
 
 	// read from FIFO and concat. incomplete msgs
 	tmp_ilen = read(ifd, ibuf + ipos, sizeof(ibuf) - 1 - ipos);  // always '\0' at end
@@ -94,8 +95,12 @@ skip_c:
 			if (sscanf(ibuf + ppos, "%p", &stack_offs) != 1)
 				goto parse_err;
 skip_o:
+			pp.ibuf = ibuf;
+			pp.ppos = ppos;
+			pp.argp = argp;
+
 			// call post parsing function
-			mf(cfg, argp, mem_addr, mem_size,
+			mf(cfg, &pp, mem_addr, mem_size,
 			   code_addr, stack_offs);
 			break;
 		case 'f':

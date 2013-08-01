@@ -109,13 +109,13 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 
 // mf() callback for read_dynmem_buf()
 static void process_disc1_malloc (list<CfgEntry> *cfg,
-				  void *argp,
+				  struct post_parse *pp,
 				  void *mem_addr,
 				  ssize_t mem_size,
 				  void *code_addr,
 				  void *stack_offs)
 {
-	void *in_addr = argp;
+	void *in_addr = pp->argp;
 
 	if (in_addr >= mem_addr &&
 	    in_addr < PTR_ADD(void *,mem_addr, mem_size))
@@ -183,7 +183,7 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 
 // mf() callback for read_dynmem_buf()
 static void process_disc5_output (list<CfgEntry> *cfg,
-				  void *argp,
+				  struct post_parse *pp,
 				  void *mem_addr,
 				  ssize_t mem_size,
 				  void *code_addr,

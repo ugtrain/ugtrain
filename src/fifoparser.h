@@ -28,8 +28,14 @@
 #define PARSE_C 4
 #define PARSE_O 8
 
+struct post_parse {
+	char	*ibuf;
+	ssize_t	ppos;
+	void	*argp;
+};
+
 i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
-		     void (*mf)(list<CfgEntry> *, void *, void *,
+		     void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
 				ssize_t, void *, void *),
 		     void (*ff)(list<CfgEntry> *, void *, void *));
 #endif
