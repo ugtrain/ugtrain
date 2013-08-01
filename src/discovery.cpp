@@ -33,6 +33,7 @@
 #include "discovery.h"
 
 #define DYNMEM_FILE "/tmp/memhack_file"
+#define MAX_BT 10
 
 
 static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
@@ -108,20 +109,62 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 }
 
 // mf() callback for read_dynmem_buf()
-static void process_disc1_malloc (list<CfgEntry> *cfg,
-				  struct post_parse *pp,
-				  void *mem_addr,
-				  ssize_t mem_size,
-				  void *code_addr,
-				  void *stack_offs)
+static void process_disc1234_malloc (list<CfgEntry> *cfg,
+				     struct post_parse *pp,
+				     void *mem_addr,
+				     ssize_t mem_size,
+				     void *code_addr,
+				     void *stack_offs)
 {
 	void *in_addr = pp->argp;
+	void *codes[MAX_BT] = { NULL };
+	void *soffs[MAX_BT] = { NULL };
+	char *sep_pos;
+	int i, ret, num_codes = 0, num_soffs = 0;
+	u8 is_stage4 = 0;
 
 	if (in_addr >= mem_addr &&
-	    in_addr < PTR_ADD(void *,mem_addr, mem_size))
+	    in_addr < PTR_ADD(void *,mem_addr, mem_size)) {
 		cout << "m" << mem_addr << ";" << "s" << mem_size
 		     << " contains " << in_addr << ", offs: "
 		     << PTR_SUB(void *, in_addr, mem_addr) << endl;
+
+		/* stage 3 and 4 parsing */
+		for (i = 0; i < MAX_BT; i++) {
+			sep_pos = strchr(pp->ibuf + pp->ppos, ';');
+			if (!sep_pos)
+				break;
+			pp->ppos = sep_pos + 1 - pp->ibuf;
+			if (is_stage4) {
+				sep_pos = strchr(pp->ibuf + pp->ppos, ';');
+				if (!sep_pos)
+					break;
+				pp->ppos = sep_pos + 1 - pp->ibuf;
+			}
+			ret = sscanf(pp->ibuf + pp->ppos, "c%p;o%p",
+				     &codes[i], &soffs[i]);
+			if (ret == 2) {
+				is_stage4 = 1;
+				num_codes++;
+				num_soffs++;
+			} else if (ret == 1) {
+				if (is_stage4)
+					break;
+				num_codes++;
+			} else {
+				break;
+			}
+		}
+
+		/* stage 3 and 4 post-processing */
+		for (i = 0; i < num_codes; i++) {
+			cout << "c" << codes[i];
+			if (is_stage4)
+				cout << ";o" << soffs[i];
+			//TODO get and print function call from disassembly
+			cout << endl;
+		}
+	}
 	//else
 		//cout << "m" << mem_addr << ";" << "s" << mem_size << endl;
 }
@@ -159,7 +202,7 @@ static i32 postproc_stage1 (struct app_options *opt, list<CfgEntry> *cfg)
 
 	while (1) {
 		if (read_dynmem_buf(cfg, mem_addr, ifd, pmask,
-		    process_disc1_malloc, process_disc1_free))
+		    process_disc1234_malloc, process_disc1_free))
 			break;
 	}
 
