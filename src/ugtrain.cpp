@@ -541,6 +541,7 @@ err:
 // mf() callback for read_dynmem_buf()
 void set_dynmem_addr (list<CfgEntry> *cfg,
 		      struct post_parse *pp,
+		      void *heap_start,
 		      void *mem_addr,
 		      ssize_t mem_size,
 		      void *code_addr,

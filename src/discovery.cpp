@@ -117,6 +117,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 // mf() callback for read_dynmem_buf()
 static void process_disc1234_malloc (list<CfgEntry> *cfg,
 				     struct post_parse *pp,
+				     void *heap_start,
 				     void *mem_addr,
 				     ssize_t mem_size,
 				     void *code_addr,
@@ -137,7 +138,8 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 	    in_addr < PTR_ADD(void *,mem_addr, mem_size)) {
 		cout << "m" << mem_addr << ";" << "s" << mem_size
 		     << " contains " << in_addr << ", offs: "
-		     << PTR_SUB(void *, in_addr, mem_addr) << endl;
+		     << PTR_SUB(void *, in_addr, mem_addr) << ", heap offs: "
+		     << PTR_SUB(void *, mem_addr, heap_start) << endl;
 
 		/* stage 3 and 4 parsing */
 		for (i = 0; i < MAX_BT; i++) {
@@ -264,6 +266,7 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 // mf() callback for read_dynmem_buf()
 static void process_disc5_output (list<CfgEntry> *cfg,
 				  struct post_parse *pp,
+				  void *heap_start,
 				  void *mem_addr,
 				  ssize_t mem_size,
 				  void *code_addr,

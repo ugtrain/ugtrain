@@ -23,10 +23,11 @@
 
 i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
 		     void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
-				ssize_t, void *, void *),
+				void *, ssize_t, void *, void *),
 		     void (*ff)(list<CfgEntry> *, void *, void *))
 {
 	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
+	static void *heap_start = NULL;
 	static ssize_t ipos = 0, ilen = 0;
 	ssize_t mem_size = 0, tmp_ilen, ppos = 0;
 	char *msg_end, *sep_pos;
@@ -100,7 +101,7 @@ skip_o:
 			pp.argp = argp;
 
 			// call post parsing function
-			mf(cfg, &pp, mem_addr, mem_size,
+			mf(cfg, &pp, heap_start, mem_addr, mem_size,
 			   code_addr, stack_offs);
 			break;
 		case 'f':
@@ -112,6 +113,11 @@ skip_o:
 
 			// call post parsing function
 			ff(cfg, argp, mem_addr);
+			break;
+		case 'h':
+			ppos = 1;
+			if (sscanf(ibuf + ppos, "%p", &heap_start) != 1)
+				goto parse_err;
 			break;
 		}
 		// prepare for next msg parsing

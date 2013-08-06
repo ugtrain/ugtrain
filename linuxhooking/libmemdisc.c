@@ -140,6 +140,8 @@ void __attribute ((constructor)) memdisc_init (void)
 		usleep(250 * 1000);
 	}
 
+	fprintf(ofile, "h%p\n", heap_start);
+
 	switch (ibuf[0]) {
 	/*
 	 * stage 1: Find malloc size  (together with static memory search)
