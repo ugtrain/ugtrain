@@ -351,7 +351,7 @@ list<CfgEntry*> *read_config (string *path,
 				&start, false, false, NULL);
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
 			dynmem_enp->stack_offs = parse_address(&line, lnr, &start);
-			dynmem_enp->mem_addr = NULL;
+			dynmem_enp->v_maddr.clear();
 			dynmem_enp->adp_addr = NULL;
 			dynmem_enp->adp_stack = NULL;
 			dynmem_enp->cfg_line = lnr;

@@ -556,26 +556,46 @@ void set_dynmem_addr (list<CfgEntry> *cfg,
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem &&
 		    it->dynmem->code_addr == code_addr) {
-			it->dynmem->mem_addr = mem_addr;
+			it->dynmem->v_maddr.push_back(mem_addr);
 			cout << "Obj. " << it->dynmem->name << "; c"
 				<< it->dynmem->code_addr << "; s"
 				<< it->dynmem->mem_size << "; created at "
-				<< it->dynmem->mem_addr << endl;
+				<< it->dynmem->v_maddr.back() << endl;
 			break;
 		}
 	}
+}
+
+i32 find_addr_idx(vector<void *> *vec, void *addr)
+{
+	u32 i;
+	i32 ret = -1;
+
+	for (i = 0; i < vec->size(); i++) {
+		if (vec->at(i) == addr) {
+			ret = i;
+			break;
+		}
+	}
+
+	return ret;
 }
 
 // ff() callback for read_dynmem_buf()
 void unset_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
 {
 	list<CfgEntry>::iterator it;
+	vector<void *> *vec;
+	i32 idx;
 
 	//cout << "f" << hex << mem_addr << dec << endl;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
-		if (it->dynmem &&
-		    it->dynmem->mem_addr == mem_addr) {
-			it->dynmem->mem_addr = NULL;
+		if (it->dynmem) {
+			vec = &it->dynmem->v_maddr;
+			idx = find_addr_idx(vec, mem_addr);
+			if (idx < 0)
+				continue;
+			vec->erase(vec->begin() + idx);
 			cout << "Obj. " << it->dynmem->name << "; c"
 				<< it->dynmem->code_addr << "; s"
 				<< it->dynmem->mem_size << "; freed from "
@@ -604,6 +624,7 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
 	u8 emptycfg = 0;
+	u32 mem_idx;
 
 	atexit(restore_getch);
 
@@ -751,18 +772,30 @@ prepare_dynmem:
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
 			if (cfg_en->dynmem) {
-				if (!cfg_en->dynmem->mem_addr)
-					continue;
-				else
-					mem_offs = cfg_en->dynmem->mem_addr;
-			}
+				for (mem_idx = 0;
+				     mem_idx < cfg_en->dynmem->v_maddr.size();
+				     mem_idx++) {
+					mem_offs = cfg_en->dynmem->v_maddr[mem_idx];
 
-			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
-			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
-				return -1;
+					mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
+					if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
+						cerr << "PTRACE READ MEMORY ERROR PID["
+						     << pid << "]!" << endl;
+						return -1;
+					}
+					change_memory(pid, cfg_en, buf, mem_offs);
+				}
+			} else {
+				mem_offs = NULL;
+
+				mem_addr = cfg_en->addr;
+				if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
+					cerr << "PTRACE READ MEMORY ERROR PID["
+					     << pid << "]!" << endl;
+					return -1;
+				}
+				change_memory(pid, cfg_en, buf, mem_offs);
 			}
-			change_memory(pid, cfg_en, buf, mem_offs);
 		}
 
 		if (memdetach(pid) != 0) {
@@ -773,12 +806,12 @@ prepare_dynmem:
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
 			if (cfg_en->dynmem) {
-				if (!cfg_en->dynmem->mem_addr)
+				if (cfg_en->dynmem->v_maddr.empty())
 					continue;
 				else
-					mem_offs = cfg_en->dynmem->mem_addr;
+					mem_offs = cfg_en->dynmem->v_maddr[0];
 			} else {
-				mem_offs = 0;
+				mem_offs = NULL;
 			}
 			cout << cfg_en->name << " at " << hex
 				<< PTR_ADD(void *, cfg_en->addr, mem_offs)

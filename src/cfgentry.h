@@ -19,6 +19,7 @@
 #ifndef CFGENTRY_H
 #define CFGENTRY_H
 
+#include <vector>
 #include <list>
 #include "common.h"
 
@@ -44,8 +45,11 @@ public:
 	size_t mem_size;
 	void *code_addr;
 	void *stack_offs;
+
 	/* later determined values */
-	void *mem_addr;    /* set by malloc call */
+	vector<void *> v_maddr;    /* set by malloc calls */
+
+	/* adaption */
 	void *adp_addr;    /* adapted code address */
 	void *adp_stack;   /* adapted stack offset */
 	u32 cfg_line;      /* to write back new cfg */
