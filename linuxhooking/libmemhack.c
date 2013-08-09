@@ -32,6 +32,7 @@
 #define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
+#define PTR_INVAL (void *) 1
 
 #define DEBUG 0
 #if !DEBUG
@@ -59,7 +60,8 @@ struct cfg {
 	size_t mem_size;
 	void *code_addr;
 	void *stack_offs;
-	void *mem_addr;  /* filled by malloc for free */
+	u32 max_obj;
+	void **mem_addrs;  /* filled by malloc for free */
 };
 typedef struct cfg cfg_s;
 
@@ -93,7 +95,8 @@ void __attribute ((constructor)) memhack_init (void)
 {
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
-	int i, j, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0, scanned = 0;
+	int i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0, scanned = 0;
+	u32 max_obj;
 	int read_tries;
 
 	sigignore(SIGPIPE);
@@ -128,6 +131,13 @@ void __attribute ((constructor)) memhack_init (void)
 		goto err;
 	SET_IBUF_OFFS(1, j);
 	cfg_offs = (num_cfg + 1) * sizeof(cfg_s *);
+	max_obj = sizeof(config) - cfg_offs - num_cfg * sizeof(cfg_s);
+	max_obj /= sizeof(void *);
+	if (max_obj <= 1)
+		fprintf(stderr, PFX "Error: No space for memory addresses!\n");
+	else
+		fprintf(stdout, PFX "Using max. %u objects per class.\n",
+			max_obj - 1);
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
@@ -148,6 +158,18 @@ void __attribute ((constructor)) memhack_init (void)
 		if (scanned != 3)
 			goto err;
 		SET_IBUF_OFFS(3, j);
+
+		if (max_obj <= 1)
+			continue;
+		/* put stored memory addresses behind all cfg_s stuctures */
+		config[i]->max_obj = max_obj - 1;
+		config[i]->mem_addrs = PTR_ADD2(void **, config, cfg_offs,
+			num_cfg * sizeof(cfg_s));
+		config[i]->mem_addrs = PTR_ADD(void **, config[i]->mem_addrs,
+			i * max_obj);
+		/* fill with invalid pointers to detect end */
+		for (k = 0; k < max_obj; k++)
+			config[i]->mem_addrs[k] = PTR_INVAL;
 	}
 	if (i != num_cfg)
 		goto err;
@@ -156,9 +178,9 @@ void __attribute ((constructor)) memhack_init (void)
 	printf(PFX "num_cfg: %d, cfg_offs: %d\n", num_cfg, cfg_offs);
 	for (i = 0; config[i] != NULL; i++) {
 		fprintf(stdout, PFX "config[%d]: mem_size: %zd; "
-			"code_addr: %p; stack_offs: %p; mem_addr: %p\n", i,
+			"code_addr: %p; stack_offs: %p\n", i,
 			config[i]->mem_size, config[i]->code_addr,
-			config[i]->stack_offs, config[i]->mem_addr);
+			config[i]->stack_offs);
 	}
 
 	if (num_cfg > 0)
@@ -182,7 +204,7 @@ err:
 void *malloc (size_t size)
 {
 	void *mem_addr, *stack_addr;
-	int i, wbytes;
+	int i, j, wbytes;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
 	/* get the libc malloc function */
@@ -210,10 +232,17 @@ void *malloc (size_t size)
 				mem_addr, config[i]->code_addr);
 
 			wbytes = write(ofd, obuf, wbytes);
-			if (wbytes < 0)
+			if (wbytes < 0) {
 				perror("write");
-			else
-				config[i]->mem_addr = mem_addr;
+			} else if (config[i]->mem_addrs) {
+				for (j = 0; j < config[i]->max_obj; j++) {
+					if (config[i]->mem_addrs[j] <= PTR_INVAL) {
+						config[i]->mem_addrs[j] = mem_addr;
+						break;
+					}
+				}
+			}
+			break;
 		}
 	}
 	return mem_addr;
@@ -224,21 +253,27 @@ void *malloc (size_t size)
 #ifdef OW_FREE
 void free (void *ptr)
 {
-	int i, wbytes;
+	int i, j, wbytes;
 	static void (*orig_free)(void *ptr) = NULL;
 
-	if (active) {
+	if (active && ptr != NULL) {
 		for (i = 0; config[i] != NULL; i++) {
-			if (ptr != config[i]->mem_addr || ptr == NULL)
+			if (!config[i]->mem_addrs)
 				continue;
-
+			for (j = 0; config[i]->mem_addrs[j] != PTR_INVAL; j++) {
+				if (config[i]->mem_addrs[j] == ptr)
+					goto found;
+			}
+			continue;
+found:
 			printf(PFX "free: mem_addr: %p\n", ptr);
 			wbytes = sprintf(obuf, "f%p\n", ptr);
 
 			wbytes = write(ofd, obuf, wbytes);
 			if (wbytes < 0)
 				perror("write");
-			config[i]->mem_addr = NULL;
+			config[i]->mem_addrs[j] = NULL;
+			break;
 		}
 	}
 	/* get the libc free function */
