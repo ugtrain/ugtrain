@@ -70,5 +70,6 @@ AC_CHECK_FUNCS(ptrace memcpy memcmp getenv setenv)
 AC_OUTPUT(
 Makefile
 linuxhooking/Makefile
+tools/Makefile
 src/Makefile
 )
