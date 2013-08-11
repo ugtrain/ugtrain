@@ -91,7 +91,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 		cout << "Obj. " << tmp->name
 		     << ", old_offs: " << hex << tmp->stack_offs
 		     << ", new_offs: " << tmp->adp_stack << dec << endl;
-		tmp->stack_offs = tmp->adp_stack;
+		tmp->stack_offs[0] = tmp->adp_stack;
 		lnr = tmp->cfg_line;
 		lines->at(lnr) = "dynmemstart " + tmp->name + " "
 			+ to_string(tmp->mem_size) + " "

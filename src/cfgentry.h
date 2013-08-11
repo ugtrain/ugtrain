@@ -23,6 +23,8 @@
 #include <list>
 #include "common.h"
 
+#define MAX_STACK 4
+
 enum {
 	DO_UNCHECKED,
 	DO_LT,
@@ -44,7 +46,7 @@ public:
 	string name;
 	size_t mem_size;
 	void *code_addr;
-	void *stack_offs;
+	void *stack_offs[MAX_STACK];
 
 	/* later determined values */
 	vector<void *> v_maddr;    /* set by malloc calls */

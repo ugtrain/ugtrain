@@ -33,6 +33,7 @@ enum {
 	NAME_CHECK,
 	NAME_DYNMEM_START,
 	NAME_DYNMEM_END,
+	NAME_DYNMEM_STACK,
 	NAME_ADAPT,
 	NAME_ADP_REQ
 };
@@ -94,18 +95,25 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 
 	ret = string(*line, *start, lidx - *start);
 	*start = lidx + 1;
-	if (ret == "check")
-		*name_type = NAME_CHECK;
-	else if (ret == "dynmemstart")
-		*name_type = NAME_DYNMEM_START;
-	else if (ret == "dynmemend")
-		*name_type = NAME_DYNMEM_END;
-	else if (ret == "adapt_script")
-		*name_type = NAME_ADAPT;
-	else if (ret == "adapt_required")
-		*name_type = NAME_ADP_REQ;
-	else
-		*name_type = NAME_REGULAR;
+	if (ret.substr(0, 6) == "dynmem") {
+		if (ret.substr(6, string::npos) == "start")
+			*name_type = NAME_DYNMEM_START;
+		else if (ret.substr(6, string::npos) == "end")
+			*name_type = NAME_DYNMEM_END;
+		else if (ret.substr(6, string::npos) == "stack")
+			*name_type = NAME_DYNMEM_STACK;
+		else
+			*name_type = NAME_REGULAR;
+	} else {
+		if (ret == "check")
+			*name_type = NAME_CHECK;
+		else if (ret == "adapt_script")
+			*name_type = NAME_ADAPT;
+		else if (ret == "adapt_required")
+			*name_type = NAME_ADP_REQ;
+		else
+			*name_type = NAME_REGULAR;
+	}
 
 	return ret;
 }
@@ -306,7 +314,7 @@ list<CfgEntry*> *read_config (string *path,
 	list<CheckEntry> *chk_lp;
 	DynMemEntry *dynmem_enp = NULL;
 	u32 lnr, start = 0;
-	i32 name_type;
+	i32 name_type, stack_idx = 0;
 	bool in_dynmem = false;
 	string line;
 	string home(opt->home);
@@ -344,23 +352,38 @@ list<CfgEntry*> *read_config (string *path,
 
 		case NAME_DYNMEM_START:
 			in_dynmem = true;
+			stack_idx = 0;
 			dynmem_enp = new DynMemEntry();
 			dynmem_enp->name = parse_value_name(&line, lnr,
 				&start, &name_type);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
 				&start, false, false, NULL);
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
-			dynmem_enp->stack_offs = parse_address(&line, lnr, &start);
+			memset(dynmem_enp->stack_offs, 0, MAX_STACK);
+			dynmem_enp->stack_offs[stack_idx] = parse_address(&line, lnr, &start);
 			dynmem_enp->v_maddr.clear();
 			dynmem_enp->adp_addr = NULL;
 			dynmem_enp->adp_stack = NULL;
 			dynmem_enp->cfg_line = lnr;
+			stack_idx++;
 			break;
 
 		case NAME_DYNMEM_END:
 			if (in_dynmem) {
 				in_dynmem = false;
 				dynmem_enp = NULL;
+			} else {
+				cfg_parse_err(&line, lnr, start);
+			}
+			break;
+
+		case NAME_DYNMEM_STACK:
+			if (in_dynmem) {
+				if (stack_idx >= MAX_STACK)
+					cfg_parse_err(&line, lnr, start);
+				dynmem_enp->stack_offs[stack_idx] =
+					parse_address(&line, lnr, &start);
+				stack_idx++;
 			} else {
 				cfg_parse_err(&line, lnr, start);
 			}

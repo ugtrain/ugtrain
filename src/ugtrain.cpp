@@ -128,7 +128,7 @@ static void output_config (list<CfgEntry> *cfg)
 			cout << "dynmem: " << cfg_en.dynmem->name << " "
 				<< cfg_en.dynmem->mem_size << " "
 				<< hex << cfg_en.dynmem->code_addr << " "
-				<< cfg_en.dynmem->stack_offs << dec << endl;
+				<< cfg_en.dynmem->stack_offs[0] << dec << endl;
 		cout << cfg_en.name << " " << hex << cfg_en.addr << dec;
 		cout << " " << cfg_en.size << " ";
 		if (cfg_en.is_float) {
@@ -401,8 +401,9 @@ err:
 static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 			   i32 *ifd, i32 *ofd)
 {
-	char obuf[4096] = {0};
+	char obuf[PIPE_BUF] = { 0 };
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
+	i32 i;
 	size_t written;
 	void *old_code_addr = NULL;
 	list<CfgEntry>::iterator it;
@@ -425,8 +426,11 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-				";%zd;%p;%p", it->dynmem->mem_size,
-				it->dynmem->code_addr, it->dynmem->stack_offs);
+				";%zd;%p", it->dynmem->mem_size,
+				it->dynmem->code_addr);
+			for (i = 0; i < MAX_STACK; i++)
+				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
+					";%p", it->dynmem->stack_offs[i]);
 			old_code_addr = it->dynmem->code_addr;
 		}
 	}
