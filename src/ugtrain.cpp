@@ -286,7 +286,8 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		}
 	}
 
-	if ((cfg_en->check == DO_LT && *(T *)buf < value) ||
+	if ((cfg_en->check == DO_UNCHECKED) ||
+	    (cfg_en->check == DO_LT && *(T *)buf < value) ||
 	    (cfg_en->check == DO_GT && *(T *)buf > value)) {
 		memcpy(buf, &value, sizeof(T));
 		mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
