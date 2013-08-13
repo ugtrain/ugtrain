@@ -197,11 +197,13 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
  *            We always parse floats as doubles here.
  */
 static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
-		        bool is_float, i32 *check)
+		        bool is_float, i32 *dynval, i32 *check)
 {
 	u32 lidx;
 	i64 ret = 0;
 	double tmp_dval;
+	bool dynval_detected = false;
+	string tmp_str;
 
 	lidx = *start;
 	if (!check)
@@ -225,9 +227,23 @@ skip_check:
 		if (line->at(lidx) == ' ') {
 			break;
 		} else if (!isdigit(line->at(lidx)) && line->at(*start) != '-' &&
-		    !(is_float && line->at(lidx)) == '.') {
-			cfg_parse_err(line, lnr, lidx);
+		    !(is_float && line->at(lidx) == '.')) {
+			if (!dynval || !isalpha(line->at(lidx)))
+				cfg_parse_err(line, lnr, lidx);
+			else
+				dynval_detected = true;
 		}
+	}
+	if (dynval_detected) {
+		tmp_str = string(*line, *start, lidx - *start);
+		if (tmp_str == "max")
+			*dynval = DYN_VAL_MAX;
+		else if (tmp_str == "min")
+			*dynval = DYN_VAL_MIN;
+		else
+			cfg_parse_err(line, lnr, lidx);
+		goto out;
+
 	}
 	if (is_float) {
 		tmp_dval = strtod(string(*line, *start,
@@ -240,6 +256,7 @@ skip_check:
 		ret = strtoull(string(*line,
 			*start, lidx - *start).c_str(), NULL, 10);
 	}
+out:
 	*start = ++lidx;
 	return ret;
 }
@@ -344,8 +361,8 @@ list<CfgEntry*> *read_config (string *path,
 			chk_en.addr = parse_address(&line, lnr, &start);
 			chk_en.size = parse_data_type(&line, lnr, &start,
 				&chk_en.is_signed, &chk_en.is_float);
-			chk_en.value = parse_value(&line, lnr, &start,
-				chk_en.is_signed, chk_en.is_float, &chk_en.check);
+			chk_en.value = parse_value(&line, lnr, &start, chk_en.is_signed,
+				chk_en.is_float, NULL, &chk_en.check);
 
 			chk_lp->push_back(chk_en);
 			break;
@@ -357,7 +374,7 @@ list<CfgEntry*> *read_config (string *path,
 			dynmem_enp->name = parse_value_name(&line, lnr,
 				&start, &name_type);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
-				&start, false, false, NULL);
+				&start, false, false, NULL, NULL);
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
 			memset(dynmem_enp->stack_offs, 0, MAX_STACK);
 			dynmem_enp->stack_offs[stack_idx] = parse_address(&line, lnr, &start);
@@ -409,17 +426,18 @@ list<CfgEntry*> *read_config (string *path,
 				cfg_parse_err(&line, lnr, start);
 
 			opt->adp_required = parse_value(&line, lnr, &start,
-							false, false, NULL);
+							false, false, NULL, NULL);
 			opt->adp_req_line = lnr;
 			break;
 
 		default:
 			cfg_en.checks = NULL;
+			cfg_en.dynval = DYN_VAL_NONE;
 			cfg_en.addr = parse_address(&line, lnr, &start);
 			cfg_en.size = parse_data_type(&line, lnr, &start,
 				&cfg_en.is_signed, &cfg_en.is_float);
-			cfg_en.value = parse_value(&line, lnr, &start,
-				cfg_en.is_signed, cfg_en.is_float, &cfg_en.check);
+			cfg_en.value = parse_value(&line, lnr, &start, cfg_en.is_signed,
+				cfg_en.is_float, &cfg_en.dynval, &cfg_en.check);
 			if (in_dynmem) {
 				cfg_en.dynmem = dynmem_enp;
 			} else {

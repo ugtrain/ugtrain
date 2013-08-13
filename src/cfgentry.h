@@ -31,6 +31,12 @@ enum {
 	DO_GT
 };
 
+enum {
+	DYN_VAL_NONE,
+	DYN_VAL_MIN,
+	DYN_VAL_MAX,
+};
+
 class CheckEntry {
 public:
 	void *addr;
@@ -66,6 +72,7 @@ public:
 	i32 size;
 	i64 value;
 	i64 old_val;
+	i32 dynval;
 	i32 check;
 	list<CheckEntry> *checks;
 	DynMemEntry *dynmem;
