@@ -35,6 +35,7 @@ enum {
 	DYN_VAL_NONE,
 	DYN_VAL_MIN,
 	DYN_VAL_MAX,
+	DYN_VAL_ADDR,
 };
 
 class CheckEntry {
@@ -73,6 +74,7 @@ public:
 	i64 value;
 	i64 old_val;
 	i32 dynval;
+	void *val_addr;
 	i32 check;
 	list<CheckEntry> *checks;
 	DynMemEntry *dynmem;

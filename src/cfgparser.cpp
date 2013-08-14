@@ -236,12 +236,17 @@ skip_check:
 	}
 	if (dynval_detected) {
 		tmp_str = string(*line, *start, lidx - *start);
-		if (tmp_str == "max")
+		if (tmp_str == "max") {
 			*dynval = DYN_VAL_MAX;
-		else if (tmp_str == "min")
+		} else if (tmp_str == "min") {
 			*dynval = DYN_VAL_MIN;
-		else
+		} else if (tmp_str.substr(0, 2) == "0x") {
+			*dynval = DYN_VAL_ADDR;
+			if (sscanf(tmp_str.c_str(), "%p", (void **) &ret) != 1)
+				cfg_parse_err(line, lnr, lidx);
+		} else {
 			cfg_parse_err(line, lnr, lidx);
+		}
 		goto out;
 
 	}
@@ -438,6 +443,8 @@ list<CfgEntry*> *read_config (string *path,
 				&cfg_en.is_signed, &cfg_en.is_float);
 			cfg_en.value = parse_value(&line, lnr, &start, cfg_en.is_signed,
 				cfg_en.is_float, &cfg_en.dynval, &cfg_en.check);
+			if (cfg_en.dynval == DYN_VAL_ADDR)
+				cfg_en.val_addr = (void *) cfg_en.value;
 			if (in_dynmem) {
 				cfg_en.dynmem = dynmem_enp;
 			} else {
