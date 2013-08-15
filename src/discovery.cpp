@@ -89,14 +89,14 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 		     << ", new_code: " << tmp->adp_addr << dec << endl;
 		cfg_it->dynmem->code_addr = tmp->adp_addr;
 		cout << "Obj. " << tmp->name
-		     << ", old_offs: " << hex << tmp->stack_offs
+		     << ", old_offs: " << hex << tmp->stack_offs[0]
 		     << ", new_offs: " << tmp->adp_stack << dec << endl;
 		tmp->stack_offs[0] = tmp->adp_stack;
 		lnr = tmp->cfg_line;
 		lines->at(lnr) = "dynmemstart " + tmp->name + " "
 			+ to_string(tmp->mem_size) + " "
 			+ to_string(tmp->code_addr) + " "
-			+ to_string(tmp->stack_offs);
+			+ to_string(tmp->stack_offs[0]);
 	}
 	// Adaption isn't required anymore
 	lnr = opt->adp_req_line;
