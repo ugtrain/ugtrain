@@ -336,7 +336,7 @@ list<CfgEntry*> *read_config (string *path,
 	list<CheckEntry> *chk_lp;
 	DynMemEntry *dynmem_enp = NULL;
 	u32 lnr, start = 0;
-	i32 name_type, stack_idx = 0;
+	i32 name_type;
 	bool in_dynmem = false;
 	string line;
 	string home(opt->home);
@@ -374,20 +374,17 @@ list<CfgEntry*> *read_config (string *path,
 
 		case NAME_DYNMEM_START:
 			in_dynmem = true;
-			stack_idx = 0;
 			dynmem_enp = new DynMemEntry();
 			dynmem_enp->name = parse_value_name(&line, lnr,
 				&start, &name_type);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
 				&start, false, false, NULL, NULL);
 			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
-			memset(dynmem_enp->stack_offs, 0, MAX_STACK);
-			dynmem_enp->stack_offs[stack_idx] = parse_address(&line, lnr, &start);
+			dynmem_enp->stack_offs[dynmem_enp->num_stack] =
+				parse_address(&line, lnr, &start);
 			dynmem_enp->v_maddr.clear();
-			dynmem_enp->adp_addr = NULL;
-			dynmem_enp->adp_stack = NULL;
-			dynmem_enp->cfg_line = lnr;
-			stack_idx++;
+			dynmem_enp->cfg_lines[dynmem_enp->num_stack] = lnr;
+			dynmem_enp->num_stack++;
 			break;
 
 		case NAME_DYNMEM_END:
@@ -401,11 +398,12 @@ list<CfgEntry*> *read_config (string *path,
 
 		case NAME_DYNMEM_STACK:
 			if (in_dynmem) {
-				if (stack_idx >= MAX_STACK)
+				if (dynmem_enp->num_stack >= MAX_STACK)
 					cfg_parse_err(&line, lnr, start);
-				dynmem_enp->stack_offs[stack_idx] =
+				dynmem_enp->stack_offs[dynmem_enp->num_stack] =
 					parse_address(&line, lnr, &start);
-				stack_idx++;
+				dynmem_enp->cfg_lines[dynmem_enp->num_stack] = lnr;
+				dynmem_enp->num_stack++;
 			} else {
 				cfg_parse_err(&line, lnr, start);
 			}

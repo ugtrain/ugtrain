@@ -48,19 +48,19 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
 	u8 discovered = 0;
-	u32 lnr;
+	u32 lnr, i;
 	char ch;
 
 	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
 		if (!cfg_it->dynmem)
 			continue;
 		if (cfg_it->dynmem->adp_addr == opt->disc_addr &&
-		    cfg_it->dynmem->adp_stack) {
+		    cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack) {
 			discovered = 1;
 			continue;
 		}
 		if (!(cfg_it->dynmem->adp_addr &&
-		      cfg_it->dynmem->adp_stack)) {
+		      cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack)) {
 			cout << "Undiscovered objects found!" << endl;
 			if (discovered) {
 				cout << "Next discovery run (y/n)? : ";
@@ -87,16 +87,22 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 		cout << "Obj. " << tmp->name
 		     << ", old_code: " << hex << tmp->code_addr
 		     << ", new_code: " << tmp->adp_addr << dec << endl;
-		cfg_it->dynmem->code_addr = tmp->adp_addr;
-		cout << "Obj. " << tmp->name
-		     << ", old_offs: " << hex << tmp->stack_offs[0]
-		     << ", new_offs: " << tmp->adp_stack << dec << endl;
-		tmp->stack_offs[0] = tmp->adp_stack;
-		lnr = tmp->cfg_line;
-		lines->at(lnr) = "dynmemstart " + tmp->name + " "
-			+ to_string(tmp->mem_size) + " "
-			+ to_string(tmp->code_addr) + " "
-			+ to_string(tmp->stack_offs[0]);
+		tmp->code_addr = tmp->adp_addr;
+		for (i = 0; i < tmp->adp_sidx; i++) {
+			cout << "Obj. " << tmp->name
+			     << ", old_offs: " << hex << tmp->stack_offs[i]
+			     << ", new_offs: " << tmp->adp_soffs[i] << dec << endl;
+			tmp->stack_offs[i] = tmp->adp_soffs[i];
+			lnr = tmp->cfg_lines[i];
+			if (i == 0)
+				lines->at(lnr) = "dynmemstart " + tmp->name + " "
+					+ to_string(tmp->mem_size) + " "
+					+ to_string(tmp->code_addr) + " "
+					+ to_string(tmp->stack_offs[i]);
+			else
+				lines->at(lnr) = "dynmemstack "
+					+ to_string(tmp->stack_offs[i]);
+		}
 	}
 	// Adaption isn't required anymore
 	lnr = opt->adp_req_line;
@@ -273,17 +279,26 @@ static void process_disc5_output (list<CfgEntry> *cfg,
 				  void *stack_offs)
 {
 	list<CfgEntry>::iterator it;
+	u32 i;
 
 	cout << "Discovery output: " << endl;
 	cout << "m" << hex << mem_addr << dec << ";s"
 	     << mem_size << hex << ";c" << code_addr
 	     << ";o" << stack_offs << dec << endl;
 
-	// find object and set adp_stack
+	// find object and set adp_soffs[idx]
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem &&
 		    it->dynmem->adp_addr == code_addr) {
-			it->dynmem->adp_stack = stack_offs;
+			for (i = 0; i < it->dynmem->num_stack; i++) {
+				if (it->dynmem->adp_soffs[i] == stack_offs) {
+					break;
+				} else if (!it->dynmem->adp_soffs[i]) {
+					it->dynmem->adp_soffs[i] = stack_offs;
+					it->dynmem->adp_sidx++;
+					break;
+				}
+			}
 			break;
 		}
 	}
@@ -336,7 +351,7 @@ void run_stage1234_loop (void *argp)
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str, cmd_str;
-	int i, ret, found = 0;
+	int i, ret;
 	list<CfgEntry>::iterator it;
 	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr;
 	size_t mem_size;
@@ -417,15 +432,13 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		} else {
 			for (it = cfg->begin(); it != cfg->end(); it++) {
 				if (it->dynmem && it->dynmem->adp_addr &&
-				    !it->dynmem->adp_stack) {
+				    it->dynmem->adp_sidx == 0) {
 					opt->disc_addr = it->dynmem->adp_addr;
-					found = 1;
-					break;
+					goto found;
 				}
 			}
-			if (!found)
-				goto err;
-
+			goto err;
+found:
 			disc_str = opt->disc_str[0];
 			disc_str += ";0x0;0x0;";
 			disc_str += to_string(it->dynmem->mem_size);

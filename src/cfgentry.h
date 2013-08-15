@@ -54,14 +54,16 @@ public:
 	size_t mem_size;
 	void *code_addr;
 	void *stack_offs[MAX_STACK];
+	u8 num_stack;
 
 	/* later determined values */
 	vector<void *> v_maddr;    /* set by malloc calls */
 
 	/* adaption */
-	void *adp_addr;    /* adapted code address */
-	void *adp_stack;   /* adapted stack offset */
-	u32 cfg_line;      /* to write back new cfg */
+	void *adp_addr;               /* adapted code address */
+	void *adp_soffs[MAX_STACK];   /* adapted stack offsets */
+	u32 cfg_lines[MAX_STACK];     /* to write back new cfg */
+	u8 adp_sidx;                  /* index in adapted stack offs */
 };
 
 class CfgEntry {
