@@ -64,6 +64,7 @@ public:
 	void *adp_soffs[MAX_STACK];   /* adapted stack offsets */
 	u32 cfg_lines[MAX_STACK];     /* to write back new cfg */
 	u8 adp_sidx;                  /* index in adapted stack offs */
+	bool adp_failed;
 };
 
 class CfgEntry {

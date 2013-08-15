@@ -55,12 +55,14 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 		if (!cfg_it->dynmem)
 			continue;
 		if (cfg_it->dynmem->adp_addr == opt->disc_addr &&
-		    cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack) {
+		    cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack &&
+		    !cfg_it->dynmem->adp_failed) {
 			discovered = 1;
 			continue;
 		}
 		if (!(cfg_it->dynmem->adp_addr &&
-		      cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack)) {
+		      cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack &&
+		      !cfg_it->dynmem->adp_failed)) {
 			cout << "Undiscovered objects found!" << endl;
 			if (discovered) {
 				cout << "Next discovery run (y/n)? : ";
@@ -292,16 +294,20 @@ static void process_disc5_output (list<CfgEntry> *cfg,
 		    it->dynmem->adp_addr == code_addr) {
 			for (i = 0; i < it->dynmem->num_stack; i++) {
 				if (it->dynmem->adp_soffs[i] == stack_offs) {
-					break;
+					goto out;
 				} else if (!it->dynmem->adp_soffs[i]) {
 					it->dynmem->adp_soffs[i] = stack_offs;
 					it->dynmem->adp_sidx++;
-					break;
+					goto out;
 				}
 			}
+			// too many stack offsets
+			it->dynmem->adp_failed = true;
 			break;
 		}
 	}
+out:
+	return;
 }
 
 void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
