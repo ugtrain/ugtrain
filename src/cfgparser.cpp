@@ -31,6 +31,7 @@ using namespace std;
 enum {
 	NAME_REGULAR,
 	NAME_CHECK,
+	NAME_CHECK_OBJ,
 	NAME_DYNMEM_START,
 	NAME_DYNMEM_END,
 	NAME_DYNMEM_STACK,
@@ -104,15 +105,22 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			*name_type = NAME_DYNMEM_STACK;
 		else
 			*name_type = NAME_REGULAR;
-	} else {
-		if (ret == "check")
+	} else if (ret.substr(0, 5) == "check") {
+		if (ret.size() == 5)
 			*name_type = NAME_CHECK;
-		else if (ret == "adapt_script")
+		else if (ret.substr(5, string::npos) == "o")
+			*name_type = NAME_CHECK_OBJ;
+		else
+			*name_type = NAME_REGULAR;
+	} else if (ret.substr(0, 6) == "adapt_") {
+		if (ret.substr(6, string::npos) == "script")
 			*name_type = NAME_ADAPT;
-		else if (ret == "adapt_required")
+		else if (ret.substr(6, string::npos) == "required")
 			*name_type = NAME_ADP_REQ;
 		else
 			*name_type = NAME_REGULAR;
+	} else {
+		*name_type = NAME_REGULAR;
 	}
 
 	return ret;
@@ -358,6 +366,7 @@ list<CfgEntry*> *read_config (string *path,
 		cfg_en.name = parse_value_name(&line, lnr, &start, &name_type);
 		switch (name_type) {
 		case NAME_CHECK:
+		case NAME_CHECK_OBJ:
 			cfg_enp = &cfg->back();
 			if (!cfg_enp->checks)
 				cfg_enp->checks = new list<CheckEntry>();
@@ -369,6 +378,13 @@ list<CfgEntry*> *read_config (string *path,
 			chk_en.value = parse_value(&line, lnr, &start, chk_en.is_signed,
 				chk_en.is_float, NULL, &chk_en.check);
 
+			if (name_type == NAME_CHECK_OBJ) {
+				if (!in_dynmem)
+					cfg_parse_err(&line, lnr, start);
+				chk_en.is_objcheck = true;
+			} else {
+				chk_en.is_objcheck = false;
+			}
 			chk_lp->push_back(chk_en);
 			break;
 

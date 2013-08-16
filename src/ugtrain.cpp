@@ -103,9 +103,11 @@ static void output_checks (CfgEntry *cfg_en)
 		}
 		if (it->is_float) {
 			memcpy(&tmp_dval, &it->value, sizeof(i64));
-			cout << " " << tmp_dval << endl;
+			cout << " " << tmp_dval
+			     << ((it->is_objcheck) ? " (objcheck)" : "") << endl;
 		} else {
-			cout << " " << it->value << endl;
+			cout << " " << it->value
+			     << ((it->is_objcheck) ?" (objcheck)" : "") << endl;
 		}
 	}
 }
@@ -281,8 +283,11 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
 				exit(-1);
 			}
-			if (check_memory(*it, chk_buf) != 0)
+			if (check_memory(*it, chk_buf) != 0) {
+				if (it->is_objcheck)
+					cfg_en->dynmem->v_maddr[cfg_en->dynmem->objidx] = NULL;
 				return;
+			}
 		}
 	}
 
@@ -725,6 +730,8 @@ i32 main (i32 argc, char **argv, char **env)
 	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
 	CfgEntry *cfg_en;
+	DynMemEntry *old_dynmem = NULL;
+	vector<void *> *mvec;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid;
 	char def_home[] = "~";
@@ -884,6 +891,7 @@ prepare_dynmem:
 			return -1;
 		}
 
+		// TIME CRITICAL! Process all activated config entries
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
 			if (cfg_en->dynmem) {
@@ -891,6 +899,9 @@ prepare_dynmem:
 				     mem_idx < cfg_en->dynmem->v_maddr.size();
 				     mem_idx++) {
 					mem_offs = cfg_en->dynmem->v_maddr[mem_idx];
+					if (mem_offs == NULL)
+						continue;
+					cfg_en->dynmem->objidx = mem_idx;
 
 					mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 					if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
@@ -918,6 +929,26 @@ prepare_dynmem:
 			return -1;
 		}
 
+		// remove objects marked to be removed by object check
+		old_dynmem = NULL;
+		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+			cfg_en = *it;
+			if (cfg_en->dynmem && cfg_en->dynmem != old_dynmem) {
+				mvec = &cfg_en->dynmem->v_maddr;
+				for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
+					if (!mvec->at(mem_idx)) {
+						cout << "Kicking out obj. " << cfg_en->dynmem->name
+						     << "; remaining: " << (mvec->size() - 1)
+						     << endl;
+						mvec->erase(mvec->begin() + mem_idx);
+						mem_idx--;
+					}
+				}
+				old_dynmem = cfg_en->dynmem;
+			}
+		}
+
+		// output old values
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
 			if (cfg_en->dynmem) {

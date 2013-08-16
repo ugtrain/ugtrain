@@ -46,6 +46,7 @@ public:
 	i32 size;
 	i64 value;
 	i32 check;
+	bool is_objcheck;
 };
 
 class DynMemEntry {
@@ -58,6 +59,7 @@ public:
 
 	/* later determined values */
 	vector<void *> v_maddr;    /* set by malloc calls */
+	u32 objidx;
 
 	/* adaption */
 	void *adp_addr;               /* adapted code address */
