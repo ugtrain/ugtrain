@@ -181,12 +181,28 @@ err:
 	return;
 }
 
+static void inc_dec_mvec_pridx (list<CfgEntry> *cfg, bool do_inc)
+{
+	DynMemEntry *old_dynmem = NULL;
+	list<CfgEntry>::iterator it;
+
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->dynmem && it->dynmem != old_dynmem) {
+			if (do_inc)
+				it->dynmem->pridx++;
+			else if (it->dynmem->pridx > 0)
+				it->dynmem->pridx--;
+			old_dynmem = it->dynmem;
+		}
+	}
+}
+
 static void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 {
 	DynMemEntry *old_dynmem = NULL;
 	u32 class_id = 0, obj_id = 0, i;
-
 	list<CfgEntry>::iterator it;
+
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem && it->dynmem != old_dynmem) {
 			obj_id = 0;
@@ -332,7 +348,8 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 	}
 }
 
-static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
+static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
+			   void *mem_offs, i64 *old_val)
 {
 	double tmp_dval, old_dval;
 	float  tmp_fval, old_fval;
@@ -343,7 +360,7 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 		case 64:
 			old_dval = *(double *)buf;
 			handle_dynval(pid, cfg_en, old_dval, &tmp_dval, mem_offs);
-			memcpy(&cfg_en->old_val, &old_dval, sizeof(i64));
+			memcpy(old_val, &old_dval, sizeof(i64));
 			change_mem_val(pid, cfg_en, tmp_dval, buf, mem_offs);
 			break;
 		case 32:
@@ -352,7 +369,7 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 			handle_dynval(pid, cfg_en, old_fval, &tmp_fval, mem_offs);
 			old_dval = (double) old_fval;
 			tmp_dval = (double) tmp_fval;
-			memcpy(&cfg_en->old_val, &old_dval, sizeof(i64));
+			memcpy(old_val, &old_dval, sizeof(i64));
 			change_mem_val(pid, cfg_en, tmp_fval, buf, mem_offs);
 			break;
 		}
@@ -360,22 +377,22 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	} else if (cfg_en->is_signed) {
 		switch (cfg_en->size) {
 		case 64:
-			cfg_en->old_val = *(i64 *)buf;
+			*old_val = *(i64 *)buf;
 			handle_dynval(pid, cfg_en, *(i64 *)buf, (i64 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i64) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
-			cfg_en->old_val = *(i32 *)buf;
+			*old_val = *(i32 *)buf;
 			handle_dynval(pid, cfg_en, *(i32 *)buf, (i32 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i32) cfg_en->value, buf, mem_offs);
 			break;
 		case 16:
-			cfg_en->old_val = *(i16 *)buf;
+			*old_val = *(i16 *)buf;
 			handle_dynval(pid, cfg_en, *(i16 *)buf, (i16 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i16) cfg_en->value, buf, mem_offs);
 			break;
 		default:
-			cfg_en->old_val = *(i8 *)buf;
+			*old_val = *(i8 *)buf;
 			handle_dynval(pid, cfg_en, *(i8 *)buf, (i8 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i8) cfg_en->value, buf, mem_offs);
 			break;
@@ -383,22 +400,22 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf, void *mem_offs)
 	} else {
 		switch (cfg_en->size) {
 		case 64:
-			cfg_en->old_val = *(u64 *)buf;
+			*old_val = *(u64 *)buf;
 			handle_dynval(pid, cfg_en, *(u64 *)buf, (u64 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u64) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
-			cfg_en->old_val = *(u32 *)buf;
+			*old_val = *(u32 *)buf;
 			handle_dynval(pid, cfg_en, *(u32 *)buf, (u32 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u32) cfg_en->value, buf, mem_offs);
 			break;
 		case 16:
-			cfg_en->old_val = *(u16 *)buf;
+			*old_val = *(u16 *)buf;
 			handle_dynval(pid, cfg_en, *(u16 *)buf, (u16 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u16) cfg_en->value, buf, mem_offs);
 			break;
 		default:
-			cfg_en->old_val = *(u8 *)buf;
+			*old_val = *(u8 *)buf;
 			handle_dynval(pid, cfg_en, *(u8 *)buf, (u8 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u8) cfg_en->value, buf, mem_offs);
 			break;
@@ -745,7 +762,7 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
 	u8 emptycfg = 0;
-	u32 mem_idx;
+	u32 mem_idx, ov_idx;
 
 	atexit(restore_getch);
 
@@ -884,10 +901,27 @@ prepare_dynmem:
 				toggle_cfg(cfgp_map[(i32)ch], cfg_act);
 			else if (ch == '>')
 				dump_all_mem_obj(pid, &cfg);
+			else if (ch == '+')
+				inc_dec_mvec_pridx(&cfg, true);
+			else if (ch == '-')
+				inc_dec_mvec_pridx(&cfg, false);
 		}
 
 		read_dynmem_buf(&cfg, NULL, ifd, pmask, set_dynmem_addr,
 				unset_dynmem_addr);
+
+		// allocate old values per memory object
+		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+			cfg_en = *it;
+			if (cfg_en->dynmem) {
+				for (mem_idx = 0;
+				     mem_idx < cfg_en->dynmem->v_maddr.size();
+				     mem_idx++) {
+					if (mem_idx >= cfg_en->v_oldval.size())
+						cfg_en->v_oldval.push_back(0);
+				}
+			}
+		}
 
 		if (memattach(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
@@ -912,7 +946,8 @@ prepare_dynmem:
 						     << pid << "]!" << endl;
 						return -1;
 					}
-					change_memory(pid, cfg_en, buf, mem_offs);
+					change_memory(pid, cfg_en, buf, mem_offs,
+						&cfg_en->v_oldval[mem_idx]);
 				}
 			} else {
 				mem_offs = NULL;
@@ -923,13 +958,30 @@ prepare_dynmem:
 					     << pid << "]!" << endl;
 					return -1;
 				}
-				change_memory(pid, cfg_en, buf, mem_offs);
+				change_memory(pid, cfg_en, buf, mem_offs, &cfg_en->old_val);
 			}
 		}
 
 		if (memdetach(pid) != 0) {
 			cerr << "PTRACE DETACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
+		}
+
+		// remove old values marked to be removed by object check
+		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+			cfg_en = *it;
+			if (cfg_en->dynmem) {
+				mvec = &cfg_en->dynmem->v_maddr;
+				ov_idx = 0;
+				for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
+					ov_idx++;
+					if (!mvec->at(mem_idx)) {
+						cfg_en->v_oldval.erase(cfg_en->v_oldval.begin()
+							+ ov_idx);
+						ov_idx--;
+					}
+				}
+			}
 		}
 
 		// remove objects marked to be removed by object check
@@ -955,10 +1007,15 @@ prepare_dynmem:
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
 			if (cfg_en->dynmem) {
-				if (cfg_en->dynmem->v_maddr.empty())
+				mvec = &cfg_en->dynmem->v_maddr;
+				if (mvec->empty()) {
 					continue;
-				else
-					mem_offs = cfg_en->dynmem->v_maddr[0];
+				} else {
+					if (cfg_en->dynmem->pridx >= mvec->size())
+						cfg_en->dynmem->pridx = mvec->size() - 1;
+					mem_offs = mvec->at(cfg_en->dynmem->pridx);
+					cfg_en->old_val = cfg_en->v_oldval[cfg_en->dynmem->pridx];
+				}
 			} else {
 				mem_offs = NULL;
 			}

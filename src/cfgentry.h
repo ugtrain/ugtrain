@@ -61,6 +61,7 @@ public:
 	/* later determined values */
 	vector<void *> v_maddr;    /* set by malloc calls */
 	u32 objidx;
+	u32 pridx;
 
 	/* adaption */
 	void *adp_addr;               /* adapted code address */
@@ -84,6 +85,7 @@ public:
 	i32 check;
 	list<CheckEntry> *checks;
 	DynMemEntry *dynmem;
+	vector<i64> v_oldval;
 };
 
 #endif
