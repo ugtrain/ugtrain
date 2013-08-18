@@ -36,6 +36,7 @@ enum {
 	DYN_VAL_MIN,
 	DYN_VAL_MAX,
 	DYN_VAL_ADDR,
+	DYN_VAL_WATCH,
 };
 
 class CheckEntry {

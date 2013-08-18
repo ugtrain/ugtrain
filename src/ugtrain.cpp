@@ -273,6 +273,9 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 	u8 chk_buf[sizeof(i64)];
 	void *mem_addr;
 
+	if (cfg_en->dynval == DYN_VAL_WATCH)
+		return;
+
 	if (cfg_en->checks) {
 		chk_lp = cfg_en->checks;
 		list<CheckEntry>::iterator it;

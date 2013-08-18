@@ -252,6 +252,8 @@ skip_check:
 			*dynval = DYN_VAL_ADDR;
 			if (sscanf(tmp_str.c_str(), "%p", (void **) &ret) != 1)
 				cfg_parse_err(line, lnr, lidx);
+		} else if (tmp_str == "watch") {
+			*dynval = DYN_VAL_WATCH;
 		} else {
 			cfg_parse_err(line, lnr, lidx);
 		}
@@ -467,13 +469,22 @@ list<CfgEntry*> *read_config (string *path,
 
 			cfg->push_back(cfg_en);
 
+			if (cfg->back().dynval == DYN_VAL_WATCH) {
+				cfg_act->push_back(&cfg->back());
+				break;
+			}
+
 			parse_key_bindings(&line, lnr, &start, cfg, cfgp_map);
 
 			// get activation state
-			if (start > line.length())
+			if (start > line.length()) {
 				cfg_parse_err(&line, lnr, --start);
-			else if (line.at(start) == 'a')
+			} else if (line.at(start) == 'a') {
 				cfg_act->push_back(&cfg->back());
+			} else if (line.at(start) == 'w') {
+				cfg->back().dynval = DYN_VAL_WATCH;
+				cfg_act->push_back(&cfg->back());
+			}
 			break;
 		}
 	}
