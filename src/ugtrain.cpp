@@ -973,9 +973,10 @@ prepare_dynmem:
 			cfg_en = *it;
 			if (cfg_en->dynmem) {
 				mvec = &cfg_en->dynmem->v_maddr;
-				ov_idx = 0;
-				for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
-					ov_idx++;
+				for (mem_idx = 0, ov_idx = 0;
+				     mem_idx < mvec->size() &&
+				     ov_idx < cfg_en->v_oldval.size();
+				     mem_idx++, ov_idx++) {
 					if (!mvec->at(mem_idx)) {
 						cfg_en->v_oldval.erase(cfg_en->v_oldval.begin()
 							+ ov_idx);
