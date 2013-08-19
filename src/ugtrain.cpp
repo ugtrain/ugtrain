@@ -763,6 +763,7 @@ i32 main (i32 argc, char **argv, char **env)
 	struct app_options opt;
 	u8 emptycfg = 0;
 	u32 mem_idx, ov_idx;
+	bool is_dynmem;
 
 	atexit(restore_getch);
 
@@ -1006,6 +1007,7 @@ prepare_dynmem:
 		// output old values
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
+			is_dynmem = false;
 			if (cfg_en->dynmem) {
 				mvec = &cfg_en->dynmem->v_maddr;
 				if (mvec->empty()) {
@@ -1015,13 +1017,19 @@ prepare_dynmem:
 						cfg_en->dynmem->pridx = mvec->size() - 1;
 					mem_offs = mvec->at(cfg_en->dynmem->pridx);
 					cfg_en->old_val = cfg_en->v_oldval[cfg_en->dynmem->pridx];
+					is_dynmem = true;
 				}
 			} else {
 				mem_offs = NULL;
 			}
-			cout << cfg_en->name << " at " << hex
-				<< PTR_ADD(void *, cfg_en->addr, mem_offs)
-				<< ", Data: 0x" << (i64) cfg_en->old_val << dec;
+			if (is_dynmem)
+				cout << cfg_en->name << "[" << cfg_en->dynmem->pridx << "]"
+				     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
+				     << ", Data: 0x" << (i64) cfg_en->old_val << dec;
+			else
+				cout << cfg_en->name << " at " << hex
+				     << PTR_ADD(void *, cfg_en->addr, mem_offs)
+				     << ", Data: 0x" << (i64) cfg_en->old_val << dec;
 			if (cfg_en->is_float) {
 				memcpy(&tmp_dval, &cfg_en->old_val, sizeof(i64));
 				cout << " (" << tmp_dval << ")" << endl;
