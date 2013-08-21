@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1024"
+   height="1024"
+   id="svg2999"
+   version="1.1"
+   inkscape:version="0.48.3.1 r9886"
+   sodipodi:docname="ugtrain_logo_inkscape.svg">
+  <defs
+     id="defs3001">
+    <filter
+       color-interpolation-filters="sRGB"
+       inkscape:collect="always"
+       id="filter3847-4"
+       x="-0.1508982"
+       width="1.3017964"
+       y="-0.30179641"
+       height="1.6035928">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="1.5243021"
+         id="feGaussianBlur3849-8" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.5"
+     inkscape:cx="-242.10563"
+     inkscape:cy="513.90339"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:grid-bbox="true"
+     inkscape:document-units="px"
+     inkscape:window-width="1855"
+     inkscape:window-height="1056"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata3004">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     transform="translate(0,992)">
+    <path
+       sodipodi:type="arc"
+       style="fill:#000000;fill-opacity:1"
+       id="path3757"
+       sodipodi:cx="312.85715"
+       sodipodi:cy="328.07648"
+       sodipodi:rx="130"
+       sodipodi:ry="130"
+       d="m 442.85715,328.07648 c 0,71.79701 -58.20299,130 -130,130 -71.79702,0 -130,-58.20299 -130,-130 0,-71.79702 58.20298,-130 130,-130 71.79701,0 130,58.20298 130,130 z"
+       transform="matrix(2.4203377,0,0,2.4203377,-372.0021,-1324.836)"
+       inkscape:export-filename="ugtrain_logo.png"
+       inkscape:export-xdpi="218.13017"
+       inkscape:export-ydpi="218.13017" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:1"
+       id="path3759"
+       sodipodi:cx="202.85715"
+       sodipodi:cy="682.36218"
+       sodipodi:rx="122.85714"
+       sodipodi:ry="61.42857"
+       d="m 325.71429,682.36218 c 0,33.92606 -55.00502,61.42857 -122.85714,61.42857 -67.85213,0 -122.857142,-27.50251 -122.857142,-61.42857 0,-33.92606 55.005012,-61.42857 122.857142,-61.42857 67.85212,0 122.85714,27.50251 122.85714,61.42857 z"
+       transform="matrix(1.9700423,0,0,2.1389031,-17.876941,-1979.9139)"
+       inkscape:export-filename="ugtrain_logo.png"
+       inkscape:export-xdpi="218.13017"
+       inkscape:export-ydpi="218.13017" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#000000;fill-opacity:1"
+       id="path3763"
+       sodipodi:cx="365.71429"
+       sodipodi:cy="655.2193"
+       sodipodi:rx="22.857143"
+       sodipodi:ry="22.857143"
+       d="m 388.57144,655.2193 c 0,12.62365 -10.23349,22.85714 -22.85715,22.85714 -12.62365,0 -22.85714,-10.23349 -22.85714,-22.85714 0,-12.62365 10.23349,-22.85714 22.85714,-22.85714 12.62366,0 22.85715,10.23349 22.85715,22.85714 z"
+       transform="matrix(4.4135568,0,0,4.8406752,-1159.1203,-3685.1954)"
+       inkscape:export-filename="ugtrain_logo.png"
+       inkscape:export-xdpi="218.13017"
+       inkscape:export-ydpi="218.13017" />
+    <path
+       style="fill:#000000;stroke:#000000;stroke-width:3.23763967px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 484.80781,-824.59675 341.60754,3.19375 117.21828,102.20064 0,130.9446 -93.77463,0 0,-86.23177 -73.68007,-60.68164 -261.22928,0 c -30.14184,-83.03804 -30.14184,-89.42558 -30.14184,-89.42558 z"
+       id="path3791"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccccc"
+       inkscape:export-filename="ugtrain_logo.png"
+       inkscape:export-xdpi="218.13017"
+       inkscape:export-ydpi="218.13017" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;filter:url(#filter3847-4)"
+       id="path3793"
+       sodipodi:cx="206.07112"
+       sodipodi:cy="221.00664"
+       sodipodi:rx="12.121831"
+       sodipodi:ry="6.0609155"
+       d="m 218.19295,221.00664 c 0,3.34735 -5.42713,6.06091 -12.12183,6.06091 -6.6947,0 -12.12183,-2.71356 -12.12183,-6.06091 0,-3.34735 5.42713,-6.06092 12.12183,-6.06092 6.6947,0 12.12183,2.71357 12.12183,6.06092 z"
+       transform="matrix(2.4203377,0,0,2.4203377,-70.595476,-1083.6411)"
+       inkscape:export-filename="ugtrain_logo.png"
+       inkscape:export-xdpi="218.13017"
+       inkscape:export-ydpi="218.13017" />
+    <path
+       style="fill:#000000;stroke:#000000;stroke-width:12.73291492px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 874.22793,-168.90448 c -31.22889,42.75135 -100.56367,54.30723 -136.72734,3.88268 -52.9674,-73.85487 22.78655,-66.29876 -166.2234,-208.52298 l -44.72234,63.68866 c 177.97631,137.42642 111.64625,120.55366 176.06057,184.6585 48.76704,48.532767 115.47183,65.418881 189.62776,-4.21018 21.34608,-35.25001 62.94206,-130.78558 -67.82074,-184.94821 59.80797,63.54401 74.49099,86.807 49.80549,145.45153 z"
+       id="path3934"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="csccsccc"
+       inkscape:export-filename="ugtrain_logo.png"
+       inkscape:export-xdpi="218.13017"
+       inkscape:export-ydpi="218.13017" />
+  </g>
+</svg>
