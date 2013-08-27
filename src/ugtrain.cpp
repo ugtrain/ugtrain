@@ -246,6 +246,44 @@ static void toggle_cfg (list<CfgEntry*> *cfg, list<CfgEntry*> *cfg_act)
 	}
 }
 
+static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
+{
+	double tmp_dval;
+	float  tmp_fval;
+	i32 hexfloat;
+
+	if (is_dynmem && cfg_en->dynmem->v_maddr.size() > 1)
+		cout << cfg_en->name << "[" << cfg_en->dynmem->pridx << "]"
+		     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
+		     << ", Data: 0x";
+	else
+		cout << cfg_en->name << " at " << hex
+		     << PTR_ADD(void *, cfg_en->addr, mem_offs)
+		     << ", Data: 0x";
+
+	if (cfg_en->is_float) {
+		memcpy(&tmp_dval, &cfg_en->old_val, sizeof(i64));
+		if (cfg_en->size == 32) {
+			tmp_fval = (float) tmp_dval;
+			memcpy(&hexfloat, &tmp_fval, sizeof(i32));
+			cout << hex << hexfloat;
+		} else {
+			cout << hex << (i64) cfg_en->old_val;
+		}
+		cout << " (" << dec << tmp_dval << ")" << endl;
+	} else {
+		if (cfg_en->size == 64)
+			cout << hex << (i64) cfg_en->old_val;
+		else
+			cout << hex << (i32) cfg_en->old_val;
+
+		if (cfg_en->is_signed)
+			cout << " (" << dec << cfg_en->old_val << ")" << endl;
+		else
+			cout << " (" << dec << (u64) cfg_en->old_val << ")" << endl;
+	}
+}
+
 template <typename T>
 static inline i32 check_mem_val (T value, u8 *chk_buf, i32 check)
 {
@@ -758,7 +796,6 @@ i32 main (i32 argc, char **argv, char **env)
 	u8 buf[sizeof(i64)] = { 0 };
 	i32 ret, pmask = PARSE_M | PARSE_C;
 	char ch;
-	double tmp_dval;
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
 	u8 emptycfg = 0;
@@ -1023,20 +1060,7 @@ prepare_dynmem:
 			} else {
 				mem_offs = NULL;
 			}
-			if (is_dynmem)
-				cout << cfg_en->name << "[" << cfg_en->dynmem->pridx << "]"
-				     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
-				     << ", Data: 0x" << (i64) cfg_en->old_val << dec;
-			else
-				cout << cfg_en->name << " at " << hex
-				     << PTR_ADD(void *, cfg_en->addr, mem_offs)
-				     << ", Data: 0x" << (i64) cfg_en->old_val << dec;
-			if (cfg_en->is_float) {
-				memcpy(&tmp_dval, &cfg_en->old_val, sizeof(i64));
-				cout << " (" << tmp_dval << ")" << endl;
-			} else {
-				cout << " (" << cfg_en->old_val << ")" << endl;
-			}
+			output_mem_val(cfg_en, mem_offs, is_dynmem);
 		}
 
 	}
