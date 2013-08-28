@@ -1,4 +1,4 @@
-/* memattach.h:    functions to attach/read/write victim proc. memory
+/* getch_w.c:    getch() for Windows with system functions
  *
  * Copyright (c) 2013, by:      Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
@@ -16,21 +16,36 @@
  * GNU General Public License for more details.
  */
 
-#ifndef MEMATTACH_H
-#define MEMATTACH_H
+#if defined(__WINNT__) || defined (__WIN32__)
 
-#include "common.h"
+/* local includes */
+#include "getch.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-	i32 memattach_test (pid_t pid);
-	i32 memattach (pid_t pid);
-	i32 memdetach (pid_t pid);
-	i32 memread   (pid_t pid, void *addr, void *buf, long buf_len);
-	i32 memwrite  (pid_t pid, void *addr, void *buf, long buf_len);
-#ifdef __cplusplus
-};
-#endif
+int prepare_getch (void)
+{
+	return 0;
+}
+
+int prepare_getch_nb (void)
+{
+	int rc;
+
+	rc = prepare_getch();
+	return rc;
+}
+
+char do_getch (void)
+{
+	char ch = '\0';
+	return ch;
+}
+
+void set_getch_nb (int nb)
+{
+}
+
+void restore_getch (void)
+{
+}
 
 #endif

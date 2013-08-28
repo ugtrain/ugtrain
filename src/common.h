@@ -19,6 +19,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <limits.h>
 #ifdef __cplusplus
 #include <iostream>
 #include <string>
@@ -34,11 +35,20 @@ typedef int i32;
 typedef unsigned int u32;
 typedef long long i64;
 typedef unsigned long long u64;
+typedef unsigned long ulong;
+#ifndef __linux__
+typedef int pid_t;
+#endif
 
 #ifdef __i386__
 typedef u32 ptr_t;
 #else
 typedef u64 ptr_t;
+#endif
+
+// for Windows as not in limits.h
+#ifndef PIPE_BUF
+#define PIPE_BUF 4096
 #endif
 
 // Common macros

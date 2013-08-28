@@ -16,6 +16,8 @@
  * GNU General Public License for more details.
  */
 
+#ifdef __linux__
+
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -94,3 +96,5 @@ void restore_getch (void)
 		tty_changed = 0;
 	}
 }
+
+#endif

@@ -16,6 +16,8 @@
  * GNU General Public License for more details.
  */
 
+#ifdef __linux__
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -200,3 +202,5 @@ err:
 	fprintf(stderr, "PID not found or invalid!\n");
 	return -1;
 }
+
+#endif

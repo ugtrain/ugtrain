@@ -1,4 +1,5 @@
-/* memattach.h:    functions to attach/read/write victim proc. memory
+/* memattach_w.c:    functions to attach/read/write victim proc. memory
+ * This file is for Windows only.
  *
  * Copyright (c) 2013, by:      Sebastian Riemer
  *    All rights reserved.      Ernst-Reinke-Str. 23
@@ -16,21 +17,34 @@
  * GNU General Public License for more details.
  */
 
-#ifndef MEMATTACH_H
-#define MEMATTACH_H
+#if defined(__WINNT__) || defined (__WIN32__)
 
-#include "common.h"
+#include "memattach.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-	i32 memattach_test (pid_t pid);
-	i32 memattach (pid_t pid);
-	i32 memdetach (pid_t pid);
-	i32 memread   (pid_t pid, void *addr, void *buf, long buf_len);
-	i32 memwrite  (pid_t pid, void *addr, void *buf, long buf_len);
-#ifdef __cplusplus
-};
-#endif
+
+i32 memattach_test (pid_t pid)
+{
+	return -1;
+}
+
+i32 memattach (pid_t pid)
+{
+	return -1;
+}
+
+i32 memdetach (pid_t pid)
+{
+	return -1;
+}
+
+i32 memread (pid_t pid, void *addr, void *buf, long buf_len)
+{
+	return -1;
+}
+
+i32 memwrite (pid_t pid, void *addr, void *buf, long buf_len)
+{
+	return -1;
+}
 
 #endif

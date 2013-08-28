@@ -166,8 +166,7 @@ static void dump_mem_obj (pid_t pid, u32 class_id, u32 obj_id,
 	fname += to_string(obj_id);
 	fname += ".dump";
 
-	fd = open(fname.c_str(), O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR |
-		  S_IWUSR | S_IRGRP | S_IROTH);
+	fd = open(fname.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
 	if (fd < 0)
 		goto err;
 	wbytes = write(fd, buf, sizeof(buf));
@@ -482,6 +481,7 @@ err:
 	return ret;
 }
 
+#ifdef __linux__
 static i32 run_preloader (char *preload_lib, char *proc_name)
 {
 	i32 ret;
@@ -505,6 +505,7 @@ err:
 	cerr << "Error while running preloader!" << endl;
 	return ret;
 }
+#endif
 
 static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 			   i32 *ifd, i32 *ofd)
@@ -512,9 +513,11 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 	char obuf[PIPE_BUF] = { 0 };
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
 	i32 i;
-	size_t written;
 	void *old_code_addr = NULL;
 	list<CfgEntry>::iterator it;
+#ifdef __linux__
+	size_t written;
+#endif
 
 	// check for discovery first
 	if (opt->disc_str) {
@@ -534,7 +537,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-				";%zd;%p", it->dynmem->mem_size,
+				";%lu;%p", (ulong) it->dynmem->mem_size,
 				it->dynmem->code_addr);
 			for (i = 0; i < MAX_STACK; i++)
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
@@ -558,6 +561,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		return 0;
 
 skip_memhack:
+#ifdef __linux__
 	// remove FIFOs first for empty FIFOs
 	if ((unlink(DYNMEM_IN) && errno != ENOENT) ||
 	    (unlink(DYNMEM_OUT) && errno != ENOENT)) {
@@ -615,7 +619,7 @@ skip_memhack:
 		perror("FIFO write");
 		return 1;
 	}
-
+#endif
 	return 0;
 }
 
@@ -691,8 +695,10 @@ static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script)
 		NULL
 	};
 
+#ifdef __linux__
 	if (getuid() == 0)
 		goto err;
+#endif
 
 	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), 0);
 	if (read_bytes <= 0)
@@ -717,7 +723,7 @@ void set_dynmem_addr (list<CfgEntry> *cfg,
 		      struct post_parse *pp,
 		      void *heap_start,
 		      void *mem_addr,
-		      ssize_t mem_size,
+		      size_t mem_size,
 		      void *code_addr,
 		      void *stack_offs)
 {
@@ -889,10 +895,14 @@ prepare_dynmem:
 	pid = proc_to_pid(opt.proc_name);
 	if (pid < 0) {
 		/* Run the game but not as root */
-		if (opt.preload_lib && getuid() != 0) {
+		if (opt.preload_lib) {
+#ifdef __linux__
+			if (getuid() == 0)
+				return -1;
+#endif
 			cout << "Starting the game.." << endl;
 			run_game(opt.proc_name);
-			sleep(1);
+			sleep_sec(1);
 			pid = proc_to_pid(opt.proc_name);
 			if (pid < 0)
 				return -1;
@@ -932,7 +942,7 @@ prepare_dynmem:
 	}
 
 	while (1) {
-		sleep(1);
+		sleep_sec(1);
 		ch = do_getch();
 		if (ch > 0) {
 			if (cfgp_map[(i32)ch])

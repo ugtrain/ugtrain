@@ -19,17 +19,20 @@
 #include <cstring>
 #include <stdio.h>
 #include <limits.h>
+#include <unistd.h>
 #include "fifoparser.h"
+
 
 i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
 		     void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
-				void *, ssize_t, void *, void *),
+				void *, size_t, void *, void *),
 		     void (*ff)(list<CfgEntry> *, void *, void *))
 {
 	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
 	static void *heap_start = NULL;
 	static ssize_t ipos = 0, ilen = 0;
-	ssize_t mem_size = 0, tmp_ilen, ppos = 0;
+	ulong mem_size = 0;
+	ssize_t tmp_ilen, ppos = 0;
 	char *msg_end, *sep_pos;
 	static char ibuf[PIPE_BUF] = { 0 };
 	char scan_ch;
@@ -67,7 +70,7 @@ next:
 			    scan_ch != 's')
 				goto parse_err;
 			ppos++;
-			if (sscanf(ibuf + ppos, "%zd", &mem_size) != 1)
+			if (sscanf(ibuf + ppos, "%lu", &mem_size) != 1)
 				goto parse_err;
 skip_s:
 			if (!(pmask & PARSE_C))

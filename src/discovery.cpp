@@ -127,7 +127,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 				     struct post_parse *pp,
 				     void *heap_start,
 				     void *mem_addr,
-				     ssize_t mem_size,
+				     size_t mem_size,
 				     void *code_addr,
 				     void *stack_offs)
 {
@@ -276,7 +276,7 @@ static void process_disc5_output (list<CfgEntry> *cfg,
 				  struct post_parse *pp,
 				  void *heap_start,
 				  void *mem_addr,
-				  ssize_t mem_size,
+				  size_t mem_size,
 				  void *code_addr,
 				  void *stack_offs)
 {
@@ -313,7 +313,7 @@ out:
 void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 {
 	while (1) {
-		sleep(1);
+		sleep_sec(1);
 		read_dynmem_buf(cfg, NULL, ifd, pmask, process_disc5_output,
 				NULL);
 		if (memattach_test(pid) != 0) {
@@ -332,7 +332,7 @@ void run_stage1234_loop (void *argp)
 	ssize_t rbytes, wbytes;
 
 	ofd = open(DYNMEM_FILE, O_WRONLY | O_CREAT | O_TRUNC,
-		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		   0644);
 	if (ofd < 0) {
 		perror("open ofd");
 		exit(1);
@@ -360,7 +360,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	int i, ret;
 	list<CfgEntry>::iterator it;
 	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr;
-	size_t mem_size;
+	ulong mem_size;
 	char pbuf[PIPE_BUF] = { 0 };
 
 	if (!opt->disc_str)
@@ -382,7 +382,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		break;
 	case '3':
 	case '4':
-		ret = sscanf(&opt->disc_str[1], ";%p;%p;%zd;%p;%p", &heap_soffs,
+		ret = sscanf(&opt->disc_str[1], ";%p;%p;%lu;%p;%p", &heap_soffs,
 			     &heap_eoffs, &mem_size, &bt_saddr, &bt_eaddr);
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "

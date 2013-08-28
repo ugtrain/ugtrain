@@ -18,6 +18,8 @@
  * GNU General Public License for more details.
  */
 
+#ifdef __linux__
+
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
@@ -25,9 +27,10 @@
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include "memattach.h"
 
 
-int memattach_test(pid_t pid)
+i32 memattach_test (pid_t pid)
 {
 	if (pid <= 1)
 		goto err;
@@ -48,7 +51,7 @@ err:
 	return -1;
 }
 
-int memattach(pid_t pid)
+i32 memattach (pid_t pid)
 {
 	if (pid <= 1)
 		goto err;
@@ -68,7 +71,7 @@ err:
 	return -1;
 }
 
-int memdetach(pid_t pid)
+i32 memdetach (pid_t pid)
 {
 	if (pid <= 1)
 		goto err;
@@ -83,7 +86,7 @@ err:
 	return -1;
 }
 
-int memread(pid_t pid, void* addr, void* buf, long buf_len)
+i32 memread (pid_t pid, void *addr, void *buf, long buf_len)
 {
 	long read_val = 0;
 	long pos = 0;      /* position in sizeof(long) steps */
@@ -116,7 +119,7 @@ err:
 	return -1;
 }
 
-int memwrite(pid_t pid, void* addr, void* buf, long buf_len)
+i32 memwrite (pid_t pid, void *addr, void *buf, long buf_len)
 {
 	long rw_val = 0;
 	long pos = 0;      /* position in sizeof(long) steps */
@@ -151,3 +154,5 @@ int memwrite(pid_t pid, void* addr, void* buf, long buf_len)
 err:
 	return -1;
 }
+
+#endif

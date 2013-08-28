@@ -13,8 +13,11 @@ ugtrain_SOURCES = common.h \
                   options.c \
                   cfgparser.cpp \
                   getch_l.c \
+                  getch_w.c \
                   system_l.c \
+                  system_w.c \
                   memattach_l.c \
+                  memattach_w.c \
                   fifoparser.cpp \
                   discovery.cpp
 

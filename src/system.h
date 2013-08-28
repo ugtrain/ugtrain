@@ -21,6 +21,22 @@
 
 #include <unistd.h>
 #include "common.h"
+#ifndef __linux__
+#include <windows.h>
+#endif
+
+#ifdef __linux__
+static inline u32 sleep_sec (u32 sec)
+{
+	return sleep(sec);
+}
+#else
+static inline void sleep_sec (u32 sec)
+{
+	Sleep(sec * 1000);
+}
+#endif
+
 
 #ifdef __cplusplus
 extern "C" {
