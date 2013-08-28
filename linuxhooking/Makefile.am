@@ -1,3 +1,5 @@
+if LINUX
+
 lib_LTLIBRARIES = libmemdisc32.la libmemhack32.la \
                   libmemdisc64.la libmemhack64.la
 
@@ -31,3 +33,5 @@ ugpreload_SOURCES = ugpreload.c
 ugpreload_LDADD = $(DEPS_LIBS)
 
 AM_CFLAGS = -Wall
+
+endif
