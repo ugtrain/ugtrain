@@ -2,9 +2,9 @@
 ### DESCRIPTION ###
 ###################
 # The ugtrain is an advanced free universal game trainer for the CLI under
-# GPLv2 license uploaded on GitHub. The dynamic memory support sets it apart.
-# A preloader, a memory discovery and a memory hacking library are included
-# for this.
+# GPLv2 license uploaded on GitHub and BerliOS. The dynamic memory support
+# sets it apart. A preloader, a memory discovery and a memory hacking library
+# are included for this.
 # The ugtrain uses one simple config file per game which can be exchanged
 # with others. Examples for games which allow cheating are included.
 #
@@ -13,11 +13,11 @@
 # ### LEGAL WARNING ###
 #
 # Don't use game trainers or any other cheating software for commercial
-# closed source games, for multi-player games or for online games! Please
-# don't use "ugtrain" for that! You may violate copyright and other laws
-# by doing so. Recording videos of doing so makes the situation even worse
-# in terms of law. Please always read the end user license agreement (EULA)
-# of the game to be very sure if you are really allowed to do so or not!
+# closed source, multi-player or online games! Please don't use "ugtrain"
+# for that! You may violate copyright and other laws by doing so. Recording
+# videos of doing so makes the situation even worse in terms of law. Please
+# always read the end user license agreement (EULA) of the game to be very
+# sure if you are really allowed to do so or not!
 #
 # ### Current Limitations ###
 #
@@ -26,8 +26,7 @@
 # Operating System:	Linux-only
 #
 # Dynamic Memory:	constructors-only (no growing objects/structures),
-#			discovery + adaption can be simpler,
-#			dosn't work for WINE, yet
+#			doesn't work for WINE, yet
 #
 # Compilation:		dyn. mem. support can't be deactivated,
 #			requires multilib support (32+64 bit) for dyn. mem.
@@ -45,7 +44,7 @@
 #
 # ### Why a CLI tool? ###
 #
-# CLI is important e.g. if you play full screen in WINE. Some people
+# CLI is important e.g. if you play full-screen on WINE. Some people
 # start another X session for the game but we don't like that. Moreover,
 # you will be able to write your own GUI frontend for it. CLI tools can
 # last decades while GUIs change more frequently.
@@ -73,7 +72,7 @@
 # Why is dynamic memory so important and how to hack it?
 #
 # Since leaving the good old DOS times, games aren't implemented in C any more
-# but instead object oriented with e.g. C++. Objects are stored on the heap
+# but instead object-oriented with e.g. C++. Objects are stored on the heap
 # memory. But Linux uses heap and stack randomization for security. The only
 # thing which remains constant is the code jump back address of the malloc call
 # and its offset on the stack memory.
@@ -87,11 +86,28 @@
 # the game process still can be called as regular user. The "HeroAircraft"
 # object of the game "Chromium B.S.U." is one of the included examples.
 #
+# In the meanwhile there is a lot of automation and simplification implemented
+# so that the options -P and -D will help you with that. The option -P ensures
+# that ugtrain runs the game in the same process group. This way root is not
+# required any more. The libmemhack is automatically preloaded. With -D the
+# libmemdisc is preloaded instead and after recording the malloc calls it
+# searches for the found memory address from static memory search. This way
+# you get a list of all matching mallocs. Most of the time the last malloc
+# call is the correct one as interesting objects are kept until game end.
+#
+# There is also automatic adaption to game version/compiler/distribution
+# differences. Please have a look at the -A option. The examples will ask
+# you for automatic adaption the first time you run them. You should do
+# so and a shell script based on "objdump -D" and "grep" is called to find
+# the correct code addresses of your game. With that the discovery is run
+# to find the stack offsets. With everything adapted the game starts
+# automatically with the new config and it is written back to disk.
+#
 # Please read 'TODO' for further information.
 
-############################
-### HOW TO BUILD AND USE ###
-############################
+################################
+### HOW TO BUILD AND INSTALL ###
+################################
 # Make sure that the "autotools-dev" package is installed on your system
 # together with "autoconf", "automake" and "libtool".
 
@@ -107,24 +123,46 @@ make
 # install ugtrain, ugpreload and the libs to /usr/local
 sudo make install
 
+# (optional:) ensure PATH includes /usr/local/bin
+PATH=$PATH:/usr/local/bin
+
+# (optional:) ensure LD_PATH includes /usr/local/lib*
+LD_PATH=$LD_PATH:/usr/local/lib:/usr/local/lib64
+
+# These pathes simplify file usage. Where to set these environment
+# variables is distribution specific.
+
+# "objdump" and "scanmem" should be installed as well.
+
+##################
+### HOW TO USE ###
+##################
+
 # Use the compiled tool as follows:
-ugtrain <config>
+ugtrain [options] <config>
 
 # This searches in the current working directory for the <config>.conf.
 # If it can't find it there it tries ~/.ugtrain/<config>.conf.
-# Do e.g. the following:
-cd examples
-ugtrain chromium-bsu64    # 'ugtrain chromium-bsu64.conf' is also possible
 
-# This parses the chromium-bsu64.conf from the examples, searches
-# for the running instance of the game and starts freezing the
+# For details use:
+ugtrain --help
+
+# Do e.g. the following:
+ugtrain -P examples/chromium-bsu64
+
+# This parses the chromium-bsu64.conf from the examples, runs the
+# game preloaded with libmemhack64.so and starts freezing the
 # configured values. In the examples the config syntax is described.
+
+# If it asks you for automatic adaption, you should accept. The
+# adaption can be triggered explicitly as well:
+ugtrain -A examples/chromium-bsu64
 
 #########################
 ### HOW TO CONTRIBUTE ###
 #########################
 # Please send your patches and improvement suggestions to:
-sebastian.riemer@gmx.de
+ugtrain-devel@lists.berlios.de
 
 # And/or if you like Open Game Cheating and want to show it
 # by becoming a member of the Open Game Cheating Association,
@@ -132,4 +170,4 @@ sebastian.riemer@gmx.de
 # your request:
 sebastian.riemer@gmx.de
 
-http://www.github.com/sriemer/og-cheating
+https://github.com/OpenGameCheatingAssociation/og-cheating
