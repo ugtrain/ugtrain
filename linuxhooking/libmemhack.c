@@ -134,7 +134,7 @@ void __attribute ((constructor)) memhack_init (void)
 	SET_IBUF_OFFS(1, j);
 	cfg_offs = (num_cfg + 1) * sizeof(cfg_s *);
 	max_obj = sizeof(config) - cfg_offs - num_cfg * sizeof(cfg_s);
-	max_obj /= sizeof(void *);
+	max_obj /= sizeof(void *) * num_cfg;
 	if (max_obj <= 1)
 		fprintf(stderr, PFX "Error: No space for memory addresses!\n");
 	else
