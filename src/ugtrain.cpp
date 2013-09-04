@@ -539,9 +539,12 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 				";%lu;%p", (ulong) it->dynmem->mem_size,
 				it->dynmem->code_addr);
-			for (i = 0; i < MAX_STACK; i++)
+			for (i = 0; i < MAX_STACK; i++) {
+				if (it->dynmem->soffs_ign[i])
+					it->dynmem->stack_offs[i] = NULL;
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 					";%p", it->dynmem->stack_offs[i]);
+			}
 			old_code_addr = it->dynmem->code_addr;
 		}
 	}

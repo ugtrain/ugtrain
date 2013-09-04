@@ -101,6 +101,9 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 					+ to_string(tmp->mem_size) + " "
 					+ to_string(tmp->code_addr) + " "
 					+ to_string(tmp->stack_offs[i]);
+			else if (tmp->soffs_ign[i])
+				lines->at(lnr) = "dynmemign "
+					+ to_string(tmp->stack_offs[i]);
 			else
 				lines->at(lnr) = "dynmemstack "
 					+ to_string(tmp->stack_offs[i]);
