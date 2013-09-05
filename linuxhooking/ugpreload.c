@@ -20,18 +20,16 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include "../src/common.h"
 
 /* env var to be added */
 #define PRELOAD_VAR "LD_PRELOAD"
-
-typedef unsigned long long u64;
-typedef unsigned int u32;
 
 /*
  * This function has been taken from 'glc' by nullkey aka
  * Pyry Haulos <pyry.haulos@gmail.com>
  */
-int env_append (const char *name, const char *val, char separator)
+i32 env_append (const char *name, const char *val, char separator)
 {
 	size_t env_len;
 	const char *old_env;
@@ -69,7 +67,7 @@ char Help[] =
 "Usage: <lib_path> <app_path> [app_opts]\n"
 ;
 
-int main (int argc, char *argv[])
+i32 main (i32 argc, char *argv[])
 {
 	char *app_path = NULL;
 

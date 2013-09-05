@@ -21,9 +21,9 @@
 
 #include <limits.h>
 #ifdef __cplusplus
-#include <iostream>
-#include <string>
-using namespace std;
+	#include <iostream>
+	#include <string>
+	using namespace std;
 #endif
 
 // Common types
@@ -37,29 +37,33 @@ typedef long long i64;
 typedef unsigned long long u64;
 typedef unsigned long ulong;
 #ifndef __linux__
-typedef int pid_t;
+	typedef int pid_t;
 #endif
 
 #ifdef __i386__
-typedef u32 ptr_t;
+	typedef u32 ptr_t;
 #else
-typedef u64 ptr_t;
+	typedef u64 ptr_t;
 #endif
+
+// Common defines
+#define MAX_STACK 8
 
 // for Windows as not in limits.h
 #ifndef PIPE_BUF
-#define PIPE_BUF 4096
+	#define PIPE_BUF 4096
 #endif
 
 // Common macros
 #define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
+#define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)
 #define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
 
 // Common functions
 #ifdef __cplusplus
-template <class T>
-string to_string (T val);
-char *to_c_str(string *str);
+	template <class T>
+	string to_string (T val);
+	char *to_c_str(string *str);
 #endif
 
 #endif

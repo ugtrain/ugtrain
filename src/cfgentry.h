@@ -23,8 +23,6 @@
 #include <list>
 #include "common.h"
 
-#define MAX_STACK 4
-
 enum {
 	DO_UNCHECKED,
 	DO_LT,

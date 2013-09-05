@@ -25,6 +25,7 @@
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
+#include "../src/common.h"
 
 #define PFX "[memhack] "
 #define OW_MALLOC 1
@@ -34,28 +35,19 @@
 #define DYNMEM_OUT "/tmp/memhack_out"
 
 #define PTR_INVAL (void *) 1
-#define MAX_STACK 4
+#define NUM_CFG_PAGES 4
 
 #define DEBUG 0
 #if !DEBUG
 	#define printf(...) do { } while (0);
 #endif
 
-typedef unsigned long long u64;
-typedef unsigned int u32;
-
 /* get the stack pointer (x86 only) */
 #ifdef __i386__
-register void *reg_sp __asm__ ("esp");
-typedef u32 ptr_t;
+	register void *reg_sp __asm__ ("esp");
 #else
-register void *reg_sp __asm__ ("rsp");
-typedef u64 ptr_t;
+	register void *reg_sp __asm__ ("rsp");
 #endif
-
-#define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
-#define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)
-#define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
 
 /* Config structure */
 struct cfg {
@@ -68,15 +60,19 @@ struct cfg {
 typedef struct cfg cfg_s;
 
 
-/* cfg_s pointers followed by cfg structs */
-cfg_s *config[PIPE_BUF/sizeof(cfg_s *)] = { NULL };
+/*
+ * cfg_s pointers followed by cfg structs
+ * followed by tracked memory addresses
+ * (hacky but aligned to page size)
+ */
+cfg_s *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(cfg_s *)] = { NULL };
 
 /* File descriptors and output buffer */
-static int ofd = -1, ifd = -1;
+static i32 ofd = -1, ifd = -1;
 static char obuf[BUF_SIZE];
 
 /* Output control */
-static int active = 0;
+static u8 active = 0;
 
 /* Stack check */
 /*
@@ -97,9 +93,9 @@ void __attribute ((constructor)) memhack_init (void)
 {
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
-	int i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0, scanned = 0;
+	i32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0, scanned = 0;
 	u32 max_obj;
-	int read_tries;
+	i32 read_tries;
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
@@ -212,7 +208,7 @@ err:
 void *malloc (size_t size)
 {
 	void *mem_addr, *stack_addr;
-	int i, j, wbytes;
+	i32 i, j, wbytes;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
 	/* get the libc malloc function */
@@ -266,7 +262,7 @@ found:
 #ifdef OW_FREE
 void free (void *ptr)
 {
-	int i, j, wbytes;
+	i32 i, j, wbytes;
 	static void (*orig_free)(void *ptr) = NULL;
 
 	if (active && ptr != NULL) {

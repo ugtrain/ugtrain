@@ -25,6 +25,7 @@
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
+#include "../src/common.h"
 
 #define PFX "[memdisc] "
 #define OW_MALLOC 1
@@ -39,30 +40,21 @@
 	#define printf(...) do { } while (0);
 #endif
 
-typedef unsigned long long u64;
-typedef unsigned int u32;
-
 /* get the stack pointer (x86 only) */
 #ifdef __i386__
-register void *reg_sp __asm__ ("esp");
-typedef u32 ptr_t;
+	register void *reg_sp __asm__ ("esp");
 #else
-register void *reg_sp __asm__ ("rsp");
-typedef u64 ptr_t;
+	register void *reg_sp __asm__ ("rsp");
 #endif
-
-#define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
-#define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)
-#define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
 
 
 /* File descriptors and output buffer */
-static int ifd = -1;
+static i32 ifd = -1;
 static FILE *ofile = NULL;  /* much data - we need caching */
 
 /* Output control */
-static int active = 0;
-static int stage = 0;  /* 0: no output */
+static u8 active = 0;
+static i32 stage = 0;  /* 0: no output */
 
 /* Input parameters */
 /* Output filtering */
@@ -76,7 +68,7 @@ static size_t malloc_size = 0;
 /* Backtracing */
 
 /* This is a global variable set at program start time. It marks the
-   highest used stack address. */
+   greatest used stack address. */
 extern void *__libc_stack_end;
 
 /* relevant start and end code addresses of .text segment */
@@ -97,7 +89,7 @@ static void *code_addr = NULL;
 void __attribute ((constructor)) memdisc_init (void)
 {
 	ssize_t rbytes;
-	int read_tries;
+	i32 read_tries;
 	char ibuf[128] = { 0 };
 	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
 
@@ -234,8 +226,8 @@ parse_err:
 static void dump_stack_raw (void)
 {
 	void *offs;
-	int col = 0;
-	int byte;
+	i32 col = 0;
+	i32 byte;
 
 	printf("reg_sp: %p\n\n", reg_sp);
 	for (offs = reg_sp; offs < __libc_stack_end; offs++) {
@@ -260,11 +252,11 @@ static void dump_stack_raw (void)
  *
  * We expect the stack pointer to be (32/64 bit) memory aligned here.
  */
-static int find_code_pointers (char *obuf, int obuf_offs)
+static i32 find_code_pointers (char *obuf, i32 obuf_offs)
 {
 	void *offs, *code_ptr;
-	int i = 0;
-	int found = 0;
+	i32 i = 0;
+	i32 found = 0;
 
 	printf(PFX "reg_sp: %p\n", reg_sp);
 	for (offs = reg_sp;
@@ -301,9 +293,9 @@ static int find_code_pointers (char *obuf, int obuf_offs)
 void *malloc (size_t size)
 {
 	void *mem_addr;
-	int wbytes;
+	i32 wbytes;
 	char obuf[BUF_SIZE];
-	int obuf_offs = 0, found = 1;
+	i32 obuf_offs = 0, found = 1;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
 	/* get the libc malloc function */
@@ -339,7 +331,7 @@ out:
 #ifdef OW_FREE
 void free (void *ptr)
 {
-	int wbytes;
+	i32 wbytes;
 	char obuf[BUF_SIZE];
 	static void (*orig_free)(void *ptr) = NULL;
 
