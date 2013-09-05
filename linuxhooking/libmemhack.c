@@ -93,9 +93,9 @@ void __attribute ((constructor)) memhack_init (void)
 {
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
-	i32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0, scanned = 0;
+	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
 	u32 max_obj;
-	i32 read_tries;
+	i32 read_tries, scanned = 0;
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
@@ -124,31 +124,47 @@ void __attribute ((constructor)) memhack_init (void)
 		usleep(250 * 1000);
 	}
 
-	scanned = sscanf(ibuf + ibuf_offs, "%d", &num_cfg);
+	scanned = sscanf(ibuf + ibuf_offs, "%u", &num_cfg);
 	if (scanned != 1)
 		goto err;
 	SET_IBUF_OFFS(1, j);
-	cfg_offs = (num_cfg + 1) * sizeof(cfg_s *);
-	max_obj = sizeof(config) - cfg_offs - num_cfg * sizeof(cfg_s);
-	max_obj /= sizeof(void *) * num_cfg;
-	if (max_obj <= 1)
+	cfg_offs = (num_cfg + 1) * sizeof(cfg_s *);  /* NULL for cfg_s* end */
+	if (cfg_offs + num_cfg * sizeof(cfg_s) > sizeof(config) ||
+	    num_cfg == 0) {
+		max_obj = 0;
+	} else {
+		max_obj = sizeof(config) - cfg_offs - num_cfg * sizeof(cfg_s);
+		max_obj /= sizeof(void *) * num_cfg;
+	}
+	if (max_obj <= 1) {
 		fprintf(stderr, PFX "Error: No space for memory addresses!\n");
-	else
+		goto err;
+	} else {
 		fprintf(stdout, PFX "Using max. %u objects per class.\n",
 			max_obj - 1);
+	}
+
+	printf(PFX "sizeof(config) = %lu\n", (ulong) sizeof(config));
+	printf(PFX "sizeof(cfg_s) = %lu\n", (ulong) sizeof(cfg_s));
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
 		config[i] = PTR_ADD2(cfg_s *, config, cfg_offs,
 			i * sizeof(cfg_s));
+
+		printf(PFX "&config[%u] pos = %lu\n", i,
+			(ulong) PTR_SUB(void *, &config[i], config));
+		printf(PFX "config[%u] pos = %lu\n", i,
+			(ulong) PTR_SUB(void *, config[i], config));
+		printf(PFX "config[%u] end pos = %lu\n", i,
+			(ulong)((ptr_t) config[i] + sizeof(cfg_s) -
+				(ptr_t) config));
+
 		if ((ptr_t) config[i] + sizeof(cfg_s) - (ptr_t) config
-		    > PIPE_BUF || ibuf_offs >= BUF_SIZE) {
-			/* config doesn't fit, truncate it */
-			fprintf(stderr, PFX "Config buffer too "
-					"small, truncating!\n");
-			config[i] = NULL;
-			num_cfg = i;
-			break;
+		    > sizeof(config) || ibuf_offs >= BUF_SIZE) {
+			/* config doesn't fit */
+			fprintf(stderr, PFX "Config buffer too small!\n");
+			goto err;
 		}
 		scanned = sscanf(ibuf + ibuf_offs, "%zd;%p",
 			&config[i]->mem_size, &config[i]->code_addr);
@@ -163,14 +179,24 @@ void __attribute ((constructor)) memhack_init (void)
 			SET_IBUF_OFFS(1, j);
 		}
 
-		if (max_obj <= 1)
-			continue;
 		/* put stored memory addresses behind all cfg_s stuctures */
 		config[i]->max_obj = max_obj - 1;
 		config[i]->mem_addrs = PTR_ADD2(void **, config, cfg_offs,
 			num_cfg * sizeof(cfg_s));
 		config[i]->mem_addrs = PTR_ADD(void **, config[i]->mem_addrs,
-			i * max_obj);
+			i * max_obj * sizeof(void *));
+
+		/* debug mem_addrs pointer */
+		printf(PFX "config[%u]->mem_addrs pos = %lu\n", i,
+			(ulong) PTR_SUB(void *, config[i]->mem_addrs, config));
+		printf(PFX "config[%u]->mem_addrs end pos = %lu\n", i,
+			(ulong) PTR_SUB(void *, config[i]->mem_addrs, config) +
+			(ulong) (max_obj * sizeof(void *)));
+
+		if ((ulong) PTR_SUB(void *, config[i]->mem_addrs, config) +
+		    (ulong) (max_obj * sizeof(void *)) > sizeof(config))
+			goto err;
+
 		/* fill with invalid pointers to detect end */
 		for (k = 0; k < max_obj; k++)
 			config[i]->mem_addrs[k] = PTR_INVAL;
@@ -179,9 +205,9 @@ void __attribute ((constructor)) memhack_init (void)
 		goto err;
 
 	/* debug config */
-	printf(PFX "num_cfg: %d, cfg_offs: %d\n", num_cfg, cfg_offs);
+	printf(PFX "num_cfg: %u, cfg_offs: %u\n", num_cfg, cfg_offs);
 	for (i = 0; config[i] != NULL; i++) {
-		fprintf(stdout, PFX "config[%d]: mem_size: %zd; "
+		fprintf(stdout, PFX "config[%u]: mem_size: %zd; "
 			"code_addr: %p; stack_offs: %p\n", i,
 			config[i]->mem_size, config[i]->code_addr,
 			config[i]->stack_offs[0]);
