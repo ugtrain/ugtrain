@@ -731,6 +731,7 @@ void set_dynmem_addr (list<CfgEntry> *cfg,
 		      void *stack_offs)
 {
 	list<CfgEntry>::iterator it;
+	vector<void *> *mvec;
 
 	//cout << "m" << hex << mem_addr << ";c"
 	//	<< code_addr << dec << endl;
@@ -739,11 +740,14 @@ void set_dynmem_addr (list<CfgEntry> *cfg,
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem &&
 		    it->dynmem->code_addr == code_addr) {
-			it->dynmem->v_maddr.push_back(mem_addr);
-			cout << "Obj. " << it->dynmem->name << "; c"
+			mvec = &it->dynmem->v_maddr;
+			mvec->push_back(mem_addr);
+			it->dynmem->num_alloc++;
+			/*cout << "Obj. " << it->dynmem->name << "; c"
 				<< it->dynmem->code_addr << "; s"
 				<< it->dynmem->mem_size << "; created at "
-				<< it->dynmem->v_maddr.back() << endl;
+				<< mvec->back() << "; now: " << mvec->size()
+				<< endl;*/
 			break;
 		}
 	}
@@ -768,21 +772,24 @@ i32 find_addr_idx(vector<void *> *vec, void *addr)
 void unset_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
 {
 	list<CfgEntry>::iterator it;
-	vector<void *> *vec;
+	vector<void *> *mvec;
 	i32 idx;
 
 	//cout << "f" << hex << mem_addr << dec << endl;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem) {
-			vec = &it->dynmem->v_maddr;
-			idx = find_addr_idx(vec, mem_addr);
+			mvec = &it->dynmem->v_maddr;
+			idx = find_addr_idx(mvec, mem_addr);
 			if (idx < 0)
 				continue;
-			vec->erase(vec->begin() + idx);
-			cout << "Obj. " << it->dynmem->name << "; c"
+			mvec->erase(mvec->begin() + idx);
+			it->dynmem->num_freed++;
+
+			/*cout << "Obj. " << it->dynmem->name << "; c"
 				<< it->dynmem->code_addr << "; s"
 				<< it->dynmem->mem_size << "; freed from "
-				<< mem_addr << endl;
+				<< mem_addr << "; remaining: " << mvec->size()
+				<< endl;*/
 			break;
 		}
 	}
@@ -793,6 +800,7 @@ i32 main (i32 argc, char **argv, char **env)
 	string input_str, *cfg_path = NULL;
 	vector<string> lines;
 	list<CfgEntry> cfg;
+	list<CfgEntry>::iterator cfg_it;
 	list<CfgEntry*> *cfg_act = NULL;
 	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[256] = { NULL };
@@ -808,7 +816,7 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
 	u8 emptycfg = 0;
-	u32 mem_idx, ov_idx;
+	u32 mem_idx, ov_idx, num_kicked;
 	bool is_dynmem;
 
 	atexit(restore_getch);
@@ -958,8 +966,28 @@ prepare_dynmem:
 				inc_dec_mvec_pridx(&cfg, false);
 		}
 
+		// get allocated and freed objects (TIME CRITICAL!)
 		read_dynmem_buf(&cfg, NULL, ifd, pmask, set_dynmem_addr,
 				unset_dynmem_addr);
+
+		// print allocated and freed object counts
+		old_dynmem = NULL;
+		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
+			if (cfg_it->dynmem && cfg_it->dynmem != old_dynmem) {
+				mvec = &cfg_it->dynmem->v_maddr;
+				if (cfg_it->dynmem->num_alloc > 0)
+					cout << "===> Obj. " << cfg_it->dynmem->name
+					     << " created " << cfg_it->dynmem->num_alloc
+					     << " time(s); now: " << mvec->size() << endl;
+				if (cfg_it->dynmem->num_freed > 0)
+					cout << "===> Obj. " << cfg_it->dynmem->name
+					     << " freed " << cfg_it->dynmem->num_freed
+					     << " time(s); remaining: " << mvec->size() << endl;
+				cfg_it->dynmem->num_alloc = 0;
+				cfg_it->dynmem->num_freed = 0;
+				old_dynmem = cfg_it->dynmem;
+			}
+		}
 
 		// allocate old values per memory object
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
@@ -1042,15 +1070,18 @@ prepare_dynmem:
 			cfg_en = *it;
 			if (cfg_en->dynmem && cfg_en->dynmem != old_dynmem) {
 				mvec = &cfg_en->dynmem->v_maddr;
+				num_kicked = 0;
 				for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
 					if (!mvec->at(mem_idx)) {
-						cout << "Kicking out obj. " << cfg_en->dynmem->name
-						     << "; remaining: " << (mvec->size() - 1)
-						     << endl;
 						mvec->erase(mvec->begin() + mem_idx);
+						num_kicked++;
 						mem_idx--;
 					}
 				}
+				if (num_kicked > 0)
+					cout << "===> Obj. " << cfg_en->dynmem->name
+					     << " kicked out " << num_kicked
+					     << " time(s); remaining: " << mvec->size() << endl;
 				old_dynmem = cfg_en->dynmem;
 			}
 		}
@@ -1067,7 +1098,8 @@ prepare_dynmem:
 					if (cfg_en->dynmem->pridx >= mvec->size())
 						cfg_en->dynmem->pridx = mvec->size() - 1;
 					mem_offs = mvec->at(cfg_en->dynmem->pridx);
-					cfg_en->old_val = cfg_en->v_oldval[cfg_en->dynmem->pridx];
+					cfg_en->old_val =
+						cfg_en->v_oldval[cfg_en->dynmem->pridx];
 					is_dynmem = true;
 				}
 			} else {

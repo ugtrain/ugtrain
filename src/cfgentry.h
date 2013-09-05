@@ -58,8 +58,10 @@ public:
 
 	/* later determined values */
 	vector<void *> v_maddr;    /* set by malloc calls */
+	u32 num_alloc;   /* how many obj. created at once */
+	u32 num_freed;   /* how many obj. freed at once */
 	u32 objidx;
-	u32 pridx;
+	u32 pridx;   /* print index */
 
 	/* adaption */
 	void *adp_addr;               /* adapted code address */
