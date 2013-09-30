@@ -1,9 +1,7 @@
 /* getch_l.c:    getch() for Linux with terminal functions
  *
  * Copyright (c) 2012, by:      Sebastian Riemer
- *    All rights reserved.      Ernst-Reinke-Str. 23
- *                              10369 Berlin, Germany
- *                             <sebastian.riemer@gmx.de>
+ *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *

@@ -1,9 +1,7 @@
 /* memattach.h:    functions to attach/read/write victim proc. memory
  *
  * Copyright (c) 2013, by:      Sebastian Riemer
- *    All rights reserved.      Ernst-Reinke-Str. 23
- *                              10369 Berlin, Germany
- *                             <sebastian.riemer@gmx.de>
+ *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *
