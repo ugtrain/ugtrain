@@ -327,6 +327,8 @@ void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 	}
 }
 
+#define DEBUG_PARSING 0
+
 void run_stage1234_loop (void *argp)
 {
 	i32 ifd = *(i32 *) argp;
@@ -334,8 +336,12 @@ void run_stage1234_loop (void *argp)
 	char buf[PIPE_BUF];
 	ssize_t rbytes, wbytes;
 
+#if DEBUG_PARSING
+	ofd = open("/dev/null", O_WRONLY);
+#else
 	ofd = open(DYNMEM_FILE, O_WRONLY | O_CREAT | O_TRUNC,
 		   0644);
+#endif
 	if (ofd < 0) {
 		perror("open ofd");
 		exit(1);
