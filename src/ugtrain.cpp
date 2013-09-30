@@ -967,7 +967,7 @@ prepare_dynmem:
 		}
 
 		// get allocated and freed objects (TIME CRITICAL!)
-		read_dynmem_buf(&cfg, NULL, ifd, pmask, set_dynmem_addr,
+		read_dynmem_buf(&cfg, NULL, ifd, pmask, 0, set_dynmem_addr,
 				unset_dynmem_addr);
 
 		// print allocated and freed object counts

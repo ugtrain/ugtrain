@@ -244,14 +244,14 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 		cerr << "Error: Invalid memory address!" << endl;
 		return -1;
 	}
-	cout << hex << "Searing for " << mem_addr << dec
+	cout << hex << "Searching reverse for " << mem_addr << dec
 	     << " in discovery output.." << endl;
 
 	dpp.in_addr = mem_addr;
 	dpp.opt = opt;
 
 	while (1) {
-		if (read_dynmem_buf(cfg, &dpp, ifd, pmask,
+		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, 1,
 		    process_disc1234_malloc, process_disc1_free))
 			break;
 	}
@@ -317,7 +317,7 @@ void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 {
 	while (1) {
 		sleep_sec(1);
-		read_dynmem_buf(cfg, NULL, ifd, pmask, process_disc5_output,
+		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, process_disc5_output,
 				NULL);
 		if (memattach_test(pid) != 0) {
 			cerr << "PTRACE ERROR PID[" << pid << "]!"

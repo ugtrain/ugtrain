@@ -22,8 +22,11 @@
 #include <unistd.h>
 #include "fifoparser.h"
 
+#define REVERSE_FST -2  // reverse file read start
+#define REVERSE_EOF -3  // reverse file read end
 
-i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
+
+i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask, u8 reverse,
 		     void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
 				void *, size_t, void *, void *),
 		     void (*ff)(list<CfgEntry> *, void *, void *))
@@ -33,13 +36,55 @@ i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
 	static ssize_t ipos = 0, ilen = 0;
 	ulong mem_size = 0;
 	ssize_t tmp_ilen, ppos = 0;
-	char *msg_end, *sep_pos;
 	static char ibuf[PIPE_BUF] = { 0 };
+	char *msg_start = ibuf, *msg_end = ibuf, *sep_pos = ibuf;
 	char scan_ch;
 	struct post_parse pp;
+	static off_t fd_offs = REVERSE_FST;
 
-	// read from FIFO and concat. incomplete msgs
-	tmp_ilen = read(ifd, ibuf + ipos, sizeof(ibuf) - 1 - ipos);  // always '\0' at end
+	if (reverse) {
+		if (fd_offs == REVERSE_FST) {
+			// read heap start from file first
+			tmp_ilen = read(ifd, ibuf, 50);
+			if (tmp_ilen <= 0 && argp)
+				return 1;
+			if (sscanf(msg_start, "%c", &scan_ch) != 1)
+				goto parse_err;
+			if (scan_ch == 'h') {
+				ppos = msg_start - ibuf + 1;
+				if (sscanf(ibuf + ppos, "%p", &heap_start) != 1)
+					goto parse_err;
+			}
+			// clear buffer again
+			memset(ibuf, 0, tmp_ilen);
+			// set file pointer to file end
+			fd_offs = lseek(ifd, 0, SEEK_END);
+		}
+		if (fd_offs < 0)
+			return 1;
+		// we use ipos as read length here
+		ipos = fd_offs;
+		if ((unsigned) ipos > sizeof(ibuf) - 1 - ilen) {
+			ipos = sizeof(ibuf) - 1 - ilen;
+			fd_offs = lseek(ifd, fd_offs - ipos, SEEK_SET);
+			if (fd_offs < 0)
+				return 1;
+		} else {
+			fd_offs = lseek(ifd, 0, SEEK_SET);
+			if (fd_offs < 0)
+				return 1;
+			fd_offs = REVERSE_EOF;
+		}
+		// move rest to the end
+		if (ilen)
+			memmove(ibuf + ipos, ibuf, ilen);
+
+		// read from FIFO and concat. incomplete msgs
+		tmp_ilen = read(ifd, ibuf, ipos);  // always '\0' at end
+	} else {
+		// read from FIFO and concat. incomplete msgs
+		tmp_ilen = read(ifd, ibuf + ipos, sizeof(ibuf) - 1 - ilen);  // always '\0' at end
+	}
 	if (tmp_ilen > 0) {
 		//cout << "ibuf: " << string(ibuf) << endl;
 		ilen += tmp_ilen;
@@ -49,14 +94,31 @@ i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask,
 
 		// parse messages
 next:
-		msg_end = strchr(ibuf, '\n');
-		if (msg_end == NULL)
-			return 0;
-		if (sscanf(ibuf, "%c", &scan_ch) != 1)
+		if (reverse) {
+			msg_end = strrchr(ibuf, '\n');
+			if (msg_end == NULL)
+				return 0;
+			else
+				*msg_end = '\0';
+			msg_start = strrchr(ibuf, '\n');
+			if (msg_start == NULL) {
+				// incomplete message, restore message end
+				*msg_end = '\n';
+				return 0;
+			} else {
+				msg_start += 1;
+			}
+		} else {
+			msg_end = strchr(ibuf, '\n');
+			if (msg_end == NULL)
+				return 0;
+		}
+
+		if (sscanf(msg_start, "%c", &scan_ch) != 1)
 			goto parse_err;
 		switch (scan_ch) {
 		case 'm':
-			ppos = 1;
+			ppos = msg_start - ibuf + 1;
 			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
 				goto parse_err;
 
@@ -110,7 +172,7 @@ skip_o:
 		case 'f':
 			if (!ff)
 				break;
-			ppos = 1;
+			ppos = msg_start - ibuf + 1;
 			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
 				goto parse_err;
 
@@ -118,21 +180,29 @@ skip_o:
 			ff(cfg, argp, mem_addr);
 			break;
 		case 'h':
-			ppos = 1;
+			ppos = msg_start - ibuf + 1;
 			if (sscanf(ibuf + ppos, "%p", &heap_start) != 1)
 				goto parse_err;
 			break;
 		}
-		// prepare for next msg parsing
 
-		tmp_ilen = msg_end + 1 - ibuf;
-		// move rest to the front
-		memmove(ibuf, ibuf + tmp_ilen, ilen - tmp_ilen);
-		// zero what's behind the rest
-		memset(ibuf + ilen - tmp_ilen, 0, tmp_ilen);
-		ilen -= tmp_ilen;
-		ipos -= tmp_ilen;
-		//cout << "ilen: " << ilen << " ipos " << ipos << endl;
+		// prepare for next msg parsing
+		if (reverse) {
+			// zero parsed message
+			tmp_ilen = msg_end - msg_start + 1;
+			memset(msg_start, 0, tmp_ilen);
+			ilen -= tmp_ilen;
+			ipos = 0;
+		} else {
+			tmp_ilen = msg_end + 1 - ibuf;
+			// move rest to the front
+			memmove(ibuf, ibuf + tmp_ilen, ilen - tmp_ilen);
+			// zero what's behind the rest
+			memset(ibuf + ilen - tmp_ilen, 0, tmp_ilen);
+			ilen -= tmp_ilen;
+			ipos -= tmp_ilen;
+			//cout << "ilen: " << ilen << " ipos " << ipos << endl;
+		}
 
 		goto next;
 	} else if (argp) {
