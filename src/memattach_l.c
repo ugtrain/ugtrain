@@ -14,6 +14,13 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
+ *
+ * By the original authors of ugtrain there shall be ABSOLUTELY
+ * NO RESPONSIBILITY or LIABILITY for derived work and/or abusive
+ * or malicious use. The ugtrain is an education project and
+ * sticks to the copyright law by providing configs for games
+ * which ALLOW CHEATING only. We can't and we don't accept abusive
+ * configs or codes which might turn ugtrain into a cracker tool!
  */
 
 #ifdef __linux__
