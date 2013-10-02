@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# The issue is that code address and stack offset for mallocs can differ
-# from distribution to distribution. But the thing which remains constant
-# is often the way how the code internally works.
+# The issue is that code address and stack offsets for mallocs can differ
+# between distributions, compilers and game versions. But the thing which
+# remains constant is often the way how the code internally works.
 
-# Warzone 2100 2.3.8
+# Tested with: Warzone 2100 2.3.8
 
 # We already know that warzone2100 is a 32-bit C++ application and that
 # the DROID structure is allocated with malloc().
@@ -14,7 +14,7 @@
 CWD=`dirname $0`
 cd "$CWD"
 APP_PATH=`which warzone2100`
-APP_VERS=`warzone2100 --version | grep -o "Version.*" | cut -d ' ' -f 2`
+APP_VERS=`${APP_PATH} --version | grep -o "Version.*" | cut -d ' ' -f 2`
 
 IFS=`printf '\n+'`
 CODE_PART=`objdump -D "$APP_PATH" | grep "\<malloc@plt\>" -B 1 -A 1 | grep -A 2 0x36c`

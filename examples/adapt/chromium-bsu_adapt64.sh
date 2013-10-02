@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# The issue is that code address and stack offset for mallocs can differ
-# from distribution to distribution. But the thing which remains constant
-# is often the way how the code internally works.
+# The issue is that code address and stack offsets for mallocs can differ
+# between distributions, compilers and game versions. But the thing which
+# remains constant is often the way how the code internally works.
 
-# chromium-bsu 0.9.14.1 or 0.9.15
+# Tested with: chromium-bsu 0.9.14.1, 0.9.15, 0.9.15.1
 
 # We already know that chromium-bsu is a 64-bit C++ application. Therefore,
-# objects are initialized most likely by the "_Znwm" function. This function
+# objects are allocated most likely by the "_Znwm" function. This function
 # calls malloc internally.
 # And from previous discovery runs we already know the malloc size (288 or
 # 0x120) for the object in which the NUMBER OF LIVES is stored.
@@ -44,5 +44,5 @@ echo "$RESULT"
 # This shows us that 0x411097 is the relevant code address.
 
 # We can jump directly to stage 4 of the discovery with that and leave the
-# heap start and end addresses at 0x0 (NULL) as we already know the unique
+# heap start and end offsets at 0x0 (NULL) as we already know the unique
 # code address and malloc size.
