@@ -1092,6 +1092,7 @@ prepare_dynmem:
 		}
 
 		// output old values
+		old_dynmem = NULL;
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
 			is_dynmem = false;
@@ -1106,6 +1107,13 @@ prepare_dynmem:
 					cfg_en->old_val =
 						cfg_en->v_oldval[cfg_en->dynmem->pridx];
 					is_dynmem = true;
+					if (cfg_en->dynmem != old_dynmem) {
+						cout << "*" << cfg_en->dynmem->name << "["
+						     << cfg_en->dynmem->pridx << "]" << " at "
+						     << hex << mem_offs << dec << ", "
+						     << mvec->size() << " obj." << endl;
+							old_dynmem = cfg_en->dynmem;
+					}
 				}
 			} else {
 				mem_offs = NULL;
