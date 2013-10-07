@@ -13,7 +13,7 @@
 
 CWD=`dirname $0`
 cd "$CWD"
-APP_PATH=`which warzone2100`
+APP_PATH="$1"
 APP_VERS=`${APP_PATH} --version | grep -o "Version.*" | cut -d ' ' -f 2`
 
 IFS=`printf '\n+'`

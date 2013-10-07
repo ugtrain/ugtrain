@@ -201,4 +201,40 @@ err:
 	return -1;
 }
 
+/*
+ * Get the absolute path of an application.
+ *
+ * Parameters: the application name
+ * Returns: the absolute path or NULL
+ */
+char *get_abs_app_path (char *app_name)
+{
+	char pbuf[PIPE_BUF] = { 0 };
+	const char *cmd = (const char *) "which";
+	char *cmdv[3];
+	char *abs_path = NULL;
+	ssize_t rbytes;
+
+	cmdv[0] = (char *) "which";
+	cmdv[1] = app_name;
+	cmdv[2] = NULL;
+
+	rbytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), 0);
+	if (rbytes <= 0)
+		goto err;
+
+	abs_path = malloc(rbytes + 1);
+	if (abs_path) {
+		memcpy(abs_path, pbuf, rbytes);
+		abs_path[rbytes] = '\0';
+		if (abs_path[rbytes - 1] == '\n')
+			abs_path[rbytes - 1] = '\0';
+	}
+
+	return abs_path;
+err:
+	fprintf(stderr, "Absolute path not found or invalid!\n");
+	return NULL;
+}
+
 #endif

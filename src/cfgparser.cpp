@@ -35,7 +35,8 @@ enum {
 	NAME_DYNMEM_STACK,
 	NAME_DYNMEM_IGN,
 	NAME_ADAPT,
-	NAME_ADP_REQ
+	NAME_ADP_REQ,
+	NAME_GAME_PATH
 };
 
 static inline void proc_name_err (string *line, u32 lidx)
@@ -118,6 +119,11 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			*name_type = NAME_ADAPT;
 		else if (ret.substr(6, string::npos) == "required")
 			*name_type = NAME_ADP_REQ;
+		else
+			*name_type = NAME_REGULAR;
+	} else if (ret.substr(0, 5) == "game_") {
+		if (ret.substr(5, string::npos) == "path")
+			*name_type = NAME_GAME_PATH;
 		else
 			*name_type = NAME_REGULAR;
 	} else {
@@ -351,7 +357,7 @@ list<CfgEntry*> *read_config (string *path,
 	bool in_dynmem = false;
 	string line;
 	string home(opt->home);
-	string adp_str;
+	string tmp_str;
 	size_t pos;
 
 	// read config into string vector
@@ -436,15 +442,15 @@ list<CfgEntry*> *read_config (string *path,
 			if (in_dynmem)
 				cfg_parse_err(&line, lnr, start);
 
-			adp_str = string("");
+			tmp_str = string("");
 			pos = path->rfind("/");
 			if (pos != string::npos)
-				adp_str.append(path->substr(0, pos + 1));
-			adp_str.append(parse_value_name(&line,
+				tmp_str.append(path->substr(0, pos + 1));
+			tmp_str.append(parse_value_name(&line,
 				       lnr, &start, &name_type));
 
 			// Copy into C string
-			opt->adp_script = to_c_str(&adp_str);
+			opt->adp_script = to_c_str(&tmp_str);
 			break;
 
 		case NAME_ADP_REQ:
@@ -454,6 +460,23 @@ list<CfgEntry*> *read_config (string *path,
 			opt->adp_required = parse_value(&line, lnr, &start,
 							false, false, NULL, NULL);
 			opt->adp_req_line = lnr;
+			break;
+
+		case NAME_GAME_PATH:
+			if (in_dynmem)
+				cfg_parse_err(&line, lnr, start);
+
+			tmp_str = parse_value_name(&line,
+				  lnr, &start, &name_type);
+
+			pos = tmp_str.rfind("/");
+			if (pos != string::npos &&
+			    tmp_str.substr(pos + 1, string::npos) !=
+			    opt->proc_name)
+				cfg_parse_err(&line, lnr, start);
+
+			// Copy into C string
+			opt->game_path = to_c_str(&tmp_str);
 			break;
 
 		default:

@@ -39,6 +39,7 @@ static inline void sleep_sec (u32 sec)
 #ifdef __cplusplus
 extern "C" {
 #endif
+	char    *get_abs_app_path (char *app_name);
 	pid_t   proc_to_pid (char *proc_name);
 	i32     run_cmd_bg (const char *cmd, char *const cmdv[],
 			    u8 do_wait);

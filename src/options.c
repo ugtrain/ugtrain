@@ -97,6 +97,7 @@ static void init_options (struct app_options *opt)
 	/* no direct CLI input */
 	opt->home = NULL;
 	opt->proc_name = NULL;
+	opt->game_path = NULL;
 	opt->adp_script = NULL;
 	opt->adp_required = 0;
 	opt->adp_req_line = 0;

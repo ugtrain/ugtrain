@@ -33,6 +33,7 @@ struct app_options {
 	char	*adp_script;
 	char	*home;
 	char	*proc_name;
+	char	*game_path;
 	void	*disc_addr;
 };
 

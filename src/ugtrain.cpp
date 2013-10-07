@@ -465,13 +465,13 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 	}
 }
 
-static i32 run_game (char *proc_name)
+static i32 run_game (char *game_path)
 {
 	i32 ret;
-	const char *cmd = (const char *) proc_name;
+	const char *cmd = (const char *) game_path;
 	char *cmdv[2];
 
-	cmdv[0] = proc_name;
+	cmdv[0] = game_path;
 	cmdv[1] = NULL;
 
 	cout << "$ " << cmdv[0] << " &" << endl;
@@ -487,7 +487,7 @@ err:
 }
 
 #ifdef __linux__
-static i32 run_preloader (char *preload_lib, char *proc_name)
+static i32 run_preloader (char *preload_lib, char *game_path)
 {
 	i32 ret;
 	const char *cmd = (const char *) PRELOADER;
@@ -495,7 +495,7 @@ static i32 run_preloader (char *preload_lib, char *proc_name)
 
 	cmdv[0] = (char *) PRELOADER;
 	cmdv[1] = preload_lib;
-	cmdv[2] = proc_name;
+	cmdv[2] = game_path;
 	cmdv[3] = NULL;
 
 	cout << "$ " << cmdv[0] << " " << cmdv[1]
@@ -611,7 +611,7 @@ skip_memhack:
 	/* Run the preloaded game but not as root */
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting preloaded game.." << endl;
-		run_preloader(opt->preload_lib, opt->proc_name);
+		run_preloader(opt->preload_lib, opt->game_path);
 	}
 
 	cout << "Waiting for preloaded game.." << endl;
@@ -693,13 +693,15 @@ parse_err:
 	return -1;
 }
 
-static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script)
+static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script,
+			 char *game_path)
 {
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t read_bytes;
 	const char *cmd = (const char *) adp_script;
 	char *cmdv[] = {
 		adp_script,
+		game_path,
 		NULL
 	};
 
@@ -857,6 +859,11 @@ i32 main (i32 argc, char **argv, char **env)
 	    (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '4'))
 		emptycfg = 1;
 
+	if (!opt.game_path)
+		opt.game_path = get_abs_app_path(opt.proc_name);
+	if (!opt.game_path)
+		return -1;
+
 	cout << "Config:" << endl;
 	output_config(&cfg);
 	cout << "Activated:" << endl;
@@ -892,7 +899,7 @@ i32 main (i32 argc, char **argv, char **env)
 			cerr << "Error, no adaption script!" << endl;
 			return -1;
 		}
-		if (adapt_config(&cfg, opt.adp_script) != 0) {
+		if (adapt_config(&cfg, opt.adp_script, opt.game_path) != 0) {
 			cerr << "Error while code address adaption!" << endl;
 			return -1;
 		}
@@ -917,7 +924,7 @@ prepare_dynmem:
 				return -1;
 #endif
 			cout << "Starting the game.." << endl;
-			run_game(opt.proc_name);
+			run_game(opt.game_path);
 			sleep_sec(1);
 			pid = proc_to_pid(opt.proc_name);
 			if (pid < 0)

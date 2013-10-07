@@ -14,7 +14,7 @@
 
 CWD=`dirname $0`
 cd "$CWD"
-APP_PATH=`which chromium-bsu`
+APP_PATH="$1"
 
 IFS=`printf '\n+'`
 CODE_PART=`objdump -D "$APP_PATH" | grep "_Znwj" -B 2 -A 1 | grep -A 2 0x110`
