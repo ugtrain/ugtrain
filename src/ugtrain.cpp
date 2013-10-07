@@ -1109,7 +1109,7 @@ prepare_dynmem:
 					is_dynmem = true;
 					if (cfg_en->dynmem != old_dynmem) {
 						cout << "*" << cfg_en->dynmem->name << "["
-						     << cfg_en->dynmem->pridx << "]" << " at "
+						     << cfg_en->dynmem->pridx << "]" << " = "
 						     << hex << mem_offs << dec << ", "
 						     << mvec->size() << " obj." << endl;
 							old_dynmem = cfg_en->dynmem;
