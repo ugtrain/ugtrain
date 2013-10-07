@@ -5,6 +5,12 @@
 #    The game process name must always be located in the first line.
 #    The PID is searched by name with "pidof -s".
 #
+# game_path AbsGamePath
+#
+#    The absolute game path is optional and must end with the GameProcessName.
+#    It is used to run the game and for discovery as well as adaption.
+#    Without this, it is determined automatically from the GameProcessName.
+#
 ###############################################################################
 #
 #    +++ Static memory +++:
