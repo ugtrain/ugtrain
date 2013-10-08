@@ -1,27 +1,33 @@
 #!/bin/bash
 
-# Tested with: Warzone 2100 3.1.0
+# Tested with: Warzone 2100 3.1.0, 2.3.8
 
 # We already know that warzone2100 is a 64-bit C++ application and that
-# the DROID and Structure classes are allocated with _Znwm().
-# From previous discovery runs we already know the malloc size (864 or
-# 0x360) for the Droid object. The Structure object has the malloc size
-# 424 or 0x1a8.
+# the DROID and Structure classes are allocated with _Znwm() or malloc().
+# From previous discovery runs we already know the malloc sizes.
 
 CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
-APP_VERS=`${APP_PATH} --version | grep -o "Version.*" | cut -d ' ' -f 2`
+APP_VERS=`${APP_PATH} --version | grep -o "\([0-9]\+\\.\)\{2\}[0-9]\+"`
 
 . _common_adapt.sh
 
-get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360" 4 4
+if [ "$APP_VERS" == "2.3.8" ]; then
+    get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x410," 3 3
+else
+    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360" 4 4
+fi
 
 CODE_ADDR1="$CODE_ADDR"
 
 ############################################
 
-get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8" 8 4
+if [ "$APP_VERS" == "2.3.8" ]; then
+    get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x160," 3 3
+else
+    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8" 8 4
+fi
 
 CODE_ADDR2="$CODE_ADDR"
 
