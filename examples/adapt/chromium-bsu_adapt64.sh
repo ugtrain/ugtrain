@@ -1,36 +1,20 @@
 #!/bin/bash
 
-# The issue is that code address and stack offsets for mallocs can differ
-# between distributions, compilers and game versions. But the thing which
-# remains constant is often the way how the code internally works.
-
 # Tested with: chromium-bsu 0.9.14.1, 0.9.15, 0.9.15.1
 
 # We already know that chromium-bsu is a 64-bit C++ application. Therefore,
 # objects are allocated most likely by the "_Znwm" function. This function
 # calls malloc internally.
 # And from previous discovery runs we already know the malloc size (288 or
-# 0x120) for the object in which the NUMBER OF LIVES is stored.
+# 0x120) for the HeroAircraft object.
 
 CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
 
-IFS=`printf '\n+'`
-CODE_PART=`objdump -D "$APP_PATH" | grep "_Znwm" -B 2 -A 1 | grep -A 3 0x120`
-if [ "$CODE_PART" == "" ]; then exit 1; fi
+. _common_adapt.sh
 
-CODE_LINES=`echo -e "$CODE_PART" | wc -l`
-if [ $CODE_LINES -ne 4 ]; then exit 1; fi
-
-CODE_CALL=`echo -e "$CODE_PART" | cut -d '
-' -f 3 | grep call`
-if [ "$CODE_CALL" == "" ]; then exit 1; fi
-
-CODE_ADDR=`echo -e "$CODE_PART" | cut -d '
-' -f 4 | cut -d ':' -f 1 | tr -d [:blank:]`
-if [ "$CODE_ADDR" == "" ]; then exit 1; fi
-IFS=''
+get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x120" 4 4
 
 RESULT=`echo "1;HeroAircraft;0x$CODE_ADDR"`
 echo "$RESULT"
