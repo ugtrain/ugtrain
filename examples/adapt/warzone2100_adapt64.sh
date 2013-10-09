@@ -16,7 +16,7 @@ APP_VERS=`${APP_PATH} --version | grep -o "\([0-9]\+\\.\)\{2\}[0-9]\+"`
 if [ "$APP_VERS" == "2.3.8" ]; then
     get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x410," 3 3
 else
-    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360" 4 4
+    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360," 4 4
 fi
 
 CODE_ADDR1="$CODE_ADDR"
@@ -24,9 +24,9 @@ CODE_ADDR1="$CODE_ADDR"
 ############################################
 
 if [ "$APP_VERS" == "2.3.8" ]; then
-    get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x160," 3 3
+    get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x160," 7 7
 else
-    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8" 8 4
+    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 8 4
 fi
 
 CODE_ADDR2="$CODE_ADDR"
