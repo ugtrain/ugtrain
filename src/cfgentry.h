@@ -67,7 +67,9 @@ public:
 	void *adp_soffs[MAX_STACK];   /* adapted stack offsets */
 	bool soffs_ign[MAX_STACK];    /* stack offset for adaption only? */
 	u32 cfg_lines[MAX_STACK];     /* to write back new cfg */
+	u32 first_line;               /* dynmemstart line */
 	u8 adp_sidx;                  /* index in adapted stack offs */
+	bool discovered;
 	bool adp_failed;
 };
 

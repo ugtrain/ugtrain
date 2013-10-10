@@ -40,19 +40,96 @@
 #define DYNMEM_FILE "/tmp/memhack_file"
 #define MAX_BT 11
 
-// parameter for process_disc1234_malloc()
-struct disc_pp {
-	void *in_addr;
-	struct app_options *opt;
-};
 
+static void process_stage5_result (DynMemEntry *dynmem)
+{
+	u32 i;
+	char ch;
+
+	cout << "Class " << dynmem->name
+	     << ", old_code: " << hex << dynmem->code_addr
+	     << ", new_code: " << dynmem->adp_addr << dec << endl;
+	for (i = 0; i < dynmem->num_stack; i++) {
+		cout << i << ": old_offs: " << hex << dynmem->stack_offs[i]
+		     << ", new_offs: " << dynmem->adp_soffs[i] << dec
+		     << (dynmem->soffs_ign[i] ? ", ignored" : "") << endl;
+	}
+	cout << "Okay this way (y/n)? : ";
+	fflush(stdout);
+	ch = 'n';
+	ch = do_getch();
+	cout << ch << endl;
+	if (ch != 'y') {
+		cerr << "Discovery failed!" << endl;
+		exit(-1);
+	}
+}
+
+static void swap_adp_soffs (DynMemEntry *dynmem, u32 idx1, u32 idx2)
+{
+	void *tmp_adp_soffs;
+
+	tmp_adp_soffs = dynmem->adp_soffs[idx1];
+	dynmem->adp_soffs[idx1] = dynmem->adp_soffs[idx2];
+	dynmem->adp_soffs[idx2] = tmp_adp_soffs;
+}
+
+static void swap_stack_offsets (DynMemEntry *dynmem, u32 idx1, u32 idx2)
+{
+	void *tmp_stack_offs;
+	bool tmp_soffs_ign;
+	u32 tmp_cfg_line;
+
+	tmp_stack_offs = dynmem->stack_offs[idx1];
+	tmp_soffs_ign = dynmem->soffs_ign[idx1];
+	tmp_cfg_line = dynmem->cfg_lines[idx1];
+	dynmem->stack_offs[idx1] = dynmem->stack_offs[idx2];
+	dynmem->soffs_ign[idx1] = dynmem->soffs_ign[idx2];
+	dynmem->cfg_lines[idx1] = dynmem->cfg_lines[idx2];
+	dynmem->stack_offs[idx2] = tmp_stack_offs;
+	dynmem->soffs_ign[idx2] = tmp_soffs_ign;
+	dynmem->cfg_lines[idx2] = tmp_cfg_line;
+}
+
+static void bubsort_stack_offs (void **arr, u32 size, DynMemEntry *dynmem,
+				void (*swap)(DynMemEntry *dynmem, u32, u32))
+{
+	u32 i, n, m;
+
+	n = size;
+	do {
+		for (i = 1, m = 0; i < n; i++) {
+			if (arr[i] == NULL)
+				break;
+			if ((ulong) arr[i - 1] > (ulong) arr[i]) {
+				swap(dynmem, i - 1, i);
+				m = i;
+			}
+		}
+		n = m;
+	} while (n > 0);
+}
+
+/*
+ * Sort stack offsets so that adaption order becomes
+ * independent from the order in the config.
+ * We use simple bubble sort here.
+ */
+static void sort_stack_offsets (DynMemEntry *dynmem)
+{
+	bubsort_stack_offs(dynmem->stack_offs, MAX_STACK, dynmem,
+			   swap_stack_offsets);
+
+	bubsort_stack_offs(dynmem->adp_soffs, MAX_STACK, dynmem,
+			   swap_adp_soffs);
+}
 
 static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 			    string *cfg_path, vector<string> *lines)
 {
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
-	u8 discovered = 0;
+	bool discovered = false;
 	u32 lnr, i;
 	char ch;
 
@@ -61,14 +138,22 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 			continue;
 		tmp = cfg_it->dynmem;
 
+		if (tmp->discovered) {
+			discovered = true;
+			continue;
+		}
 		if (tmp->adp_addr == opt->disc_addr && !tmp->adp_failed &&
 		    tmp->adp_sidx >= tmp->num_stack - tmp->num_sign) {
-			discovered = 1;
+			sort_stack_offsets(tmp);
+			if (tmp->num_stack > 1)
+				process_stage5_result(tmp);
+			tmp->discovered = true;
+			discovered = true;
 			continue;
 		}
 		if (!(tmp->adp_addr && !tmp->adp_failed &&
 		      tmp->adp_sidx >= tmp->num_stack - tmp->num_sign)) {
-			cout << "Undiscovered objects found!" << endl;
+			cout << "Undiscovered class(es) found!" << endl;
 			if (discovered) {
 				cout << "Next discovery run (y/n)? : ";
 				fflush(stdout);
@@ -92,17 +177,11 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
 			continue;
 		tmp = cfg_it->dynmem;
-		cout << "Obj. " << tmp->name
-		     << ", old_code: " << hex << tmp->code_addr
-		     << ", new_code: " << tmp->adp_addr << dec << endl;
 		tmp->code_addr = tmp->adp_addr;
 		for (i = 0; i < tmp->adp_sidx; i++) {
-			cout << "Obj. " << tmp->name
-			     << ", old_offs: " << hex << tmp->stack_offs[i]
-			     << ", new_offs: " << tmp->adp_soffs[i] << dec << endl;
 			tmp->stack_offs[i] = tmp->adp_soffs[i];
 			lnr = tmp->cfg_lines[i];
-			if (i == 0)
+			if (lnr == tmp->first_line)
 				lines->at(lnr) = "dynmemstart " + tmp->name + " "
 					+ to_string(tmp->mem_size) + " "
 					+ to_string(tmp->code_addr) + " "
@@ -130,6 +209,12 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	use_libmemhack(opt);
 	return DISC_OKAY;
 }
+
+// parameter for process_disc1234_malloc()
+struct disc_pp {
+	void *in_addr;
+	struct app_options *opt;
+};
 
 // mf() callback for read_dynmem_buf()
 static void process_disc1234_malloc (list<CfgEntry> *cfg,

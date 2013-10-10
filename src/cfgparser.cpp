@@ -409,6 +409,7 @@ list<CfgEntry*> *read_config (string *path,
 				parse_address(&line, lnr, &start);
 			dynmem_enp->v_maddr.clear();
 			dynmem_enp->cfg_lines[dynmem_enp->num_stack] = lnr;
+			dynmem_enp->first_line = lnr;
 			dynmem_enp->num_stack++;
 			break;
 
