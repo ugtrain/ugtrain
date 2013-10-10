@@ -432,9 +432,11 @@ list<CfgEntry*> *read_config (string *path,
 			} else {
 				cfg_parse_err(&line, lnr, start);
 			}
-			if (name_type == NAME_DYNMEM_IGN)
+			if (name_type == NAME_DYNMEM_IGN) {
 				dynmem_enp->soffs_ign[dynmem_enp->num_stack] =
 					true;
+				dynmem_enp->num_sign++;
+			}
 			dynmem_enp->num_stack++;
 			break;
 

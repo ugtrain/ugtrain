@@ -53,6 +53,7 @@ public:
 	void *code_addr;
 	void *stack_offs[MAX_STACK];
 	u8 num_stack;
+	u8 num_sign;
 
 	/* later determined values */
 	vector<void *> v_maddr;    /* set by malloc calls */

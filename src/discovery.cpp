@@ -57,17 +57,17 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	char ch;
 
 	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
-		if (!cfg_it->dynmem)
+		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
 			continue;
-		if (cfg_it->dynmem->adp_addr == opt->disc_addr &&
-		    cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack &&
-		    !cfg_it->dynmem->adp_failed) {
+		tmp = cfg_it->dynmem;
+
+		if (tmp->adp_addr == opt->disc_addr && !tmp->adp_failed &&
+		    tmp->adp_sidx >= tmp->num_stack - tmp->num_sign) {
 			discovered = 1;
 			continue;
 		}
-		if (!(cfg_it->dynmem->adp_addr &&
-		      cfg_it->dynmem->adp_sidx == cfg_it->dynmem->num_stack &&
-		      !cfg_it->dynmem->adp_failed)) {
+		if (!(tmp->adp_addr && !tmp->adp_failed &&
+		      tmp->adp_sidx >= tmp->num_stack - tmp->num_sign)) {
 			cout << "Undiscovered objects found!" << endl;
 			if (discovered) {
 				cout << "Next discovery run (y/n)? : ";
@@ -87,6 +87,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	cout << "Discovery successful!" << endl;
 
 	// Take over discovery
+	tmp = NULL;
 	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
 		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
 			continue;
