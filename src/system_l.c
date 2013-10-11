@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 #include <limits.h>
 #include <signal.h>
 #include <sys/wait.h>
