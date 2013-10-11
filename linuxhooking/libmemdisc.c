@@ -58,7 +58,7 @@ static i32 ifd = -1;
 static FILE *ofile = NULL;  /* much data - we need caching */
 
 /* Output control */
-static u8 active = 0;
+static bool active = false;
 static i32 stage = 0;  /* 0: no output */
 
 /* Input parameters */
@@ -104,7 +104,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	fprintf(stdout, PFX "Stack end:  %p\n", __libc_stack_end);
 	/*
 	 * Don't you dare call malloc for another purpose in this lib!
-	 * We can only do this safely as (active == 0).
+	 * We can only do this safely as (active == false).
 	 */
 	heap_start = malloc(1);
 	if (heap_start) {
@@ -153,7 +153,7 @@ void __attribute ((constructor)) memdisc_init (void)
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 1;
-			active = 1;
+			active = true;
 		} else {
 			goto parse_err;
 		}
@@ -172,7 +172,7 @@ void __attribute ((constructor)) memdisc_init (void)
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 2;
-			active = 1;
+			active = true;
 		} else {
 			goto parse_err;
 		}
@@ -191,7 +191,7 @@ void __attribute ((constructor)) memdisc_init (void)
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 3;
-			active = 1;
+			active = true;
 		} else {
 			goto parse_err;
 		}
@@ -204,7 +204,7 @@ void __attribute ((constructor)) memdisc_init (void)
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 4;
-			active = 1;
+			active = true;
 		} else {
 			goto parse_err;
 		}

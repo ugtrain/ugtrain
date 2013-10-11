@@ -476,7 +476,7 @@ static i32 run_game (char *game_path)
 
 	cout << "$ " << cmdv[0] << " &" << endl;
 
-	ret = run_cmd_bg(cmd, cmdv, 0);
+	ret = run_cmd_bg(cmd, cmdv, false);
 	if (ret)
 		goto err;
 
@@ -501,7 +501,7 @@ static i32 run_preloader (char *preload_lib, char *game_path)
 	cout << "$ " << cmdv[0] << " " << cmdv[1]
 	     << " " << cmdv[2] << " &" << endl;
 
-	ret = run_cmd_bg(cmd, cmdv, 0);
+	ret = run_cmd_bg(cmd, cmdv, false);
 	if (ret)
 		goto err;
 
@@ -710,7 +710,7 @@ static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script,
 		goto err;
 #endif
 
-	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), 0);
+	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), false);
 	if (read_bytes <= 0)
 		goto err;
 	cout << "Adaption return:" << endl;
@@ -822,7 +822,7 @@ i32 main (i32 argc, char **argv, char **env)
 	char ch;
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
-	u8 emptycfg = 0;
+	bool emptycfg = false;
 	u32 mem_idx, ov_idx, num_kicked;
 	bool is_dynmem;
 
@@ -857,7 +857,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	if (opt.disc_str &&
 	    (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '4'))
-		emptycfg = 1;
+		emptycfg = true;
 
 	if (!opt.game_path)
 		opt.game_path = get_abs_app_path(opt.proc_name);
@@ -889,7 +889,7 @@ i32 main (i32 argc, char **argv, char **env)
 		ch = do_getch();
 		cout << ch << endl;
 		if (ch == 'y') {
-			opt.do_adapt = 1;
+			opt.do_adapt = true;
 			do_assumptions(&opt);
 		}
 	}
@@ -979,8 +979,8 @@ prepare_dynmem:
 		}
 
 		// get allocated and freed objects (TIME CRITICAL!)
-		read_dynmem_buf(&cfg, NULL, ifd, pmask, 0, set_dynmem_addr,
-				unset_dynmem_addr);
+		read_dynmem_buf(&cfg, NULL, ifd, pmask, false,
+				set_dynmem_addr, unset_dynmem_addr);
 
 		// print allocated and freed object counts
 		old_dynmem = NULL;

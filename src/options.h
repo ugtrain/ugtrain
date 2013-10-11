@@ -24,11 +24,11 @@
 #define PRELOADER  "ugpreload"
 
 struct app_options {
-	u8	do_adapt;
+	bool	do_adapt;
 	char	*preload_lib;
 	char	*disc_str;
 	/* no direct CLI input */
-	u8	adp_required;
+	bool	adp_required;
 	u32	adp_req_line;
 	char	*adp_script;
 	char	*home;

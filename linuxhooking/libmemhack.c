@@ -77,7 +77,7 @@ static i32 ofd = -1, ifd = -1;
 static char obuf[BUF_SIZE];
 
 /* Output control */
-static u8 active = 0;
+static bool active = false;
 
 /* Stack check */
 /*
@@ -219,7 +219,7 @@ void __attribute ((constructor)) memhack_init (void)
 	}
 
 	if (num_cfg > 0)
-		active = 1;
+		active = true;
 	return;
 
 read_err:

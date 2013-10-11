@@ -460,8 +460,9 @@ list<CfgEntry*> *read_config (string *path,
 			if (in_dynmem)
 				cfg_parse_err(&line, lnr, start);
 
-			opt->adp_required = parse_value(&line, lnr, &start,
-							false, false, NULL, NULL);
+			if (parse_value(&line, lnr, &start,
+					false, false, NULL, NULL))
+				opt->adp_required = true;
 			opt->adp_req_line = lnr;
 			break;
 

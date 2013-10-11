@@ -101,7 +101,7 @@ static void bubsort_stack_offs (void **arr, u32 size, DynMemEntry *dynmem,
 		for (i = 1, m = 0; i < n; i++) {
 			if (arr[i] == NULL)
 				break;
-			if ((ulong) arr[i - 1] > (ulong) arr[i]) {
+			if ((ptr_t) arr[i - 1] > (ptr_t) arr[i]) {
 				swap(dynmem, i - 1, i);
 				m = i;
 			}
@@ -204,7 +204,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	write_config_vect(cfg_path, lines);
 
 	// Run game with libmemhack
-	opt->do_adapt = 0;
+	opt->do_adapt = false;
 	opt->disc_str = NULL;
 	use_libmemhack(opt);
 	return DISC_OKAY;
@@ -231,7 +231,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 	void *soffs[MAX_BT] = { NULL };
 	char *sep_pos;
 	int i, ret, num_codes = 0, num_soffs = 0;
-	u8 is_stage4 = 0;
+	bool is_stage4 = false;
 	string cmd_str, tmp_str;
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t rbytes = 0;
@@ -258,7 +258,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 			ret = sscanf(pp->ibuf + pp->ppos, "c%p;o%p",
 				     &codes[i], &soffs[i]);
 			if (ret == 2) {
-				is_stage4 = 1;
+				is_stage4 = true;
 				num_codes++;
 				num_soffs++;
 			} else if (ret == 1) {
@@ -283,7 +283,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 				   "| grep -o -e \"<.*@plt>\"";
 			//cout << "$ " << cmd_str << endl;
 			rbytes = run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
-					      sizeof(pbuf), 1);
+					      sizeof(pbuf), true);
 			if (rbytes > 0) {
 				// remove trailing new line
 				if (pbuf[rbytes - 1] == '\n')
@@ -342,7 +342,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 	dpp.opt = opt;
 
 	while (1) {
-		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, 1,
+		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
 		    process_disc1234_malloc, process_disc1_free))
 			break;
 	}
@@ -503,7 +503,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 				   "| tr -d [:upper:] | tr -d [:blank:]";
 			cout << "$ " << cmd_str << endl;
 			if (run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
-			    sizeof(pbuf), 1) <= 0)
+			    sizeof(pbuf), true) <= 0)
 				goto err;
 			if (sscanf(pbuf, "%p\n%p", &bt_saddr, &bt_eaddr) != 2) {
 				goto err;

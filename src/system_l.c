@@ -74,7 +74,7 @@ err:
  * Parameters: execvp params, wait for the process 0/1
  * Returns: 0 for success, -1 for failure
  */
-i32 run_cmd_bg (const char *cmd, char *const cmdv[], u8 do_wait)
+i32 run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait)
 {
 	pid_t pid;
 	i32 status;
@@ -110,7 +110,7 @@ child_err:
  *              used with cmd and cmdv[] is ignored.
  */
 ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
-		      size_t pbuf_size, u8 use_shell)
+		      size_t pbuf_size, bool use_shell)
 {
 	pid_t pid;
 	i32 status, fds[2];
@@ -186,7 +186,7 @@ pid_t proc_to_pid (char *proc_name)
 	cmdv[2] = proc_name;
 	cmdv[3] = NULL;
 
-	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), 0) <= 0)
+	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), false) <= 0)
 		goto err;
 
 	if (!isdigit(pbuf[0]))
@@ -220,7 +220,7 @@ char *get_abs_app_path (char *app_name)
 	cmdv[1] = app_name;
 	cmdv[2] = NULL;
 
-	rbytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), 0);
+	rbytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), false);
 	if (rbytes <= 0)
 		goto err;
 

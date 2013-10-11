@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <string.h>
+#include "../src/common.h"
 
 /* always match these */
 #define MAX_FILES	 100
@@ -39,14 +40,15 @@ APP_NAME " - find similarities in mem. obj. dump files\n"
 ;
 
 
-int main (int argc, char **argv)
+i32 main (i32 argc, char **argv)
 {
-	int fds[MAX_FILES];
-	int i, j, k, l;
-	unsigned char ch, found;
-	unsigned char values[MAX_FILES];
-	unsigned char counts[MAX_FILES];
-	unsigned char files[MAX_FILES][MAX_FILES]; /* argv idx for file name */
+	i32 fds[MAX_FILES];
+	i32 i, j, k, l;
+	u8 ch;
+	bool found;
+	u8 values[MAX_FILES];
+	u8 counts[MAX_FILES];
+	u8 files[MAX_FILES][MAX_FILES]; /* argv idx for file name */
 	ssize_t rbytes;
 	size_t fidx = 0, diffs = 0;
 
@@ -75,11 +77,11 @@ int main (int argc, char **argv)
 			rbytes = read(fds[j], &ch, sizeof(ch));
 			if (rbytes < sizeof(ch))
 				return -1;
-			found = 0;
+			found = false;
 			for (k = 0; k < diffs; k++) {
 				if (ch == values[k]) {
 					counts[k]++;
-					found = 1;
+					found = true;
 					for (l = 0; l < MAX_FILES; l++) {
 						if (files[k][l] == 0) {
 							files[k][l] = i;

@@ -22,6 +22,8 @@
 	#include <iostream>
 	#include <string>
 	using namespace std;
+#else
+	#include <stdbool.h>
 #endif
 
 // Common types
@@ -37,12 +39,7 @@ typedef unsigned long ulong;
 #ifndef __linux__
 	typedef int pid_t;
 #endif
-
-#ifdef __i386__
-	typedef u32 ptr_t;
-#else
-	typedef u64 ptr_t;
-#endif
+typedef ulong ptr_t;
 
 // Common defines
 #define MAX_STACK 8

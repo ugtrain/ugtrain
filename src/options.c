@@ -91,7 +91,7 @@ void do_assumptions (struct app_options *opt)
 
 static void init_options (struct app_options *opt)
 {
-	opt->do_adapt = 0;
+	opt->do_adapt = false;
 	opt->preload_lib = NULL;
 	opt->disc_str = NULL;
 	/* no direct CLI input */
@@ -99,7 +99,7 @@ static void init_options (struct app_options *opt)
 	opt->proc_name = NULL;
 	opt->game_path = NULL;
 	opt->adp_script = NULL;
-	opt->adp_required = 0;
+	opt->adp_required = false;
 	opt->adp_req_line = 0;
 	opt->disc_addr = NULL;
 }
@@ -122,7 +122,7 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			usage();
 			break;
 		case 'A':
-			opt->do_adapt = 1;
+			opt->do_adapt = true;
 			break;
 		case 'D':
 			if (optind == argc)
