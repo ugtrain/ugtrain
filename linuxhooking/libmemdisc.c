@@ -30,6 +30,7 @@
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
+#include <execinfo.h>   /* backtrace */
 #include "../src/common.h"
 
 #define PFX "[memdisc] "
@@ -38,7 +39,7 @@
 #define BUF_SIZE PIPE_BUF/2
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
-#define MAX_BT 11
+#define MAX_BT 11   /* for reverse stack search only */
 
 #define DEBUG 0
 #if !DEBUG
@@ -82,6 +83,16 @@ static void *bt_saddr = NULL, *bt_eaddr = NULL;
 /* code address of the interesting malloc call */
 static void *code_addr = NULL;
 
+/*
+ * ATTENTION: GNU backtrace() might crash with SIGSEGV!
+ *
+ * So use it if explicitly requested only.
+ * If not, we proceed with reverse searching for code
+ * addresses on the stack without respecting any stack frames.
+ */
+static bool use_gbt = false;
+
+
 #define READ_STAGE_CFG()  \
 	rbytes = read(ifd, ibuf, sizeof(ibuf)); \
 	if (rbytes <= 0) { \
@@ -94,8 +105,9 @@ static void *code_addr = NULL;
 void __attribute ((constructor)) memdisc_init (void)
 {
 	ssize_t rbytes;
-	i32 read_tries;
+	i32 read_tries, ioffs = 0;
 	char ibuf[128] = { 0 };
+	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
 
 	sigignore(SIGPIPE);
@@ -163,7 +175,10 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	If we are lucky, the found malloc size is a rare value in the
 	 *	selected memory area. So we shouldn't find it too often. We
 	 *	don't want to see the frees here anymore. Repeating this step
-	 *	also shows us if our memory area is always applicable.
+	 *	also shows us if our heap filters are always applicable.
+	 *
+	 *	With the malloc size 0, this can also be used like stage 1 but
+	 *	with ignoring the frees.
 	 */
 	case '2':
 		READ_STAGE_CFG();
@@ -179,23 +194,67 @@ void __attribute ((constructor)) memdisc_init (void)
 		break;
 	/*
 	 * stage 3: Get the code addresses  (by backtracing)
-	 *	We search the stack memory aligned for code addresses. You need
-	 *	to disassemble the victim binary to get the address area which
-	 *	is within the .text segment. We don't respect stack frames in
+	 *	By default we search the stack memory aligned for code
+	 *	addresses. While doing so we don't respect stack frames in
 	 *	contrast to what GNU backtrace does to be less error prone.
+	 *	But the downside is that we find a lot of false positives.
+	 *
+	 *	GNU backtrace is better suited for automated adaption. If
+	 *	it works here without crashing with SIGSEGV, then it works
+	 *	in libmemhack as well and stage 4 is not required anymore.
+	 *	Insert 'gbt;' after '3;' to activate it.
+	 *
+	 *	You need to disassemble the victim binary to get the
+	 *	code address area which is within the .text segment.
+	 *	With that we can ignore invalid code addresses.
 	 */
 	case '3':
 		READ_STAGE_CFG();
-		if (sscanf(ibuf, "%p;%p;%zd;%p;%p", &heap_soffs, &heap_eoffs,
-		    &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
+		if (sscanf(ibuf, "%3s;", gbt_buf) == 1 &&
+		    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
+			use_gbt = true;
+			ioffs = sizeof(GBT_CMD);
+		}
+		if (sscanf(ibuf + ioffs, "%p;%p;%zd;%p;%p", &heap_soffs,
+		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+			if (malloc_size < 1)
+				use_gbt = false;
+			if (use_gbt)
+				fprintf(stdout, PFX "Using GNU backtrace(). "
+					"This might crash with SIGSEGV!\n");
 			stage = 3;
 			active = true;
 		} else {
 			goto parse_err;
 		}
 		break;
+	/*
+	 * stage 4/5: Get the stack offsets (if not using GNU backtrace)
+	 *	We can use this stage directly and skip stage 3 if we aren't
+	 *	using GNU backtrace. Stack offsets are determined relative to
+	 *	the stack end (__libc_stack_end). The advantage of knowing the
+	 *	stack offsets is that we can directly check in libmemhack if
+	 *	the code address is at this location which gives us better
+	 *	performance and stability. But the downside is that they are
+	 *	much more difficult to automatically adapt. There are possibly
+	 *	multiple of them and for successful adaption they all have to
+	 *	be triggered within the game. The difference between stage 4
+	 *	and 5 can only be found in ugtrain. Stage 5 is used for the
+	 *	automatic adaption there instead of initial discovery.
+	 *
+	 *	E.g. in Warzone 2100 there are three different stack offsets
+	 *	for the Droid class: Mission start, loading from savegame and
+	 *	building them.
+	 *
+	 *	Here we have improvement potential. The reverse stack offset
+	 *	would be unique for all calls of malloc for a memory class.
+	 *	But the difficulty is to determine our own stack usage in
+	 *	libmemdisc and libmemhack so that we don't use the stack
+	 *	pointer register directly for the offset. We have to subtract
+	 *	our own stack usage from it to make it work.
+	 */
 	case '4':
 	case '5':
 		READ_STAGE_CFG();
@@ -252,16 +311,16 @@ static void dump_stack_raw (void)
 
 /*
  * Backtrace by searching for code addresses on the stack without respecting
- * stack frames in contrast to GNU backtrace. If malloc is called deep inside
- * C++ ("_Znwm" function), then GNU backtrace tends to crash with SIGSEGV.
+ * stack frames in contrast to GNU backtrace. If GNU backtrace hits NULL
+ * pointers while determining the stack frames, then it crashes with SIGSEGV.
  *
  * We expect the stack pointer to be (32/64 bit) memory aligned here.
  */
-static i32 find_code_pointers (char *obuf, i32 obuf_offs)
+static bool find_code_pointers (char *obuf, i32 obuf_offs)
 {
 	void *offs, *code_ptr;
 	i32 i = 0;
-	i32 found = 0;
+	bool found = false;
 
 	printf(PFX "reg_sp: %p\n", reg_sp);
 	for (offs = reg_sp;
@@ -275,15 +334,36 @@ static i32 find_code_pointers (char *obuf, i32 obuf_offs)
 				obuf_offs += sprintf(obuf + obuf_offs, ";c%p;o%p",
 					code_ptr,
 					(void *) (__libc_stack_end - offs));
-				found = 1;
+				found = true;
 			} else if (stage == 3) {
 				obuf_offs += sprintf(obuf + obuf_offs, ";c%p",
 					code_ptr);
-				found = 1;
+				found = true;
 			}
 			i++;
 			if (i >= MAX_BT)
 				break;
+		}
+	}
+	return found;
+}
+
+/* ATTENTION: GNU backtrace() might crash with SIGSEGV! */
+static bool run_gnu_backtrace (char *obuf, i32 obuf_offs)
+{
+	bool found = false;
+	void *trace[MAX_GNUBT] = { NULL };
+	i32 i, num_taddr = 0;
+
+	num_taddr = backtrace(trace, MAX_GNUBT);
+	if (num_taddr > 1) {
+		/* skip the first code addr (our own one) */
+		for (i = 1; i < num_taddr; i++) {
+			if (trace[i] >= bt_saddr && trace[i] <= bt_eaddr) {
+				obuf_offs += sprintf(obuf + obuf_offs, ";c%p",
+					trace[i]);
+				found = true;
+			}
 		}
 	}
 	return found;
@@ -300,7 +380,8 @@ void *malloc (size_t size)
 	void *mem_addr;
 	i32 wbytes;
 	char obuf[BUF_SIZE];
-	i32 obuf_offs = 0, found = 1;
+	i32 obuf_offs = 0;
+	bool found;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
 	/* get the libc malloc function */
@@ -315,7 +396,10 @@ void *malloc (size_t size)
 		obuf_offs = sprintf(obuf, "m%p;s%zd", mem_addr, size);
 
 		if (stage >= 3) {
-			found = find_code_pointers(obuf, obuf_offs);
+			if (use_gbt)
+				found = run_gnu_backtrace(obuf, obuf_offs);
+			else
+				found = find_code_pointers(obuf, obuf_offs);
 			if (!found)
 				goto out;
 		}

@@ -457,11 +457,13 @@ void run_stage1234_loop (void *argp)
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str, cmd_str;
-	int i, ret;
+	i32 i, ret, ioffs = 0;
 	list<CfgEntry>::iterator it;
 	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr;
 	ulong mem_size;
 	char pbuf[PIPE_BUF] = { 0 };
+	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
+	bool use_gbt = false;
 
 	if (!opt->disc_str)
 		return 0;
@@ -481,9 +483,16 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '3':
+		ret = sscanf(&opt->disc_str[1], ";%3s;", gbt_buf);
+		if (ret == 1 &&
+		    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
+			use_gbt = true;
+			ioffs = sizeof(GBT_CMD);
+		}
 	case '4':
-		ret = sscanf(&opt->disc_str[1], ";%p;%p;%lu;%p;%p", &heap_soffs,
-			     &heap_eoffs, &mem_size, &bt_saddr, &bt_eaddr);
+		ret = sscanf(&opt->disc_str[1] + ioffs, ";%p;%p;%lu;%p;%p",
+			     &heap_soffs, &heap_eoffs, &mem_size, &bt_saddr,
+			     &bt_eaddr);
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
 				"stage " << opt->disc_str[0] << "!" << endl;
@@ -509,7 +518,10 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 				goto err;
 			} else {
 				disc_str = opt->disc_str[0];
-				disc_str += ";";
+				if (use_gbt)
+					disc_str += ";" GBT_CMD ";";
+				else
+					disc_str += ";";
 				disc_str += to_string(heap_soffs);
 				disc_str += ";";
 				disc_str += to_string(heap_eoffs);
