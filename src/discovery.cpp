@@ -41,6 +41,50 @@
 #define MAX_BT 11
 
 
+void take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
+		       string *cfg_path, vector<string> *lines)
+{
+	list<CfgEntry>::iterator cfg_it;
+	DynMemEntry *tmp = NULL;
+	u32 lnr, i;
+
+	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
+		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
+			continue;
+		tmp = cfg_it->dynmem;
+		tmp->code_addr = tmp->adp_addr;
+		for (i = 0; i < tmp->adp_sidx; i++) {
+			if (!opt->use_gbt)
+				tmp->stack_offs[i] = tmp->adp_soffs[i];
+			lnr = tmp->cfg_lines[i];
+			if (lnr == tmp->first_line)
+				lines->at(lnr) = "dynmemstart " + tmp->name + " "
+					+ to_string(tmp->mem_size) + " "
+					+ to_string(tmp->code_addr) + " "
+					+ to_string(tmp->stack_offs[i]);
+			else if (tmp->soffs_ign[i])
+				lines->at(lnr) = "dynmemign "
+					+ to_string(tmp->stack_offs[i]);
+			else
+				lines->at(lnr) = "dynmemstack "
+					+ to_string(tmp->stack_offs[i]);
+		}
+	}
+	// Adaption isn't required anymore
+	lnr = opt->adp_req_line;
+	if (lnr > 0)
+		lines->at(lnr) = "adapt_required 0";
+
+	// Write back config
+	cout << "Writing back config.." << endl;
+	write_config_vect(cfg_path, lines);
+
+	// Run game with libmemhack
+	opt->do_adapt = false;
+	opt->disc_str = NULL;
+	use_libmemhack(opt);
+}
+
 static void process_stage5_result (DynMemEntry *dynmem)
 {
 	u32 i;
@@ -130,7 +174,6 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
 	bool discovered = false;
-	u32 lnr, i;
 	char ch;
 
 	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
@@ -172,41 +215,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	cout << "Discovery successful!" << endl;
 
 	// Take over discovery
-	tmp = NULL;
-	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
-		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
-			continue;
-		tmp = cfg_it->dynmem;
-		tmp->code_addr = tmp->adp_addr;
-		for (i = 0; i < tmp->adp_sidx; i++) {
-			tmp->stack_offs[i] = tmp->adp_soffs[i];
-			lnr = tmp->cfg_lines[i];
-			if (lnr == tmp->first_line)
-				lines->at(lnr) = "dynmemstart " + tmp->name + " "
-					+ to_string(tmp->mem_size) + " "
-					+ to_string(tmp->code_addr) + " "
-					+ to_string(tmp->stack_offs[i]);
-			else if (tmp->soffs_ign[i])
-				lines->at(lnr) = "dynmemign "
-					+ to_string(tmp->stack_offs[i]);
-			else
-				lines->at(lnr) = "dynmemstack "
-					+ to_string(tmp->stack_offs[i]);
-		}
-	}
-	// Adaption isn't required anymore
-	lnr = opt->adp_req_line;
-	if (lnr > 0)
-		lines->at(lnr) = "adapt_required 0";
-
-	// Write back config
-	cout << "Writing back config.." << endl;
-	write_config_vect(cfg_path, lines);
-
-	// Run game with libmemhack
-	opt->do_adapt = false;
-	opt->disc_str = NULL;
-	use_libmemhack(opt);
+	take_over_config(opt, cfg, cfg_path, lines);
 	return DISC_OKAY;
 }
 

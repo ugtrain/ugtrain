@@ -636,8 +636,8 @@ skip_memhack:
 	return 0;
 }
 
-static i32 parse_adapt_result (list<CfgEntry> *cfg, char *buf,
-			       ssize_t buf_len)
+static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
+			       char *buf, ssize_t buf_len)
 {
 	char *part_end = buf;
 	ssize_t part_size, ppos = 0;
@@ -672,6 +672,9 @@ static i32 parse_adapt_result (list<CfgEntry> *cfg, char *buf,
 			if (it->dynmem && !it->dynmem->adp_addr &&
 			    it->dynmem->name == *obj_name) {
 				it->dynmem->adp_addr = code_addr;
+				if (opt->use_gbt)
+					it->dynmem->adp_sidx =
+						it->dynmem->num_stack;
 				found = 1;
 				break;
 			}
@@ -698,15 +701,14 @@ parse_err:
 	return -1;
 }
 
-static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script,
-			 char *game_path)
+static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t read_bytes;
-	const char *cmd = (const char *) adp_script;
+	const char *cmd = (const char *) opt->adp_script;
 	char *cmdv[] = {
-		adp_script,
-		game_path,
+		opt->adp_script,
+		opt->game_path,
 		NULL
 	};
 
@@ -724,7 +726,7 @@ static i32 adapt_config (list<CfgEntry> *cfg, char *adp_script,
 	else
 		cout << pbuf << endl;
 
-	if (parse_adapt_result(cfg, pbuf, read_bytes) != 0)
+	if (parse_adapt_result(opt, cfg, pbuf, read_bytes) != 0)
 		goto err;
 
 	return 0;
@@ -904,10 +906,12 @@ i32 main (i32 argc, char **argv, char **env)
 			cerr << "Error, no adaption script!" << endl;
 			return -1;
 		}
-		if (adapt_config(&cfg, opt.adp_script, opt.game_path) != 0) {
+		if (adapt_config(&opt, &cfg) != 0) {
 			cerr << "Error while code address adaption!" << endl;
 			return -1;
 		}
+		if (opt.use_gbt)
+			take_over_config(&opt, &cfg, cfg_path, &lines);
 	}
 
 discover_next:
