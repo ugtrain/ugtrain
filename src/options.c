@@ -101,6 +101,7 @@ static void init_options (struct app_options *opt)
 	opt->adp_script = NULL;
 	opt->adp_required = false;
 	opt->adp_req_line = 0;
+	opt->use_gbt = false;
 	opt->disc_addr = NULL;
 }
 

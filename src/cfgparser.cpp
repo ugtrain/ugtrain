@@ -36,7 +36,8 @@ enum {
 	NAME_DYNMEM_IGN,
 	NAME_ADAPT,
 	NAME_ADP_REQ,
-	NAME_GAME_PATH
+	NAME_GAME_PATH,
+	NAME_USE_GBT
 };
 
 static inline void proc_name_err (string *line, u32 lidx)
@@ -126,6 +127,8 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			*name_type = NAME_GAME_PATH;
 		else
 			*name_type = NAME_REGULAR;
+	} else if (ret == "use_gbt") {
+		*name_type = NAME_USE_GBT;
 	} else {
 		*name_type = NAME_REGULAR;
 	}
@@ -481,6 +484,13 @@ list<CfgEntry*> *read_config (string *path,
 
 			// Copy into C string
 			opt->game_path = to_c_str(&tmp_str);
+			break;
+
+		case NAME_USE_GBT:
+			if (in_dynmem)
+				cfg_parse_err(&line, lnr, start);
+
+			opt->use_gbt = true;
 			break;
 
 		default:

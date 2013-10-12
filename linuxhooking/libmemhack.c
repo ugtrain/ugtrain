@@ -30,6 +30,7 @@
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
+#include <execinfo.h>   /* backtrace */
 #include "../src/common.h"
 
 #define PFX "[memhack] "
@@ -53,6 +54,11 @@
 #else
 	register void *reg_sp __asm__ ("rsp");
 #endif
+
+/*
+ * ATTENTION: GNU backtrace() might crash with SIGSEGV!
+ */
+static bool use_gbt = false;
 
 /* Config structure */
 struct cfg {
@@ -101,6 +107,7 @@ void __attribute ((constructor)) memhack_init (void)
 	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
 	u32 max_obj;
 	i32 read_tries, scanned = 0;
+	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
@@ -133,6 +140,13 @@ void __attribute ((constructor)) memhack_init (void)
 	if (scanned != 1)
 		goto err;
 	SET_IBUF_OFFS(1, j);
+	if (sscanf(ibuf + ibuf_offs, "%3s;", gbt_buf) == 1 &&
+	    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
+		use_gbt = true;
+		SET_IBUF_OFFS(1, j);
+		fprintf(stdout, PFX "Using GNU backtrace(). "
+			"This might crash with SIGSEGV!\n");
+	}
 	cfg_offs = (num_cfg + 1) * sizeof(cfg_s *);  /* NULL for cfg_s* end */
 	if (cfg_offs + num_cfg * sizeof(cfg_s) > sizeof(config) ||
 	    num_cfg == 0) {
@@ -239,7 +253,8 @@ err:
 void *malloc (size_t size)
 {
 	void *mem_addr, *stack_addr;
-	i32 i, j, wbytes;
+	i32 i, j, wbytes, num_taddr = 0;
+	void *trace[MAX_GNUBT] = { NULL };
 	static void *(*orig_malloc)(size_t size) = NULL;
 
 	/* get the libc malloc function */
@@ -252,6 +267,18 @@ void *malloc (size_t size)
 		for (i = 0; config[i] != NULL; i++) {
 			if (size != config[i]->mem_size)
 				continue;
+
+			if (use_gbt) {
+				num_taddr = backtrace(trace, MAX_GNUBT);
+				if (num_taddr < 2)
+					continue;
+				/* skip the first code addr (our own one) */
+				for (j = 1; j < num_taddr; j++) {
+					if (trace[j] == config[i]->code_addr)
+						goto found;
+				}
+				continue;
+			}
 
 			for (j = 0; j < MAX_STACK; j++) {
 				stack_addr = PTR_SUB(void *, __libc_stack_end,

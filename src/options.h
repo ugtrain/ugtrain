@@ -34,6 +34,7 @@ struct app_options {
 	char	*home;
 	char	*proc_name;
 	char	*game_path;
+	bool	use_gbt;
 	void	*disc_addr;
 };
 

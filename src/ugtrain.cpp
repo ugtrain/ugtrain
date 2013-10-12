@@ -537,6 +537,11 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		goto skip_memhack;
 	}
 
+	if (opt->use_gbt) {
+		pos += snprintf(obuf + pos, sizeof(obuf) - pos,
+			";%s", GBT_CMD);
+	}
+
 	// fill the output buffer with the dynmem cfg
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
