@@ -46,11 +46,13 @@
 	#define printf(...) do { } while (0);
 #endif
 
-/* get the stack pointer (x86 only) */
-#ifdef __i386__
-	register void *reg_sp __asm__ ("esp");
-#else
-	register void *reg_sp __asm__ ("rsp");
+/*
+ * Ask gcc for the current stack frame pointer.
+ * We don't use the stack pointer as we are not interested in the
+ * stuff we have ourselves on the stack and for arch independence.
+ */
+#ifndef FIRST_FRAME_POINTER
+	# define FIRST_FRAME_POINTER  __builtin_frame_address (0)
 #endif
 
 
@@ -88,7 +90,7 @@ static void *code_addr = NULL;
  *
  * So use it if explicitly requested only.
  * If not, we proceed with reverse searching for code
- * addresses on the stack without respecting any stack frames.
+ * addresses on the stack without respecting further stack frames.
  */
 static bool use_gbt = false;
 
@@ -248,12 +250,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	for the Droid class: Mission start, loading from savegame and
 	 *	building them.
 	 *
-	 *	Here we have improvement potential. The reverse stack offset
+	 *	Here we have improvement potential: The reverse stack offset
 	 *	would be unique for all calls of malloc for a memory class.
-	 *	But the difficulty is to determine our own stack usage in
-	 *	libmemdisc and libmemhack so that we don't use the stack
-	 *	pointer register directly for the offset. We have to subtract
-	 *	our own stack usage from it to make it work.
 	 */
 	case '4':
 	case '5':
@@ -285,28 +283,32 @@ parse_err:
 	return;
 }
 
-#if 0
+#if DEBUG && 0
 /* debugging for stack backtracing */
-static void dump_stack_raw (void)
+static void dump_stack_raw (void *ffp)
 {
 	void *offs;
 	i32 col = 0;
 	i32 byte;
 
-	printf("reg_sp: %p\n\n", reg_sp);
-	for (offs = reg_sp; offs < __libc_stack_end; offs++) {
+	printf("\n");
+	for (offs = ffp; offs < __libc_stack_end; offs++) {
 		if (col >= 16) {
 			printf("\n");
 			col = 0;
 		} else if (col == 8) {
 			printf(" ");
 		}
+		if (col == 0)
+			printf("%p: ", offs);
 		byte = *(char *) offs;
 		printf(" %02x", byte & 0xFF);
 		col++;
 	}
 	printf("\n\n");
 }
+#else
+static void dump_stack_raw (void* ffp) {}
 #endif
 
 /*
@@ -314,16 +316,16 @@ static void dump_stack_raw (void)
  * stack frames in contrast to GNU backtrace. If GNU backtrace hits NULL
  * pointers while determining the stack frames, then it crashes with SIGSEGV.
  *
- * We expect the stack pointer to be (32/64 bit) memory aligned here.
+ * We expect the first frame pointer to be (32/64 bit) memory aligned here.
  */
-static bool find_code_pointers (char *obuf, i32 obuf_offs)
+static bool find_code_pointers (void *ffp, char *obuf, i32 obuf_offs)
 {
 	void *offs, *code_ptr;
 	i32 i = 0;
 	bool found = false;
 
-	printf(PFX "reg_sp: %p\n", reg_sp);
-	for (offs = reg_sp;
+	printf(PFX "ffp: %p\n", ffp);
+	for (offs = ffp;
 	     offs <= __libc_stack_end - sizeof(void *);
 	     offs += sizeof(void *)) {
 		code_ptr = (void *) *(ptr_t *) offs;
@@ -377,6 +379,7 @@ static bool run_gnu_backtrace (char *obuf, i32 obuf_offs)
 #ifdef OW_MALLOC
 void *malloc (size_t size)
 {
+	void *ffp = FIRST_FRAME_POINTER;
 	void *mem_addr;
 	i32 wbytes;
 	char obuf[BUF_SIZE];
@@ -396,10 +399,11 @@ void *malloc (size_t size)
 		obuf_offs = sprintf(obuf, "m%p;s%zd", mem_addr, size);
 
 		if (stage >= 3) {
+			dump_stack_raw(ffp);  /* debugging only */
 			if (use_gbt)
 				found = run_gnu_backtrace(obuf, obuf_offs);
 			else
-				found = find_code_pointers(obuf, obuf_offs);
+				found = find_code_pointers(ffp, obuf, obuf_offs);
 			if (!found)
 				goto out;
 		}

@@ -48,11 +48,13 @@
 	#define printf(...) do { } while (0);
 #endif
 
-/* get the stack pointer (x86 only) */
-#ifdef __i386__
-	register void *reg_sp __asm__ ("esp");
-#else
-	register void *reg_sp __asm__ ("rsp");
+/*
+ * Ask gcc for the current stack frame pointer.
+ * We don't use the stack pointer as we are not interested in the
+ * stuff we have ourselves on the stack and for arch independence.
+ */
+#ifndef FIRST_FRAME_POINTER
+	# define FIRST_FRAME_POINTER  __builtin_frame_address (0)
 #endif
 
 /*
@@ -252,6 +254,7 @@ err:
 #ifdef OW_MALLOC
 void *malloc (size_t size)
 {
+	void *ffp = FIRST_FRAME_POINTER;
 	void *mem_addr, *stack_addr;
 	i32 i, j, wbytes, num_taddr = 0;
 	void *trace[MAX_GNUBT] = { NULL };
@@ -284,7 +287,7 @@ void *malloc (size_t size)
 				stack_addr = PTR_SUB(void *, __libc_stack_end,
 					config[i]->stack_offs[j]);
 
-				if (reg_sp > stack_addr ||
+				if (ffp >= stack_addr ||
 				    *(ptr_t *)stack_addr !=
 				    (ptr_t) config[i]->code_addr)
 					continue;

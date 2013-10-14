@@ -21,7 +21,7 @@
 #
 # ### Current Limitations ###
 #
-# CPU Architecture:	x86 and x86_64 only
+# CPU Architecture:	tested with x86 and x86_64 only
 #
 # Operating System:	Linux-only
 #
@@ -29,7 +29,8 @@
 #			doesn't work for WINE, yet
 #
 # Compilation:		dyn. mem. support can't be deactivated,
-#			requires multilib support (32+64 bit) for dyn. mem.
+#			requires multilib support on 64 bit arch for dyn. mem.
+#			32-bit and x86_64 only
 #
 # GUI:			can't serve as a backend, yet
 #
