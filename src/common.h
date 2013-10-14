@@ -44,7 +44,6 @@ typedef ulong ptr_t;
 // Common defines
 #define GBT_CMD   "gbt"  /* GNU backtrace() activation cmd */
 #define MAX_GNUBT 3      /* for GNU backtrace() */
-#define MAX_STACK 8
 
 // for Windows as not in limits.h
 #ifndef PIPE_BUF

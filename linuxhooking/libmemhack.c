@@ -1,4 +1,4 @@
-/* libmemhack.c:    hacking of an unique malloc call (used by ugtrain)
+/* libmemhack.c:    hacking of unique malloc calls (used by ugtrain)
  *
  * Copyright (c) 2013, by:      Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
@@ -66,7 +66,7 @@ static bool use_gbt = false;
 struct cfg {
 	size_t mem_size;
 	void *code_addr;
-	void *stack_offs[MAX_STACK];
+	void *stack_offs;
 	u32 max_obj;
 	void **mem_addrs;  /* filled by malloc for free */
 };
@@ -192,13 +192,11 @@ void __attribute ((constructor)) memhack_init (void)
 		if (scanned != 2)
 			goto err;
 		SET_IBUF_OFFS(2, j);
-		for (k = 0; k < MAX_STACK; k++) {
-			scanned = sscanf(ibuf + ibuf_offs, "%p",
-					 &config[i]->stack_offs[k]);
-			if (scanned != 1)
-				goto err;
-			SET_IBUF_OFFS(1, j);
-		}
+		scanned = sscanf(ibuf + ibuf_offs, "%p",
+				 &config[i]->stack_offs);
+		if (scanned != 1)
+			goto err;
+		SET_IBUF_OFFS(1, j);
 
 		/* put stored memory addresses behind all cfg_s stuctures */
 		config[i]->max_obj = max_obj - 1;
@@ -231,7 +229,7 @@ void __attribute ((constructor)) memhack_init (void)
 		fprintf(stdout, PFX "config[%u]: mem_size: %zd; "
 			"code_addr: %p; stack_offs: %p\n", i,
 			config[i]->mem_size, config[i]->code_addr,
-			config[i]->stack_offs[0]);
+			config[i]->stack_offs);
 	}
 
 	if (num_cfg > 0)
@@ -283,18 +281,14 @@ void *malloc (size_t size)
 				continue;
 			}
 
-			for (j = 0; j < MAX_STACK; j++) {
-				stack_addr = PTR_SUB(void *, __libc_stack_end,
-					config[i]->stack_offs[j]);
+			/* reverse stack offset method */
+			stack_addr = PTR_ADD(void *, ffp,
+				config[i]->stack_offs);
 
-				if (ffp >= stack_addr ||
-				    *(ptr_t *)stack_addr !=
-				    (ptr_t) config[i]->code_addr)
-					continue;
-				else
-					goto found;
-			}
-			continue;
+			if (stack_addr > __libc_stack_end - sizeof(void *) ||
+			    *(ptr_t *) stack_addr !=
+			    (ptr_t) config[i]->code_addr)
+				continue;
 found:
 			printf(PFX "malloc: mem_addr: %p, code_addr: %p\n",
 				mem_addr, config[i]->code_addr);

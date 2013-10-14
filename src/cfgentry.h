@@ -51,9 +51,7 @@ public:
 	string name;
 	size_t mem_size;
 	void *code_addr;
-	void *stack_offs[MAX_STACK];
-	u8 num_stack;
-	u8 num_sign;
+	void *stack_offs;
 
 	/* later determined values */
 	vector<void *> v_maddr;    /* set by malloc calls */
@@ -64,13 +62,8 @@ public:
 
 	/* adaption */
 	void *adp_addr;               /* adapted code address */
-	void *adp_soffs[MAX_STACK];   /* adapted stack offsets */
-	bool soffs_ign[MAX_STACK];    /* stack offset for adaption only? */
-	u32 cfg_lines[MAX_STACK];     /* to write back new cfg */
-	u32 first_line;               /* dynmemstart line */
-	u8 adp_sidx;                  /* index in adapted stack offs */
-	bool discovered;
-	bool adp_failed;
+	void *adp_soffs;              /* adapted reverse stack offset */
+	u32 cfg_line;                 /* to write back new cfg */
 };
 
 class CfgEntry {

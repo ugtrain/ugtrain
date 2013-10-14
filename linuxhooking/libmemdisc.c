@@ -195,8 +195,8 @@ void __attribute ((constructor)) memdisc_init (void)
 		}
 		break;
 	/*
-	 * stage 3: Get the code addresses  (by backtracing)
-	 *	By default we search the stack memory aligned for code
+	 * stage 3: Get the code address  (by backtracing)
+	 *	By default we search the stack memory reverse for code
 	 *	addresses. While doing so we don't respect stack frames in
 	 *	contrast to what GNU backtrace does to be less error prone.
 	 *	But the downside is that we find a lot of false positives.
@@ -233,25 +233,20 @@ void __attribute ((constructor)) memdisc_init (void)
 		}
 		break;
 	/*
-	 * stage 4/5: Get the stack offsets (if not using GNU backtrace)
+	 * stage 4/5: Get the reverse stack offset  (not for GNU backtrace)
 	 *	We can use this stage directly and skip stage 3 if we aren't
-	 *	using GNU backtrace. Stack offsets are determined relative to
-	 *	the stack end (__libc_stack_end). The advantage of knowing the
-	 *	stack offsets is that we can directly check in libmemhack if
-	 *	the code address is at this location which gives us better
-	 *	performance and stability. But the downside is that they are
-	 *	much more difficult to automatically adapt. There are possibly
-	 *	multiple of them and for successful adaption they all have to
-	 *	be triggered within the game. The difference between stage 4
-	 *	and 5 can only be found in ugtrain. Stage 5 is used for the
-	 *	automatic adaption there instead of initial discovery.
+	 *	using GNU backtrace. Reverse stack offsets are determined
+	 *	relative to the current stack frame pointer. The advantage of
+	 *	knowing the reverse stack offset is that we can directly check
+	 *	in libmemhack if the code address is at this location which
+	 *	gives us better performance and stability. But the downside is
+	 *	that we have to do one more step to discover and adapt them.
 	 *
-	 *	E.g. in Warzone 2100 there are three different stack offsets
-	 *	for the Droid class: Mission start, loading from savegame and
-	 *	building them.
-	 *
-	 *	Here we have improvement potential: The reverse stack offset
-	 *	would be unique for all calls of malloc for a memory class.
+	 *	The difference between the stages 4 and 5 can only be found in
+	 *	ugtrain. Stage 5 is used for the automatic adaption there
+	 *	instead of initial discovery. For successful adaption we need
+	 *	to trigger allocation of at least one memory object per class
+	 *	in the game.
 	 */
 	case '4':
 	case '5':
@@ -335,7 +330,7 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 obuf_offs)
 			     code_ptr == code_addr)) {
 				obuf_offs += sprintf(obuf + obuf_offs, ";c%p;o%p",
 					code_ptr,
-					(void *) (__libc_stack_end - offs));
+					(void *) (offs - ffp));
 				found = true;
 			} else if (stage == 3) {
 				obuf_offs += sprintf(obuf + obuf_offs, ";c%p",
