@@ -56,24 +56,11 @@
 #
 #    +++ Dynamic memory (e.g. C++ constructor) +++:
 #
-# dynmemstart ObjName ObjSize CodeJumpBackAddrOfMalloc OffsetOfCodeAddrOnStack
+# dynmemstart ObjName ObjSize CodeJumpBackAddrOfMalloc RevOffsOfCodeAddrOnStack
 #
 #    The object size is in decimal. The rest are addresses starting with "0x".
 #    These come from the dynamic memory discovery (libmemdisc) or from the
 #    dynamic memory adaption.
-#
-# dynmemstack OffsetOfCodeAddrOnStack
-#
-#    Upto 8 stack offsets are possible. These are used when allocating objects
-#    from multiple code locations for multiple purposes (e.g. loading a Droid
-#    from a savegame and building a Droid in Warzone 2100). During adaption
-#    all these purposes have to be triggered for successful adaption.
-#
-# dynmemign OffsetOfCodeAddrOnStack
-#
-#    Like "dynmemstack" but ignored for regular use. This is for adaption
-#    only. An example is the Structure loading at mission start in Warzone
-#    2100. This is only used for opponents in single-player mode.
 #
 #    < Values + checks like in static memory but with ObjOffset as Addr >
 #
