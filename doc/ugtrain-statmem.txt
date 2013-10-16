@@ -1,0 +1,43 @@
+=== Static Memory Cheating ===
+
+Cheating static memory is very easy. Between two game runs the memory value of
+interest stays at the same memory location. In general this is everything which
+is not stored on the heap or the stack.
+
+All you need is the value name, absolute memory address, value type, wish
+value, key bindings, the initial activation state and optional checks. The
+checks are used for stability as in game main menu these could be on invalid
+value or with a new game binary the location could have changed.
+
+The value is set to the wish value every second. The syscall "ptrace" is used
+for that.
+
+
+=== Static Memory Discovery ===
+
+We always recommend the tool "scanmem" for static memory search. It uses
+"ptrace" as well and is a very sophisticated CLI tool. If the value is
+displayed the same way it is stored, it is easy to find it by entering its
+value as numbers into scanmem until there is a single match.
+
+If you are guessing that there is a static bool, then try to search for 0 for
+false and 1 for true. It may take quite some cycles to reduce the number of
+matches. C++ and standard C likely use the u8 datatype for bool but there is no
+guarantee for that. If you only see a bar, then try the commands "snapshot",
+"<", ">" and "=". If the bar decreases but you can't find it with "<", try the
+inverse logic. Please note that scanmem requires root permission if not run in
+the same process group as the game.
+
+
+=== Static Memory Adaption ===
+
+Adapting static memory is quite difficult as the game code accesses it directly
+without a library call. We need to set a memory breakpoint with a debugger like
+"gdb" upon write to the found memory address. The moment the debugger halts the
+game process, we dump the related assembly code. The difficulty is then to find
+an unique similar code part in another binary of the game like different
+compiler options, distribution or other game version. There we have to set a
+code breakpoint with the debugger to see which memory address it accesses. This
+address has to be set into the config afterwards.
+
+In most cases it is easier to do the discovery with scanmem again.
