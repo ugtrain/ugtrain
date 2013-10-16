@@ -640,6 +640,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 	string *obj_name = NULL;
 	void *code_addr = NULL;
 	list<CfgEntry>::iterator it;
+	DynMemEntry *tmp = NULL;
 	int found;
 
 	part_end = strchr(buf, ';');
@@ -664,9 +665,14 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 		// find object and set adp_addr
 		found = 0;
 		for (it = cfg->begin(); it != cfg->end(); it++) {
-			if (it->dynmem && !it->dynmem->adp_addr &&
-			    it->dynmem->name == *obj_name) {
-				it->dynmem->adp_addr = code_addr;
+			tmp = it->dynmem;
+			if (tmp && !tmp->adp_addr &&
+			    tmp->name == *obj_name) {
+				tmp->adp_addr = code_addr;
+				cout << "Class " << tmp->name
+				     << ", old_code: " << hex << tmp->code_addr
+				     << ", new_code: " << tmp->adp_addr
+				     << dec << endl;
 				found = 1;
 				break;
 			}
@@ -902,8 +908,17 @@ i32 main (i32 argc, char **argv, char **env)
 			cerr << "Error while code address adaption!" << endl;
 			return -1;
 		}
-		if (opt.use_gbt)
+		if (opt.use_gbt) {
 			take_over_config(&opt, &cfg, cfg_path, &lines);
+		} else {
+			cout << "Adapt reverse stack offset(s) (y/n)? : ";
+			fflush(stdout);
+			ch = 'n';
+			ch = do_getch();
+			cout << ch << endl;
+			if (ch != 'y')
+				take_over_config(&opt, &cfg, cfg_path, &lines);
+		}
 	}
 
 discover_next:

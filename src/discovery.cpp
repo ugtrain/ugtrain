@@ -53,7 +53,7 @@ void take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 			continue;
 		tmp = cfg_it->dynmem;
 		tmp->code_addr = tmp->adp_addr;
-		if (!opt->use_gbt)
+		if (tmp->adp_soffs)
 			tmp->stack_offs = tmp->adp_soffs;
 		lnr = tmp->cfg_line;
 		lines->at(lnr) = "dynmemstart " + tmp->name + " "
@@ -78,9 +78,7 @@ void take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 
 static void process_stage5_result (DynMemEntry *dynmem)
 {
-	cout << "Class " << dynmem->name
-	     << ", old_code: " << hex << dynmem->code_addr
-	     << ", new_code: " << dynmem->adp_addr << dec << endl;
+	cout << "Class " << dynmem->name << ":" << endl;
 	cout << "old_offs: " << hex << dynmem->stack_offs
 	     << ", new_offs: " << dynmem->adp_soffs << dec << endl;
 }
@@ -105,9 +103,9 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 			continue;
 		}
 		if (!(tmp->adp_addr && tmp->adp_soffs)) {
-			cout << "Undiscovered class(es) found!" << endl;
 			if (discovered) {
-				cout << "Next discovery run (y/n)? : ";
+				cout << "Continue with class " << tmp->name
+				     << " (y/n)? : ";
 				fflush(stdout);
 				ch = 'n';
 				ch = do_getch();
@@ -115,6 +113,8 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 				if (ch == 'y') {
 					opt->disc_str[1] = '\0';
 					return DISC_NEXT;
+				} else {
+					goto out_wb;
 				}
 			}
 			cerr << "Discovery failed!" << endl;
@@ -123,6 +123,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	}
 	cout << "Discovery successful!" << endl;
 
+out_wb:
 	// Take over discovery
 	take_over_config(opt, cfg, cfg_path, lines);
 	return DISC_OKAY;
@@ -477,10 +478,11 @@ found:
 				disc_str += to_string(it->dynmem->adp_addr);
 			}
 			opt->disc_str = to_c_str(&disc_str);
-			cout << "Discovering object " << it->dynmem->name
-			     << "." << endl
-			     << "Please ensure that it gets allocated!" << endl;
-			cout << "disc_str: " << opt->disc_str << endl;
+			cout << "Discovering class " << it->dynmem->name
+			     << " stack offset." << endl
+			     << "Please ensure that such objects get "
+				"allocated!" << endl
+			     << "disc_str: " << opt->disc_str << endl;
 		}
 		break;
 	default:
