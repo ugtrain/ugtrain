@@ -121,7 +121,7 @@ void __attribute ((constructor)) memhack_init (void)
 	}
 	printf(PFX "ifd: %d\n", ifd);
 
-	printf(PFX "Waiting for output FIFO opener..\n");
+	fprintf(stdout, PFX "Waiting for output FIFO opener..\n");
 	ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (ofd < 0) {
 		perror(PFX "open output");
