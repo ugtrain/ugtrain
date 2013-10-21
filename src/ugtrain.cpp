@@ -465,18 +465,36 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 	}
 }
 
-static i32 run_game (char *game_path)
+static i32 run_game (struct app_options *opt)
 {
 	i32 ret;
-	const char *cmd = (const char *) game_path;
+	const char *cmd;
 	char *cmdv[2];
+	string cmd_str = string("");
 
-	cmdv[0] = game_path;
-	cmdv[1] = NULL;
+	if (!opt->pre_cmd) {
+		cmd = (const char *) opt->game_path;
 
-	cout << "$ " << cmdv[0] << " &" << endl;
+		cmdv[0] = opt->game_path;
+		cmdv[1] = NULL;
 
-	ret = run_cmd_bg(cmd, cmdv, false);
+		cout << "$ " << cmdv[0] << " &" << endl;
+
+		ret = run_cmd_bg(cmd, cmdv, false, false);
+	} else {
+		if (opt->use_glc) {
+			cmd_str += GLC_PRELOADER;
+			cmd_str += " ";
+		}
+		cmd_str += opt->pre_cmd;
+		cmd_str += " ";
+		cmd_str += opt->game_path;
+		cmd = cmd_str.c_str();
+
+		cout << "$ " << cmd << " &" << endl;
+
+		ret = run_cmd_bg(cmd, cmdv, false, true);
+	}
 	if (ret)
 		goto err;
 
@@ -487,21 +505,43 @@ err:
 }
 
 #ifdef __linux__
-static i32 run_preloader (char *preload_lib, char *game_path)
+static i32 run_preloader (struct app_options *opt)
 {
 	i32 ret;
-	const char *cmd = (const char *) PRELOADER;
+	const char *cmd;
 	char *cmdv[4];
+	string cmd_str = string("");
 
-	cmdv[0] = (char *) PRELOADER;
-	cmdv[1] = preload_lib;
-	cmdv[2] = game_path;
-	cmdv[3] = NULL;
+	if (!opt->pre_cmd) {
+		cmd = (const char *) PRELOADER;
 
-	cout << "$ " << cmdv[0] << " " << cmdv[1]
-	     << " " << cmdv[2] << " &" << endl;
+		cmdv[0] = (char *) PRELOADER;
+		cmdv[1] = opt->preload_lib;
+		cmdv[2] = opt->game_path;
+		cmdv[3] = NULL;
 
-	ret = run_cmd_bg(cmd, cmdv, false);
+		cout << "$ " << cmdv[0] << " " << cmdv[1]
+		     << " " << cmdv[2] << " &" << endl;
+
+		ret = run_cmd_bg(cmd, cmdv, false, false);
+	} else {
+		if (opt->use_glc) {
+			cmd_str += GLC_PRELOADER;
+			cmd_str += " ";
+			cmd_str += opt->pre_cmd;
+			cmd_str += " --preload=";
+			cmd_str += opt->preload_lib;
+		} else {
+			cmd_str += opt->pre_cmd;
+		}
+		cmd_str += " ";
+		cmd_str += opt->game_path;
+		cmd = cmd_str.c_str();
+
+		cout << "$ " << cmd << " &" << endl;
+
+		ret = run_cmd_bg(cmd, cmdv, false, true);
+	}
 	if (ret)
 		goto err;
 
@@ -611,7 +651,7 @@ skip_memhack:
 	/* Run the preloaded game but not as root */
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting preloaded game.." << endl;
-		run_preloader(opt->preload_lib, opt->game_path);
+		run_preloader(opt);
 	}
 
 	cout << "Waiting for preloaded game.." << endl;
@@ -940,7 +980,7 @@ prepare_dynmem:
 				return -1;
 #endif
 			cout << "Starting the game.." << endl;
-			run_game(opt.game_path);
+			run_game(&opt);
 			sleep_sec(1);
 			pid = proc_to_pid(opt.proc_name);
 			if (pid < 0)

@@ -44,6 +44,11 @@ PROG_NAME " is an advanced universal game trainer for the CLI\n"
 "			code addresses and their stack offsets - without\n"
 "			\'-D\' discovery step 5 (finding stack offset) is\n"
 "			assumed	using the new code address (rejects if root)\n"
+"--pre-cmd=<str>:	together with \'-P\' it is possible to specify a\n"
+"			custom preloader command like \'" GLC_PRELOADER "\'\n"
+"--glc[=str]:		run \'" GLC_PRELOADER "\' instead of \'"
+				PRELOADER "\' with the\n"
+"			given options for video recording while cheating\n"
 ;
 
 void usage()
@@ -58,6 +63,8 @@ static struct option long_options[] = {
 	{"adapt",          0, 0, 'A'},
 	{"discover",       1, 0, 'D'},
 	{"preload",        2, 0, 'P'},
+	{"pre-cmd",        1, 0,  0 },
+	{"glc",            2, 0,  0 },
 	{0, 0, 0, 0}
 };
 
@@ -94,6 +101,8 @@ static void init_options (struct app_options *opt)
 	opt->do_adapt = false;
 	opt->preload_lib = NULL;
 	opt->disc_str = NULL;
+	opt->pre_cmd = NULL;
+	opt->use_glc = false;
 	/* no direct CLI input */
 	opt->home = NULL;
 	opt->proc_name = NULL;
@@ -107,7 +116,7 @@ static void init_options (struct app_options *opt)
 
 void parse_options (i32 argc, char **argv, struct app_options *opt)
 {
-	i32 ch = '\0', prev_ch = '\0', opt_idx;
+	i32 ch = '\0', prev_ch = '\0', opt_idx = 0;
 
 	init_options(opt);
 
@@ -119,6 +128,19 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			break;
 
 		switch (ch) {
+		case 0:
+			if (strncmp(long_options[opt_idx].name,
+			    "glc", 3) == 0) {
+				if (optind == argc || !optarg)
+					opt->pre_cmd = "";
+				else
+					opt->pre_cmd = optarg;
+				opt->use_glc = true;
+			} else if (strncmp(long_options[opt_idx].name,
+			    "pre-cmd", sizeof("pre-cmd") - 1) == 0) {
+				opt->pre_cmd = optarg;
+			}
+			break;
 		case 'h':
 			usage();
 			break;

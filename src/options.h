@@ -22,11 +22,14 @@
 
 #define PROG_NAME  "ugtrain"
 #define PRELOADER  "ugpreload"
+#define GLC_PRELOADER "glc-capture"
 
 struct app_options {
 	bool	do_adapt;
 	char	*preload_lib;
 	char	*disc_str;
+	char	*pre_cmd;
+	bool	use_glc;
 	/* no direct CLI input */
 	bool	adp_required;
 	u32	adp_req_line;

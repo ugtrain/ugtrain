@@ -42,7 +42,7 @@ extern "C" {
 	char    *get_abs_app_path (char *app_name);
 	pid_t   proc_to_pid (char *proc_name);
 	i32     run_cmd_bg (const char *cmd, char *const cmdv[],
-			    bool do_wait);
+			    bool do_wait, bool use_shell);
 	ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
 			      char *pbuf, size_t pbuf_size, bool use_shell);
 	i32     fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp);

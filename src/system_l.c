@@ -71,10 +71,15 @@ err:
 /*
  * Run a command with execvp in background.
  *
- * Parameters: execvp params, wait for the process 0/1
+ * Parameters: execvp params, wait for the process 0/1,
+ *             run the command in a shell 0/1
  * Returns: 0 for success, -1 for failure
+ *
+ * Please note: If the shell is used, then execlp is
+ *              used with cmd and cmdv[] is ignored.
  */
-i32 run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait)
+i32 run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
+		bool use_shell)
 {
 	pid_t pid;
 	i32 status;
@@ -84,7 +89,10 @@ i32 run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait)
 		perror("fork");
 		goto err;
 	} else if (pid == 0) {
-		if (execvp(cmd, cmdv) < 0) {
+		if (use_shell && execlp(SHELL, SHELL, "-c", cmd, NULL) < 0) {
+			perror("execlp");
+			goto child_err;
+		} else if (execvp(cmd, cmdv) < 0) {
 			perror("execvp");
 			goto child_err;
 		}
