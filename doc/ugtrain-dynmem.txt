@@ -1,0 +1,126 @@
+=== Dynamic Memory Cheating ===
+
+Cheating dynamic memory always requires a preloader which loads a memory
+hacking library into the game process. The ugtrain uses "ugpreload" and
+"libmemhack" for that. The library gets the unique code addresses of unique
+"malloc" calls and their reverse stack offsets as a config through a FIFO.
+In return it tells the user of how many memory objects per memory class it can
+keep track of. This is important for the freeing of the objects. If ugtrain
+wouldn't be informed about the freeing, then this can cause major game
+stability issues. Value locations are used as offsets within the objects. They
+become only active if at least one object has been allocated. The lib sends
+the code and the memory address through a second FIFO to ugtrain. We can use
+a special check if the allocated object belongs to us or otherwise an opponent.
+If it fails, it removes the object from the active ugtrain in-memory config.
+The rest works the same way as with static memory.
+
+The CLI option '-P' is recommended for this. With that libmemhack is preloaded
+and the game is started automatically. The advantage is that root permissions
+aren't required.
+
+Required config options: "dynmemstart", "dynmemend"
+Related config options: "checko"
+FIFOs: /tmp/memhack_in, /tmp/memhack_out
+
+
+=== Dynamic Memory Discovery ===
+
+For discovery another library is required ("libmemdisc"). This one takes a
+stage number and the stage parameters as config and is preloaded with ugpreload
+as well.
+
+Discovery is done in the following stages:
+
+1. Find the malloc size           (all mallocs and frees are recorded)
+2. Verify the malloc size         (frees are ignored)
+3. Find the code address
+4. Find the reverse stack offset
+
+The ugtrain option '-D' helps with that. It assumes '-P' and libmemdisc. All
+we need are the following stage parameters for the '-D' option:
+
+1. "StageNr[;HeapStartOffs;HeapEndOffs]"
+2. "StageNr[;HeapStartOffs;HeapEndOffs;MemSize]"
+3. "StageNr;HeapStartOffs;HeapEndOffs;MemSize[;CodeStart;CodeEnd]"
+4. "StageNr;HeapStartOffs;HeapEndOffs;MemSize[;CodeStart;CodeEnd][;CodeAddr]"
+
+Examples:
+
+1. "1", "1;0x0;0x0", "1;0x200000;0x350000"
+2. "2", "2;0x0;0x0;0", "2;0x200000;0x350000;288"
+3. "3;0x0;0x0;288", "3;0x200000;0x350000;288;0x404d50;0x425c88"
+4. "4;0x0;0x0;288", "4;0x200000;0x350000;288;0x404d50;0x425c88;0x40f4e7"
+
+You see, we can also do this in only two stages: stages 2 and 4. Size 0 means
+that all sizes are recorded in stage 2. The ugtrain expands the first example
+string to the second in stages 1 and 2. 0x0;0x0 in the heap filter means
+unfiltered. The libmemdisc tells you about heap start and stack end. In stages
+3 and 4 ugtrain finds out the code start and end for you by "objdump -p"-based
+binary header extraction. Only the malloc size is important there.
+
+Returns:
+
+1. "m0x87acd0;s288", "f0x87acd0"
+--> 'm' for malloc and 'f' for free, the address is the memory address of
+the object, 's' is the size in bytes
+2. "m0x87acd0;s288"
+3. "m0x87acd0;s288;c0x40f4e7;c0x417801"
+--> 'c' is the code address in the backtrace
+4. "m0x87acd0;s288;c0x40f4e7;o0x28;c0x417801;o0x48"
+--> 'o' is the reverse stack offset of the code address
+
+The results are written with caching directly from /tmp/memhack_out into the
+file /tmp/memhack_file. After ending the game ugtrain asks you for a memory
+address from parallel static memory search. Enter it and ugtrain will search
+for the matching malloc calls. It is very likely that interesting objects
+are kept until game end. So they should be at the end of that list. But as in
+stage 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
+that list and the interesting malloc is at the top. This way you can interrupt
+the symbol lookup earlier.
+
+Example stage 2:
+
+$ ugtrain -D "2" examples/chromium-bsu64.conf
+...
+Memory address (e.g. 0xdeadbeef): 0x87ad8c
+Searching reverse for 0x87ad8c in discovery output..
+m0x87acd0;s288 contains 0x87ad8c, offs: 0xbc, heap offs: 0x2257f0
+m0x87acd0;s344 contains 0x87ad8c, offs: 0xbc, heap offs: 0x2257f0
+m0x87acd0;s344 contains 0x87ad8c, offs: 0xbc, heap offs: 0x2257f0
+...
+
+This shows us that the malloc size is 288 bytes and the offset in the object
+is 0xbc (used the lives in the HeroAircraft object in Chromium B.S.U. 64-bit).
+We also get to know the heap offset.
+
+Example stage 4:
+
+$ ugtrain -D "4;0x0;0x0;288" examples/chromium-bsu64.conf
+...
+Memory address (e.g. 0xdeadbeef): 0x8a605c
+Searching reverse for 0x8a605c in discovery output..
+m0x8a5fa0;s288 contains 0x8a605c, offs: 0xbc, heap offs: 0x250ac0
+c0x40f4e7;o0x28 <_Znwm@plt>
+c0x417801;o0x48
+c0x404be6;o0x78
+...
+
+Only <*@plt> direct library calls are displayed and "_Znwm" on the first
+position is exactly what we are looking for. It is a C++ internal function
+which calls "malloc" internally. On 32-bit systems it is called "_Znwj".
+We can see the reverse stack offset is 0x28. It would be lower if "malloc"
+would have been called directly from the game binary (e.g. 0x8). We also
+get to know the code jump back address 0x40f4e7.
+
+That's it! We can write a basic config for the lives in chromium-bsu. We
+start with a watcher in order to verify that our findings are correct.
+
+chromium-bsu
+dynmemstart HeroAircraft 288 0x40f4e7 0x28
+Lives 0xbc i32 watch
+dynmemend
+
+$ ugtrain -P test.conf
+
+
+=== Dynamic Memory Adaption ===
