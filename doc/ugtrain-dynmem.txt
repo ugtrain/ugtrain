@@ -123,4 +123,40 @@ dynmemend
 $ ugtrain -P test.conf
 
 
+=== Finding more Values in Dynamic Memory ===
+
+In the game we can use the object dump now by pressing the '>' key. For our
+example there should be the HeroAircraft object dumped as "0_000.dump". Before
+the '_' there is the class index and after it the object index. Just compare
+two dumps: when you are low on everything and when you are high on everything.
+This way you can easily find other values like ammo and shields. A zero is also
+with a float a zero in hex. The .dump files are binary files so either you use
+a binary diff tool or you convert it into text first and use a text diff tool
+like e.g. "meld". Conversion can be done as follows:
+
+$ xxd 0_000.dump > 0_000.dump.txt
+
+The tool "xxd" is part of the "vim" package.
+
+If you've got a lot of objects and don't know exactly which ones are yours and
+which ones are enemies, use the binary diff tool "ugsimfind". It compares upto
+100 object files byte by byte and tells you for each byte its value as well as
+how many and which files have the same value. This is very very useful if you
+are searching the u8 player ID in Warzone 2100 Droids. Use it as follows:
+
+$ ugsimfind 0_*.dump | less
+
+fidx: 0x22
+0x00 '.' : 7    0_000.dump, 0_001.dump, 0_042.dump, 0_043.dump, 0_044.dump,
+0_045.dump, 0_046.dump,
+0x07 '.' : 26   0_002.dump, 0_003.dump, 0_004.dump, 0_005.dump, 0_006.dump,
+0_007.dump, 0_008.dump, ...,
+0x06 '.' : 14   0_010.dump, 0_011.dump, 0_012.dump, 0_019.dump, 0_020.dump,
+0_021.dump, 0_022.dump, ...,
+
+The campaign starts with 7 own Droids and 40 enemies in Warzone 2100. From the
+name string we know that these are exactly these 7. We have player ID 0 and the
+AI has ID 6 and ID 7. So at offset 0x22 is our player ID.
+
+
 === Dynamic Memory Adaption ===
