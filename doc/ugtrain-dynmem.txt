@@ -3,24 +3,84 @@
 Cheating dynamic memory always requires a preloader which loads a memory
 hacking library into the game process. The ugtrain uses "ugpreload" and
 "libmemhack" for that. The library gets the unique code addresses of unique
-"malloc" calls and their reverse stack offsets as a config through a FIFO.
-In return it tells the user of how many memory objects per memory class it can
-keep track of. This is important for the freeing of the objects. If ugtrain
-wouldn't be informed about the freeing, then this can cause major game
-stability issues. Value locations are used as offsets within the objects. They
-become only active if at least one object has been allocated. The lib sends
-the code and the memory address through a second FIFO to ugtrain. We can use
-a special check if the allocated object belongs to us or otherwise an opponent.
-If it fails, it removes the object from the active ugtrain in-memory config.
-The rest works the same way as with static memory.
+"malloc()" calls and their reverse stack offsets as a config through a FIFO.
+The lib reports back through another FIFO which objects have been allocated
+to which memory addresses. It also keeps track of these memory addresses and
+sends the information about the freeing of these memory objects through the
+output FIFO. This is required for stability.
+You can call this "dynamic memory spying" if you will.
 
-The CLI option '-P' is recommended for this. With that libmemhack is preloaded
-and the game is started automatically. The advantage is that root permissions
-aren't required.
+== Details ==
+
+The preloader ugpreload only appends libmemhack to the environment variable
+"LD_PRELOAD" and runs the game. The dynamic loader "ld.so" does the rest. You
+can choose another preloader if you want like "glc-capture" for recording a
+game cheating video. But please ensure that libmemhack is loaded first into
+the game process. See the "--pre-cmd" and "--glc" ugtrain options.
+
+The lib has a constructor function, a malloc() and a free() hook. It wraps
+these functions. In the constructor the lib opens the input and the output
+FIFO and tries for 1 second to read the config. If there is no config or there
+is an error in the config, then it doesn't get active. This means that it
+operates like libc malloc() and free(). But activated, it compares for each
+malloc first the malloc size and then the code address at the reverse stack
+offset with the config. If it matches, it sends the code and the memory address
+(returned by libc malloc) through the FIFO. The memory address is put into the
+in-memory config to be used for the free() hook. There we only compare memory
+addresses in order to find a free() which is relevant to be reported for now.
+One could think about backtracing there as well for optimization but how to
+discover/adapt that and ensure that we've found all free() calls for that
+class?!
+
+The in-memory config is at a static memory location and uses a fixed size of
+e.g. four memory pages (4 * 4096 bytes). In this memory area libmemhack stores
+all important data like config pointers, config entries and the memory
+addresses of the currently allocated objects. These are filled with an invalid
+pointer value in the constructor and the last value is always that invalid
+pointer. This way free() only iterates until it hits an invalid pointer. The
+found memory address is set to NULL and malloc() can re-use it. This way the
+first invalid pointer represents the number of objects which had to be kept
+track of at once. The more objects there are, the slower it gets. All this is
+quite hacky but it's the most flexible way with performance in mind.
+
+Note: The constructor tells the user of how many memory objects per memory
+class libmemhack can keep track of. The more classes you cheat, the less it
+gets. And don't worry: libmemhack gets an own independent memory area for its
+config data. So static memory cheating works no matter if libmemhack is
+preloaded or not.
+
+== ugtrain Specialties ==
+
+The CLI option '-P' is recommended for dynamic memory cheating. With that
+libmemhack is preloaded and the game is started automatically. The advantage
+is that root permissions (for ptrace) aren't required - same process group!
 
 Required config options: "dynmemstart", "dynmemend"
 Related config options: "checko"
 FIFOs: /tmp/memhack_in, /tmp/memhack_out
+
+Value locations are used as offsets within the objects. They become only active
+if at least one object has been allocated. The lib sends the code and the
+memory address through the FIFO to ugtrain. The ugtrain appends this to a
+vector of memory addresses in the right memory class then. It also grows the
+old value vectors per configured value in that class. This way ugtrain always
+knows which value was in memory before changing it and can show it to the user.
+Displaying all values at once would be too much. This is why ugtrain uses a
+print index. With the keys '+' and '-' the print index for all memory classes
+is increased or decreased. In case you need a snapshot/dump of all objects, use
+the '>' key.
+
+We can use a special check ("checko") if the allocated object belongs to us or
+otherwise an opponent. If it fails, it removes the object from the active
+ugtrain in-memory config by setting its memory address to NULL. Following
+values in that object are not processed anymore. After leaving the critical
+section, the object is cleaned up in the vectors and the user is informed. This
+behaves very similar like having received a free() from libmemhack.
+
+But keep in mind: libmemhack doesn't know about that. It still tracks kicked-
+out objects and will send a free() for these.
+
+The rest works the same way as with static memory.
 
 
 === Dynamic Memory Discovery ===
@@ -74,7 +134,7 @@ file /tmp/memhack_file. After ending the game ugtrain asks you for a memory
 address from parallel static memory search. Enter it and ugtrain will search
 for the matching malloc calls. It is very likely that interesting objects
 are kept until game end. So they should be at the end of that list. But as in
-stage 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
+stages 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
 that list and the interesting malloc is at the top. This way you can interrupt
 the symbol lookup earlier.
 
