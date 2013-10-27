@@ -71,18 +71,28 @@
 #
 # There are universal checks implemented. These prevent changing values e.g.
 # while being in the game main menu or making an opponent immortal by accident
-# in a vector. This makes static memory freezing a lot safer.
+# in an array. This makes static memory freezing a lot safer.
+#
+# It is also planned to provide static memory adaption. This can be quite
+# difficult as memory is accessed directly and we have to use a debugger to
+# find the related code part in the game binary. The goal is that static memory
+# search has to be done only once.
+#
+# Furthermore, a REAL game trainer doesn't require own static memory search. If
+# the memory location changes between game runs, then this memory value is not
+# static and dynamic memory cheating is required.
 #
 #
 # ### Dynamic Memory ###
 #
 # Why is dynamic memory so important and how to hack it?
 #
-# Since leaving the good old DOS times, games aren't implemented in C any more
-# but instead object-oriented with e.g. C++. Objects are stored on the heap
-# memory. But modern operating systems use heap and stack randomization for
-# security. The only thing which remains constant is the code jump-back address
-# of the malloc call and its (reverse) offset on the stack memory.
+# Since leaving the good old DOS times, games aren't implemented with pure
+# static memory in C any more but instead object-oriented with e.g. C++.
+# Memory objects are stored dynamically on the heap. But modern operating
+# systems use heap and stack randomization for security. The only thing which
+# remains constant is the code jump-back address of the malloc call and its
+# (reverse) offset on the stack.
 #
 # With ugpreload, libmemdisc and static memory search in parallel you can
 # easily discover the code address and register with libmemhack as well as
@@ -96,33 +106,33 @@
 # In the meanwhile there is a lot of automation and simplification implemented
 # so that the options -P and -D will help you with that. The option -P ensures
 # that ugtrain runs the game in the same process group. This way root is not
-# required any more. The libmemhack is automatically preloaded. With -D the
-# libmemdisc is preloaded instead and after recording the malloc calls it
-# searches reverse for the found memory address from static memory search.
-# This way you get a list of all matching mallocs. Most of the time the last
-# malloc call is the correct one as interesting objects are kept until game
-# end. Especially the function name lookup is a bit slower as we have to search
-# in the "objdump -D"-based disassembly for the function names. You can
-# interrupt this if the relevant "malloc", "_Znwm" or "_Znwj" call has been
-# found already. This is why the matches are reversed and the interesting
-# malloc is at the top.
+# required any more. The libmemhack is automatically preloaded if -P doesn't
+# get an argument. With -D the libmemdisc is preloaded instead and after
+# recording the malloc calls it searches reverse for the found memory address
+# from static memory search.
+#
+# See doc/ugtrain-dynmem.txt for details!
 #
 # There is also automatic adaption to game version/compiler/distribution
 # differences. Please have a look at the -A option. The examples will ask
 # you for automatic adaption the first time you run them. You should do
 # so and a shell script based on "objdump -D" and "grep" is called to find
-# the correct code addresses of your game binary. With that the discovery is
+# the correct code addresses in your game binary. With that the discovery is
 # run to find the reverse stack offset per memory class. With everything
-# adapted the game starts automatically with the new config and it is written
-# back to disk.
+# adapted the config is written back to disk and the game starts automatically
+# with the new config and libmemhack.
+#
+# You see, dynamic memory cheating really separates the noobs from the pros!
+# But as ugtrain is an education project, we show you in detail how it works.
 #
 # Why using the reverse stack offset and not GNU backtrace()?
 #
-# Oh, you can use GNU backtrace() with the config option "use_gbt". Then, the
-# configured reverse stack offsets are ignored. But the game may crash with
-# SIGSEGV if it hits a NULL pointer while backtracing and it is slower as it
-# has to iterate through the stack frames. This is why we limit the depth to
-# 3 code addresses. You see, it makes sense to use the reverse stack offset.
+# Oh, you can use GNU backtrace() with the config option "use_gbt" and with the
+# stage 3 discovery string "3;gbt;0x0;0x0;<mem_size>". Then, the configured
+# reverse stack offsets are ignored. But the game may crash with SIGSEGV if it
+# hits a NULL pointer while backtracing and it is slower as it has to iterate
+# through the stack frames. This is why we limit the depth to 3 code addresses.
+# You see, it makes sense to use the reverse stack offset.
 #
 # Please read 'TODO' for further information.
 
@@ -148,11 +158,12 @@ sudo make install
 # (optional:) ensure $PATH includes /usr/local/bin
 PATH=$PATH:/usr/local/bin
 
-# (optional:) ensure $LD_PATH includes /usr/local/lib*
+# (optional:) ensure $LD_PATH or $LD_LIBRARY_PATH includes /usr/local/lib*
 LD_PATH=$LD_PATH:/usr/local/lib:/usr/local/lib64
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib64
 
 # These pathes simplify file usage. Where to set these environment
-# variables is distribution-specific.
+# variables is distribution-specific. See "man ld.so".
 
 # "objdump" and "scanmem" should be installed as well.
 
@@ -164,7 +175,7 @@ LD_PATH=$LD_PATH:/usr/local/lib:/usr/local/lib64
 ugtrain [options] <config>[.conf]
 
 # This searches in the current working directory for the <config>.conf.
-# If it can't find it there it tries ~/.ugtrain/<config>.conf.
+# If it can't find it there, it tries ~/.ugtrain/<config>.conf.
 
 # For details use:
 ugtrain --help
@@ -186,6 +197,9 @@ ugtrain -A examples/chromium-bsu64
 
 # Please send your patches and improvement suggestions to:
 ugtrain-devel@lists.berlios.de
+
+# Note: This list has public archives. So please don't send
+# anything illegal (like commercial game configs) there.
 
 # And/or if you like Open Game Cheating and want to show it
 # by becoming a member of the Open Game Cheating Association,
@@ -210,3 +224,20 @@ https://github.com/OpenGameCheatingAssociation/og-cheating
 # Web Designer
 #
 # Your help is very much appreciated!
+#
+# The more you help, the faster ugtrain development goes! The
+# more people help, the less likely it becomes that this project
+# is thrown to the graveyard of discontinued FOSS projects.
+#
+# Homebrew FOSS is the most honest form of FOSS. It takes a lot of
+# passion and sacrifice to start a homebrew FOSS project alone and
+# to keep it running without commercial interest. We make our money
+# with something else. So we only have improving the software in mind.
+#
+# We don't want your money, we want your help! Testing this tool
+# and reporting your experience back to the mailing list is already
+# very good contribution. We want to improve our software and we want to
+# see that our sacrifice is honored to motivate us continuing the work.
+# You get mentioned as a contributor in return. This makes you and your
+# skills better known. It can also help you with jobs in commercial
+# environments as you can prove your skills and interests.
