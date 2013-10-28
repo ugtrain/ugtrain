@@ -220,3 +220,54 @@ AI has ID 6 and ID 7. So at offset 0x22 is our player ID.
 
 
 === Dynamic Memory Adaption ===
+
+Example configs will ask you if you want to do adaption when using them for the
+first time. You should accept. This looks e.g. like this:
+
+$ ugtrain -P examples/chromium-bsu64
+...
+Adaption to your compiler/game version is required.
+Adaption script: examples/adapt/chromium-bsu_adapt64.sh
+Run the adaption script, now (y/n)? : y
+
+If you're not sure here, just take a look at the adaption shell script. It
+searches for an unique call to "_Znwm", "_Znwj" or "malloc" in the disassembly
+(objdump -D) of the game binary. If it fails, it doesn't return anything. Then,
+you have to do full discovery or try to set the option "DEBUG=1" in
+examples/adapt/_common_adapt.sh and to run the adaption script alone.
+
+In our case it succeeds:
+...
+Adaption return:
+1;HeroAircraft;0x410e17
+Class HeroAircraft, old_code: 0x40f4e7, new_code: 0x410e17
+Adapt reverse stack offset(s) (y/n)? : y
+
+Most of the time the reverse stack offset is always the same but just in case
+that there was a change from "malloc" to "_Znwm"/"_Znwj", we can adapt it here.
+If the malloc size changed as well, then there is likely another config for
+that specific game version. In examples it is noted for which game versions
+they work adapted. If you say "n" here, then we are ready and the config is
+written back.
+But if you say "y", the game starts with a discovery stage 5 string. E.g:
+"5;0x0;0x0;288;0x410e17;0x410e17;0x410e17". This behaves like stage 4. The
+difference is in the processing in ugtrain. All you need to do in the game
+is that at least one object of the currently discovered memory class gets
+allocated. This also repeats until all classes are discovered and then the
+config is written back. The config command "adapt_required" is set to "0"
+so that you don't get bothered with the adaption wish again.
+
+...
+Class HeroAircraft:
+old_offs: 0x28, new_offs: 0x28
+Discovery successful!
+Writing back config..
+...
+
+After successful adaption the game is started automatically with libmemhack
+preloaded and you can see if the new config works.
+
+You can also trigger this procedure explicitly with the -A option.
+
+E.g.:
+$ ugtrain -A examples/chromium-bsu64
