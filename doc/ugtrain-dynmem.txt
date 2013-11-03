@@ -55,7 +55,7 @@ The CLI option '-P' is recommended for dynamic memory cheating. With that
 libmemhack is preloaded and the game is started automatically. The advantage
 is that root permissions (for ptrace) aren't required - same process group!
 
-Required config options: "dynmemstart", "dynmemend"
+Required config options: "dynmemstart", "dynmemend", >= one value inside
 Related config options: "checko"
 FIFOs: /tmp/memhack_in, /tmp/memhack_out
 
@@ -138,9 +138,24 @@ stages 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
 that list and the interesting malloc is at the top. This way you can interrupt
 the symbol lookup earlier.
 
+Discovery preparation:
+
+Write the process name of the game into a config file. The PID is determined
+from that and it must be located in the first line. We use the game Chromium
+B.S.U. 64-bit as an example here.
+
+$ echo "chromium-bsu" > test.conf
+
+Optional:
+
+If the game is not in the PATH env. var., then we can add an absolute path but
+it has to end with the process name.
+
+$ echo "game_path /usr/games/bin/chromium-bsu" >> test.conf
+
 Example stage 2:
 
-$ ugtrain -D "2" examples/chromium-bsu64.conf
+$ ugtrain -D "2" test.conf
 ...
 Memory address (e.g. 0xdeadbeef): 0x87ad8c
 Searching reverse for 0x87ad8c in discovery output..
@@ -155,7 +170,7 @@ We also get to know the heap offset.
 
 Example stage 4:
 
-$ ugtrain -D "4;0x0;0x0;288" examples/chromium-bsu64.conf
+$ ugtrain -D "4;0x0;0x0;288" test.conf
 ...
 Memory address (e.g. 0xdeadbeef): 0x8a605c
 Searching reverse for 0x8a605c in discovery output..
@@ -170,17 +185,38 @@ position is exactly what we are looking for. It is a C++ internal function
 which calls "malloc" internally. On 32-bit systems it is called "_Znwj".
 We can see the reverse stack offset is 0x28. It would be lower if "malloc"
 would have been called directly from the game binary (e.g. 0x8). We also
-get to know the code jump back address 0x40f4e7.
+get to know the jump-back code address 0x40f4e7.
 
 That's it! We can write a basic config for the lives in chromium-bsu. We
-start with a watcher in order to verify that our findings are correct.
+start with a watcher in order to verify that our findings are correct. It
+is often better to use the smallest possible data type. Later it can be
+possibly discovered that a larger type is used. E.g. here when letting
+too many enemies through, the lives are set to -1 (0xffffffff). When hex
+dumping this, we see that we actually have a 32-bit signed integer here.
 
 chromium-bsu
 dynmemstart HeroAircraft 288 0x40f4e7 0x28
 Lives 0xbc i32 watch
 dynmemend
 
+See examples/README for the complete config syntax.
+
 $ ugtrain -P test.conf
+
+When being sure, you can add the checks and the wish value, assign one or
+more comma-separated activation keys and set the initial activation state.
+
+...
+Lives 0xbc i32 l 9 1,9 a
+check 0xbc i32 g 0
+...
+
+Here, we want the lives to be updated to 9 only if they are less than 9 and
+also greater than 0. Otherwise, unexpected behaviour could happen. We also
+want to be sure that we are on the correct memory address in case of adaption.
+With the keys '1' and '9' we can toggle the activation of this value. The
+ugtrain uses non-blocking getchar just like the Linux command "top". In the
+last column the 'a' means that this is activated at trainer start.
 
 
 === Finding more Values in Dynamic Memory ===
