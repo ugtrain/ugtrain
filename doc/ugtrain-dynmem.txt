@@ -227,12 +227,50 @@ the '_' there is the class index and after it the object index. Just compare
 two dumps: when you are low on everything and when you are high on everything.
 This way you can easily find other values like ammo and shields. A zero is also
 with a float a zero in hex. The .dump files are binary files so either you use
-a binary diff tool or you convert it into text first and use a text diff tool
+a binary diff tool or you convert them into text first and use a text diff tool
 like e.g. "meld". Conversion can be done as follows:
 
 $ xxd 0_000.dump > 0_000.dump.txt
 
 The tool "xxd" is part of the "vim" package.
+
+Note: Dumping objects to existing files overwrites them. So rename them before
+dumping another state.
+
+Here, in the "doc" directory you can find the files 0_000_low.dump.txt and
+0_000_hig.dump.txt. These represent the HeroAircraft object. In the first state
+there are no shields, no extra weapons and we are very close to be destroyed.
+In the other state there are extra shields and full extra weapons. Compare the
+files with a text diff tool. We mainly search for transitions from zero to a
+quite high number and patterns of three times the same value (for ammo).
+
+Remember: Everything is stored little-endian and very likely memory aligned.
+
+Have you found the other values?
+
+At offset 0x58 it looks like we have a bool array related to weapons. Bools are
+often stored as u8, esp. in standard C99/C++. We have three times transition
+from false (0x0) to true (0x1) and the following byte seems to be unused for
+padding/alignment and remains 0x0.
+
+We are looking for low precision values with some zeros still in them - either
+integers or floats. In front of the lives only 0xb8 looks interesting like a
+negative float but -16.875 doesn't sound reasonable. Instead the location 0xd0
+looks very good: We have three times 0x43160000 (150.0). Yes, looks like we've
+found the ammo array as floats! Hmmm, another 3 values float array follows
+with transition from -1.0 to -0.02. That's the gun pause and not interesting
+for us as we can't make the guns shoot faster. Let's proceed to 0xec. We have
+a float transition from -21.6 to -500.0. Looks like they store the health as
+a negative damage value. Like we know programmers, we must be very close to
+the shields, now. Indeed, at 0xf0 there is a transition to 992.3. It is very
+difficult to retain full shields very long but from here we can guess that
+1000.0 is the maximum. We can also work with the dynamic wish value 'max' in
+the config to verify. The next value at 0xf4 seems to be a float as well. It
+is a transition from 5150.0 to 7250.0. This must be the score. It took a
+little longer to acquire the weapons and shields. Strange that they store it
+as float! Cheating it doesn't make much sense, so we ignore or just watch it.
+
+== Multiple Objects ==
 
 If you've got a lot of objects and don't know exactly which ones are yours and
 which ones are enemies, use the binary diff tool "ugsimfind". It compares upto
@@ -251,8 +289,8 @@ fidx: 0x22
 0_021.dump, 0_022.dump, ...,
 
 The campaign starts with 7 own Droids and 40 enemies in Warzone 2100. From the
-name string we know that these are exactly these 7. We have player ID 0 and the
-AI has ID 6 and ID 7. So at offset 0x22 is our player ID.
+name string we know that these files are exactly these 7 own Droids. We have
+player ID 0 and the AI has ID 6 and ID 7. So at offset 0x22 is our player ID.
 
 
 === Dynamic Memory Adaption ===
@@ -269,10 +307,13 @@ Run the adaption script, now (y/n)? : y
 If you're not sure here, just take a look at the adaption shell script. It
 searches for an unique call to "_Znwm", "_Znwj" or "malloc" in the disassembly
 (objdump -D) of the game binary. If it fails, it doesn't return anything. Then,
-you have to do full discovery or try to set the option "DEBUG=1" in
-examples/adapt/_common_adapt.sh and to run the adaption script alone.
+you have to try to set the option "DEBUG=1" in examples/adapt/_common_adapt.sh
+and to run the adaption script alone. If you still can't fix adaption, then
+you have to do full discovery.
 
-In our case it succeeds:
+$ examples/adapt/chromium-bsu_adapt64.sh `which chromium-bsu`
+
+In our case adaption succeeds:
 ...
 Adaption return:
 1;HeroAircraft;0x410e17
@@ -288,9 +329,9 @@ written back.
 But if you say "y", the game starts with a discovery stage 5 string. E.g:
 "5;0x0;0x0;288;0x410e17;0x410e17;0x410e17". This behaves like stage 4. The
 difference is in the processing in ugtrain. All you need to do in the game
-is that at least one object of the currently discovered memory class gets
-allocated. This also repeats until all classes are discovered and then the
-config is written back. The config command "adapt_required" is set to "0"
+is ensuring that at least one object of the currently discovered memory class
+gets allocated. This also repeats until all classes are discovered and then
+the config is written back. The config command "adapt_required" is set to "0"
 so that you don't get bothered with the adaption wish again.
 
 ...
