@@ -44,10 +44,10 @@ i32 fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp)
  * Run a command in background.
  *
  * Parameters: execvp params, wait for the process 0/1
- * Returns: 0 for success, -1 for failure
+ * Returns: pid for success, -1 for failure
  */
-i32 run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
-		bool use_shell)
+pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
+		  bool use_shell)
 {
 	return -1;
 }

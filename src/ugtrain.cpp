@@ -467,7 +467,7 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 
 static i32 run_game (struct app_options *opt)
 {
-	i32 ret;
+	pid_t pid = -1;
 	const char *cmd;
 	char *cmdv[2];
 	string cmd_str = string("");
@@ -480,7 +480,7 @@ static i32 run_game (struct app_options *opt)
 
 		cout << "$ " << cmdv[0] << " &" << endl;
 
-		ret = run_cmd_bg(cmd, cmdv, false, false);
+		pid = run_cmd_bg(cmd, cmdv, false, false);
 	} else {
 		if (opt->use_glc) {
 			cmd_str += GLC_PRELOADER;
@@ -493,21 +493,21 @@ static i32 run_game (struct app_options *opt)
 
 		cout << "$ " << cmd << " &" << endl;
 
-		ret = run_cmd_bg(cmd, cmdv, false, true);
+		pid = run_cmd_bg(cmd, cmdv, false, true);
 	}
-	if (ret)
+	if (pid < 0)
 		goto err;
 
-	return ret;
+	return 0;
 err:
 	cerr << "Error while running the game!" << endl;
-	return ret;
+	return -1;
 }
 
 #ifdef __linux__
 static i32 run_preloader (struct app_options *opt)
 {
-	i32 ret;
+	pid_t pid;
 	const char *cmd;
 	char *cmdv[4];
 	string cmd_str = string("");
@@ -523,7 +523,7 @@ static i32 run_preloader (struct app_options *opt)
 		cout << "$ " << cmdv[0] << " " << cmdv[1]
 		     << " " << cmdv[2] << " &" << endl;
 
-		ret = run_cmd_bg(cmd, cmdv, false, false);
+		pid = run_cmd_bg(cmd, cmdv, false, false);
 	} else {
 		if (opt->use_glc) {
 			cmd_str += GLC_PRELOADER;
@@ -540,15 +540,15 @@ static i32 run_preloader (struct app_options *opt)
 
 		cout << "$ " << cmd << " &" << endl;
 
-		ret = run_cmd_bg(cmd, cmdv, false, true);
+		pid = run_cmd_bg(cmd, cmdv, false, true);
 	}
-	if (ret)
+	if (pid < 0)
 		goto err;
 
-	return ret;
+	return 0;
 err:
 	cerr << "Error while running preloader!" << endl;
-	return ret;
+	return -1;
 }
 #endif
 

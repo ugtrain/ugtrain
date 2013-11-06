@@ -73,13 +73,13 @@ err:
  *
  * Parameters: execvp params, wait for the process 0/1,
  *             run the command in a shell 0/1
- * Returns: 0 for success, -1 for failure
+ * Returns: the pid for success, -1 for failure
  *
  * Please note: If the shell is used, then execlp is
  *              used with cmd and cmdv[] is ignored.
  */
-i32 run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
-		bool use_shell)
+pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
+		  bool use_shell)
 {
 	pid_t pid;
 	i32 status;
@@ -99,7 +99,7 @@ i32 run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
 	} else if (do_wait) {
 		waitpid(pid, &status, 0);
 	}
-	return 0;
+	return pid;
 err:
 	return -1;
 child_err:
