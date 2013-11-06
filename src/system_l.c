@@ -29,6 +29,18 @@
 #define SHELL "/bin/sh"
 
 
+inline void wait_proc (pid_t pid)
+{
+	i32 status;
+
+	waitpid(pid, &status, 0);
+}
+
+inline void kill_proc (pid_t pid)
+{
+	kill(pid, SIGINT);
+}
+
 /*
  * Run a task in background, wait for a process to end and
  * then kill the task in the background.
