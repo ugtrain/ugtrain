@@ -23,11 +23,13 @@
 #define PROG_NAME  "ugtrain"
 #define PRELOADER  "ugpreload"
 #define GLC_PRELOADER "glc-capture"
+#define SCANMEM    "scanmem"
 
 struct app_options {
 	bool	do_adapt;
 	char	*preload_lib;
 	char	*disc_str;
+	bool	run_scanmem;
 	char	*pre_cmd;
 	bool	use_glc;
 	/* no direct CLI input */
@@ -39,6 +41,7 @@ struct app_options {
 	char	*game_path;
 	bool	use_gbt;
 	void	*disc_addr;
+	pid_t	scanmem_pid;
 };
 
 #ifdef __cplusplus

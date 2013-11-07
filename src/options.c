@@ -24,7 +24,7 @@
 #define LIB_END   ".so"
 
 const char Help[] =
-PROG_NAME " is an advanced universal game trainer for the CLI\n"
+PROG_NAME " is the universal elite game trainer for the CLI\n"
 "\n"
 "Usage: " PROG_NAME " [opts] <config_path>\n"
 "\n"
@@ -40,9 +40,11 @@ PROG_NAME " is an advanced universal game trainer for the CLI\n"
 "			library - without \'-P\' \'-P "
 				LDISC_PRE "32/64" LIB_END "\'\n"
 "			is assumed depending on \'sizeof(long)\'\n"
-"--adapt, -A:		run the adaption script from config to determine\n"
+"--scanmem, -S:		run \'scanmem\' without/together with \'-D\' in the\n"
+"			same process group as the game (avoid root access)\n"
+"--adapt, -A:		run the adaption script from the config to determine\n"
 "			code addresses and their stack offsets - without\n"
-"			\'-D\' discovery step 5 (finding stack offset) is\n"
+"			\'-D\' discovery stage 5 (finding stack offset) is\n"
 "			assumed	using the new code address (rejects if root)\n"
 "--pre-cmd=<str>:	together with \'-P\' it is possible to specify a\n"
 "			custom preloader command like \'" GLC_PRELOADER "\'\n"
@@ -57,12 +59,13 @@ void usage()
 	exit(-1);
 }
 
-static const char short_options[] = "-hAD:P::";
+static const char short_options[] = "-hAD:P::S";
 static struct option long_options[] = {
 	{"help",           0, 0, 'h'},
 	{"adapt",          0, 0, 'A'},
 	{"discover",       1, 0, 'D'},
 	{"preload",        2, 0, 'P'},
+	{"scanmem",        0, 0, 'S'},
 	{"pre-cmd",        1, 0,  0 },
 	{"glc",            2, 0,  0 },
 	{0, 0, 0, 0}
@@ -78,6 +81,9 @@ void use_libmemhack (struct app_options *opt)
 
 void do_assumptions (struct app_options *opt)
 {
+	/* '-D 1 -A' --> '-D 1', '-S -A' --> '-S'  */
+	if ((opt->disc_str && opt->disc_str[0] != '5') || opt->run_scanmem)
+		opt->do_adapt = false;
 	/* '-A' --> '-A -D 5' */
 	if (opt->do_adapt) {
 		if (!opt->disc_str)
@@ -101,6 +107,7 @@ static void init_options (struct app_options *opt)
 	opt->do_adapt = false;
 	opt->preload_lib = NULL;
 	opt->disc_str = NULL;
+	opt->run_scanmem = false;
 	opt->pre_cmd = NULL;
 	opt->use_glc = false;
 	/* no direct CLI input */
@@ -112,6 +119,7 @@ static void init_options (struct app_options *opt)
 	opt->adp_req_line = 0;
 	opt->use_gbt = false;
 	opt->disc_addr = NULL;
+	opt->scanmem_pid = -1;
 }
 
 void parse_options (i32 argc, char **argv, struct app_options *opt)
@@ -157,6 +165,9 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 				use_libmemhack(opt);
 			else
 				opt->preload_lib = optarg;
+			break;
+		case 'S':
+			opt->run_scanmem = true;
 			break;
 		default:
 			if (optind != argc) {

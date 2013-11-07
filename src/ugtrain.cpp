@@ -465,11 +465,31 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 	}
 }
 
+/*
+ * The function run_pgrp_bg() is so hacky OS security
+ * bypassing so that it is not possible to wait for the
+ * child process (the game) in a regular way. We have
+ * to do that here in an equal hacky way as the process
+ * belongs to init.
+ */
+static void catch_orphan (char *proc_name)
+{
+	pid_t pid;
+
+	while (1) {
+		pid = proc_to_pid(proc_name);
+		if (pid < 0)
+			return;
+		sleep_sec(1);
+	}
+}
+
 static i32 run_game (struct app_options *opt)
 {
 	pid_t pid = -1;
-	const char *cmd;
-	char *cmdv[2];
+	const char *cmd, *pcmd;
+	char *cmdv[2], *pcmdv[4];
+	char pid_str[12] = { '\0' };
 	string cmd_str = string("");
 
 	if (!opt->pre_cmd) {
@@ -478,9 +498,29 @@ static i32 run_game (struct app_options *opt)
 		cmdv[0] = opt->game_path;
 		cmdv[1] = NULL;
 
-		cout << "$ " << cmdv[0] << " &" << endl;
+		if (opt->run_scanmem) {
+			restore_getch();
 
-		pid = run_cmd_bg(cmd, cmdv, false, false);
+			pcmd = (const char *) SCANMEM;
+			pcmdv[0] = (char *) SCANMEM;
+			pcmdv[1] = (char *) "-p";
+			pcmdv[2] = pid_str;
+			pcmdv[3] = NULL;
+
+			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
+			     << " `pidof -s " << opt->proc_name << "` & --> "
+			     << "$ " << cmdv[0] << " &" << endl;
+
+			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
+					  pid_str, opt->proc_name, 3,
+					  false, false);
+			if (pid > 0)
+				opt->scanmem_pid = pid;
+		} else {
+			cout << "$ " << cmdv[0] << " &" << endl;
+
+			pid = run_cmd_bg(cmd, cmdv, false, false);
+		}
 	} else {
 		if (opt->use_glc) {
 			cmd_str += GLC_PRELOADER;
@@ -491,9 +531,29 @@ static i32 run_game (struct app_options *opt)
 		cmd_str += opt->game_path;
 		cmd = cmd_str.c_str();
 
-		cout << "$ " << cmd << " &" << endl;
+		if (opt->run_scanmem) {
+			restore_getch();
 
-		pid = run_cmd_bg(cmd, cmdv, false, true);
+			pcmd = (const char *) SCANMEM;
+			pcmdv[0] = (char *) SCANMEM;
+			pcmdv[1] = (char *) "-p";
+			pcmdv[2] = pid_str;
+			pcmdv[3] = NULL;
+
+			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
+			     << " `pidof -s " << opt->proc_name << "` & --> "
+			     << "$ " << cmd << " &" << endl;
+
+			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
+					  pid_str, opt->proc_name, 3,
+					  false, true);
+			if (pid > 0)
+				opt->scanmem_pid = pid;
+		} else {
+			cout << "$ " << cmd << " &" << endl;
+
+			pid = run_cmd_bg(cmd, cmdv, false, true);
+		}
 	}
 	if (pid < 0)
 		goto err;
@@ -507,9 +567,10 @@ err:
 #ifdef __linux__
 static i32 run_preloader (struct app_options *opt)
 {
-	pid_t pid;
-	const char *cmd;
-	char *cmdv[4];
+	pid_t pid = -1;
+	const char *cmd, *pcmd;
+	char *cmdv[4], *pcmdv[4];
+	char pid_str[12] = { '\0' };
 	string cmd_str = string("");
 
 	if (!opt->pre_cmd) {
@@ -520,10 +581,32 @@ static i32 run_preloader (struct app_options *opt)
 		cmdv[2] = opt->game_path;
 		cmdv[3] = NULL;
 
-		cout << "$ " << cmdv[0] << " " << cmdv[1]
-		     << " " << cmdv[2] << " &" << endl;
+		if (opt->run_scanmem &&
+		    (!opt->disc_str || opt->disc_str[0] != '5')) {
+			restore_getch();
 
-		pid = run_cmd_bg(cmd, cmdv, false, false);
+			pcmd = (const char *) SCANMEM;
+			pcmdv[0] = (char *) SCANMEM;
+			pcmdv[1] = (char *) "-p";
+			pcmdv[2] = pid_str;
+			pcmdv[3] = NULL;
+
+			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
+			     << " `pidof -s " << opt->proc_name << "` & --> "
+			     << "$ " << cmdv[0] << " " << cmdv[1]
+			     << " " << cmdv[2] <<" &" << endl;
+
+			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
+					  pid_str, opt->proc_name, 3,
+					  false, false);
+			if (pid > 0)
+				opt->scanmem_pid = pid;
+		} else {
+			cout << "$ " << cmdv[0] << " " << cmdv[1]
+			     << " " << cmdv[2] << " &" << endl;
+
+			pid = run_cmd_bg(cmd, cmdv, false, false);
+		}
 	} else {
 		if (opt->use_glc) {
 			cmd_str += GLC_PRELOADER;
@@ -538,9 +621,30 @@ static i32 run_preloader (struct app_options *opt)
 		cmd_str += opt->game_path;
 		cmd = cmd_str.c_str();
 
-		cout << "$ " << cmd << " &" << endl;
+		if (opt->run_scanmem &&
+		    (!opt->disc_str || opt->disc_str[0] != '5')) {
+			restore_getch();
 
-		pid = run_cmd_bg(cmd, cmdv, false, true);
+			pcmd = (const char *) SCANMEM;
+			pcmdv[0] = (char *) SCANMEM;
+			pcmdv[1] = (char *) "-p";
+			pcmdv[2] = pid_str;
+			pcmdv[3] = NULL;
+
+			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
+			     << " `pidof -s " << opt->proc_name << "` & --> "
+			     << "$ " << cmd << " &" << endl;
+
+			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
+					  pid_str, opt->proc_name, 3,
+					  false, true);
+			if (pid > 0)
+				opt->scanmem_pid = pid;
+		} else {
+			cout << "$ " << cmd << " &" << endl;
+
+			pid = run_cmd_bg(cmd, cmdv, false, true);
+		}
 	}
 	if (pid < 0)
 		goto err;
@@ -888,7 +992,7 @@ i32 main (i32 argc, char **argv, char **env)
 		cout << "Found config for \"" << opt.proc_name << "\"." << endl;
 	} else {
 		cfg_path = new string("NONE");
-		if (!opt.disc_str ||
+		if (!(opt.disc_str || opt.run_scanmem) ||
 		    (opt.disc_str[0] < '0' || opt.disc_str[0] > '4')) {
 			cerr << "Error: Config required!" << endl;
 			return -1;
@@ -900,9 +1004,21 @@ i32 main (i32 argc, char **argv, char **env)
 		opt.proc_name = to_c_str(&input_str);
 	}
 
-	if (opt.disc_str &&
-	    (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '4'))
+	if (opt.disc_str) {
+		if (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '4') {
+			cout << "Clearing config for discovery!" << endl;
+			cfg.clear();
+			cfg_act->clear();
+			emptycfg = true;
+		} else {
+			opt.run_scanmem = false;
+		}
+	} else if (opt.run_scanmem) {
+		cout << "Clearing config for scanmem!" << endl;
+		cfg.clear();
+		cfg_act->clear();
 		emptycfg = true;
+	}
 
 	if (!opt.game_path)
 		opt.game_path = get_abs_app_path(opt.proc_name);
@@ -921,7 +1037,8 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	if (opt.adp_required && !opt.do_adapt) {
+	if (opt.adp_required && !opt.do_adapt && !opt.disc_str &&
+	    !opt.run_scanmem) {
 		if (!opt.adp_script) {
 			cerr << "Error, adaption required but no adaption script!" << endl;
 			return -1;
@@ -993,9 +1110,24 @@ prepare_dynmem:
 
 	if (opt.disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
-		if (opt.disc_str[0] >= '1' && opt.disc_str[0] <= '4') {
+		if (opt.disc_str[0] == '0') {
+			if (opt.scanmem_pid > 0) {
+				wait_proc(opt.scanmem_pid);
+				// Have you closed scanmem before the game?
+				catch_orphan(opt.proc_name);
+			} else {
+				wait_proc(pid);
+			}
+			return 0;
+		} else if (opt.disc_str[0] >= '1' && opt.disc_str[0] <= '4') {
 			worker_pid = fork_proc(run_stage1234_loop, &ifd);
-			wait_proc(pid);
+			if (opt.scanmem_pid > 0) {
+				wait_proc(opt.scanmem_pid);
+				// Have you closed scanmem before the game?
+				catch_orphan(opt.proc_name);
+			} else {
+				wait_proc(pid);
+			}
 			kill_proc(worker_pid);
 			if (worker_pid < 0)
 				return -1;
@@ -1014,7 +1146,16 @@ prepare_dynmem:
 		default:
 			break;
 		}
+	} else if (opt.scanmem_pid > 0) {
+		wait_proc(opt.scanmem_pid);
+		// Have you closed scanmem before the game?
+		catch_orphan(opt.proc_name);
+		return 0;
 	}
+
+	if (opt.do_adapt || opt.disc_str || opt.run_scanmem)
+		return -1;
+
 	set_getch_nb(1);
 
 	if (memattach_test(pid) != 0) {
