@@ -1213,6 +1213,9 @@ prepare_dynmem:
 			}
 		}
 
+		if (cfg_act->empty())
+			goto skip_inactive;
+
 		if (memattach(pid) != 0) {
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
@@ -1257,6 +1260,7 @@ prepare_dynmem:
 			return -1;
 		}
 
+skip_inactive:
 		// remove old values marked to be removed by object check
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
 			cfg_en = *it;
