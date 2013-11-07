@@ -42,24 +42,19 @@ inline void kill_proc (pid_t pid)
 }
 
 /*
- * Run a task in background, wait for a process to end and
- * then kill the task in the background.
+ * Run a task in background.
  *
- * If the pid to wait for is invalid, then we wait for the
- * task to end without killing it.
- *
- * Parameters: pid to wait for, task function pointer,
+ * Parameters: task function pointer,
  *             void *argument for the task
- * Returns: 0 for success, -1 for failure
+ * Returns: pid for success, -1 for failure
  *
  * Please note: The task has to cast the argument pointer to its
  *              correct type again. If more arguments are required,
  *              please use a structure.
  */
-i32 fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp)
+pid_t fork_proc (void (*task) (void *), void *argp)
 {
-	pid_t pid;
-	i32 status;
+	pid_t pid = -1;
 
 	pid = fork();
 	if (pid < 0) {
@@ -67,17 +62,85 @@ i32 fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp)
 		goto err;
 	} else if (pid == 0) {
 		task(argp);
-	} else {
-		if (wpid < 0) {
-			waitpid(pid, &status, 0);
-		} else {
-			waitpid(wpid, &status, 0);
-			kill(pid, SIGINT);
-		}
 	}
-	return 0;
+	return pid;
 err:
 	return -1;
+}
+
+/*
+ * This is highly specific to bypass OS security.
+ *
+ * E.g. ptrace() requires root for processes not running
+ * in the same process group. The trick is now to fork a
+ * process which forks and executes the game. This process
+ * is the parent of the game and parents may ptrace their
+ * children. So it executes the ptrace program like scanmem
+ * right after that. The user doesn't require root anymore.
+ * This is elite!
+ *
+ * pstree example: ugtrain---scanmem---chromium-bsu
+ *
+ * Note: We have to find out the PID of the game ourselves
+ *       and the PID may be required for the ptrace command.
+ *       So ensure that pid_str has space for at least 12 chars
+ *       and is part of pcmdv[]! Also give us the process name!
+ *       Only the child command (the game) can run in a shell.
+ *
+ * ATTENTION: The child becomes an orphan when ending the parent before
+ *            the child! We can't wait for it as we have to exec the
+ *            parent command. An orphan catcher is required!
+ */
+pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
+		   const char *ccmd, char *const ccmdv[],
+		   char *const pid_str, char *proc_name,
+		   u32 delay, bool do_wait, bool use_shell)
+{
+	pid_t ppid, cpid, game_pid = -1;
+	i32 status;
+
+	ppid = fork();
+	if (ppid < 0) {
+		perror("fork");
+		goto err;
+	} else if (ppid == 0) {
+		cpid = fork();
+		if (cpid < 0) {
+			perror("fork");
+			goto child_err;
+		} else if (cpid == 0) {   /* child command (the game) */
+			close(STDOUT_FILENO);
+			close(STDERR_FILENO);
+			if (use_shell && execlp(SHELL, SHELL, "-c",
+			    ccmd, NULL) < 0) {
+				perror("execlp");
+				goto child_err;
+			} else if (execvp(ccmd, ccmdv) < 0) {
+				perror("execvp");
+				goto child_err;
+			}
+		} else {   /* parent command (likely uses ptrace()) */
+			if (delay > 0)
+				sleep_sec(delay);
+			if (use_shell && proc_name)
+				game_pid = proc_to_pid(proc_name);
+			else
+				game_pid = cpid;
+			if (pid_str && game_pid > 0)
+				sprintf(pid_str, "%d", game_pid);
+			if (execvp(pcmd, pcmdv) < 0) {
+				perror("execvp");
+				goto child_err;
+			}
+		}
+	} else if (do_wait) {
+		waitpid(ppid, &status, 0);
+	}
+	return ppid;
+err:
+	return -1;
+child_err:
+	exit(-1);
 }
 
 /*
@@ -218,7 +281,6 @@ pid_t proc_to_pid (char *proc_name)
 
 	return pid;
 err:
-	fprintf(stderr, "PID not found or invalid!\n");
 	return -1;
 }
 

@@ -41,11 +41,15 @@ extern "C" {
 #endif
 	char    *get_abs_app_path (char *app_name);
 	pid_t   proc_to_pid (char *proc_name);
-	pid_t   run_cmd_bg (const char *cmd, char *const cmdv[],
-			    bool do_wait, bool use_shell);
 	ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
 			      char *pbuf, size_t pbuf_size, bool use_shell);
-	i32     fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp);
+	pid_t   run_cmd_bg (const char *cmd, char *const cmdv[],
+			    bool do_wait, bool use_shell);
+	pid_t   run_pgrp_bg (const char *pcmd, char *const pcmdv[],
+			     const char *ccmd, char *const ccmdv[],
+			     char *const pid_cmd, char *proc_name,
+			     u32 delay, bool do_wait, bool use_shell);
+	pid_t   fork_proc (void (*task) (void *), void *argp);
 	void    kill_proc (pid_t pid);
 	void    wait_proc (pid_t pid);
 #ifdef __cplusplus

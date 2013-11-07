@@ -29,21 +29,25 @@ inline void kill_proc (pid_t pid)
 }
 
 /*
- * Run a task in background, wait for a process to end and
- * then kill the task in the background.
+ * Run a task in background.
  *
- * If the pid to wait for is invalid, then we wait for the
- * task to end without killing it.
- *
- * Parameters: pid to wait for, task function pointer,
+ * Parameters: task function pointer,
  *             void *argument for the task
- * Returns: 0 for success, -1 for failure
+ * Returns: pid for success, -1 for failure
  *
  * Please note: The task has to cast the argument pointer to its
  *              correct type again. If more arguments are required,
  *              please use a structure.
  */
-i32 fork_wait_kill (pid_t wpid, void (*task) (void *), void *argp)
+pid_t fork_proc (void (*task) (void *), void *argp)
+{
+	return -1;
+}
+
+pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
+		   const char *ccmd, char *const ccmdv[],
+		   char *const pid_str, char *proc_name,
+		   u32 delay, bool do_wait, bool use_shell)
 {
 	return -1;
 }

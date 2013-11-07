@@ -860,7 +860,7 @@ i32 main (i32 argc, char **argv, char **env)
 	DynMemEntry *old_dynmem = NULL;
 	vector<void *> *mvec;
 	void *mem_addr, *mem_offs = NULL;
-	pid_t pid;
+	pid_t pid, worker_pid;
 	char def_home[] = "~";
 	u8 buf[sizeof(i64)] = { 0 };
 	i32 ret, pmask = PARSE_M | PARSE_C;
@@ -984,9 +984,9 @@ prepare_dynmem:
 			sleep_sec(1);
 			pid = proc_to_pid(opt.proc_name);
 			if (pid < 0)
-				return -1;
+				goto pid_err;
 		} else {
-			return -1;
+			goto pid_err;
 		}
 	}
 	cout << "PID: " << pid << endl;
@@ -994,9 +994,11 @@ prepare_dynmem:
 	if (opt.disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
 		if (opt.disc_str[0] >= '1' && opt.disc_str[0] <= '4') {
-			ret = fork_wait_kill(pid, run_stage1234_loop, &ifd);
-			if (ret)
-				return ret;
+			worker_pid = fork_proc(run_stage1234_loop, &ifd);
+			wait_proc(pid);
+			kill_proc(worker_pid);
+			if (worker_pid < 0)
+				return -1;
 		} else if (opt.disc_str[0] == '5') {
 			run_stage5_loop(&cfg, ifd, pmask, pid);
 		}
@@ -1187,4 +1189,8 @@ prepare_dynmem:
 	}
 
 	return 0;
+
+pid_err:
+	cerr << "PID not found or invalid!" << endl;
+	return -1;
 }
