@@ -472,13 +472,10 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
  * to do that here in an equal hacky way as the process
  * belongs to init.
  */
-static void catch_orphan (char *proc_name)
+static void wait_orphan (pid_t pid, char *proc_name)
 {
-	pid_t pid;
-
-	while (1) {
-		pid = proc_to_pid(proc_name);
-		if (pid < 0)
+	while (true) {
+		if (!pid_is_running(pid, proc_name, false))
 			return;
 		sleep_sec(1);
 	}
@@ -1114,7 +1111,7 @@ prepare_dynmem:
 			if (opt.scanmem_pid > 0) {
 				wait_proc(opt.scanmem_pid);
 				// Have you closed scanmem before the game?
-				catch_orphan(opt.proc_name);
+				wait_orphan(pid, opt.proc_name);
 			} else {
 				wait_proc(pid);
 			}
@@ -1124,7 +1121,7 @@ prepare_dynmem:
 			if (opt.scanmem_pid > 0) {
 				wait_proc(opt.scanmem_pid);
 				// Have you closed scanmem before the game?
-				catch_orphan(opt.proc_name);
+				wait_orphan(pid, opt.proc_name);
 			} else {
 				wait_proc(pid);
 			}
@@ -1149,7 +1146,7 @@ prepare_dynmem:
 	} else if (opt.scanmem_pid > 0) {
 		wait_proc(opt.scanmem_pid);
 		// Have you closed scanmem before the game?
-		catch_orphan(opt.proc_name);
+		wait_orphan(pid, opt.proc_name);
 		return 0;
 	}
 
@@ -1163,7 +1160,7 @@ prepare_dynmem:
 		return -1;
 	}
 
-	while (1) {
+	while (true) {
 		sleep_sec(1);
 		ch = do_getch();
 		if (ch > 0) {
@@ -1200,8 +1197,11 @@ prepare_dynmem:
 			}
 		}
 
-		if (cfg_act->empty())
+		if (cfg_act->empty()) {
+			if (!pid_is_running(pid, opt.proc_name, true))
+				return 0;
 			continue;
+		}
 
 		// allocate old values per memory object
 		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
@@ -1217,6 +1217,8 @@ prepare_dynmem:
 		}
 
 		if (memattach(pid) != 0) {
+			if (!pid_is_running(pid, opt.proc_name, true))
+				return 0;
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
 		}

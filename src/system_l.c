@@ -22,6 +22,9 @@
 #include <string.h>
 #include <limits.h>
 #include <signal.h>
+#include <dirent.h>
+#include <libgen.h>
+#include <errno.h>
 #include <sys/wait.h>
 #include "common.h"
 #include "system.h"
@@ -66,6 +69,81 @@ pid_t fork_proc (void (*task) (void *), void *argp)
 	return pid;
 err:
 	return -1;
+}
+
+/*
+ * If requested, we detect if a child process is running
+ * with the waitpid() option WNOHANG.
+ *
+ * Otherwise, we check if a process is running in /proc directly
+ * and we handle zombies as if the process is not running.
+ *
+ * Assumption: (pid > 0)  --> Please check your PID before!
+ */
+bool pid_is_running (pid_t pid, char *proc_name, bool use_wait)
+{
+	char pbuf[PIPE_BUF] = { 0 };
+	i32 status;
+	DIR *dir;
+	const char *cmd;
+	char *pname;
+	char cmd_str[1024] = "/proc/";
+	i32 pr_len, cmd_len = sizeof("/proc/") - 1;
+
+	if (use_wait) {
+		if (waitpid(pid, &status, WNOHANG|WUNTRACED|WCONTINUED) != pid)
+			return true;
+		return !(WIFEXITED(status) || WIFSIGNALED(status));
+	}
+
+	/* append pid and check if dir exists */
+	pr_len = sprintf((cmd_str + cmd_len), "%d", pid);
+	if (pr_len <= 0)
+		goto err;
+	cmd_len += pr_len;
+	dir = opendir(cmd_str);
+	if (!dir)
+		return (errno == ENOENT) ? false : true;
+	else
+		closedir(dir);
+
+	/* check process name from 'exe' symlink */
+	pr_len = sprintf((cmd_str + cmd_len), "/exe");
+	if (pr_len <= 0)
+		goto err;
+	if (readlink(cmd_str, pbuf, sizeof(pbuf)) <= 0)
+		goto skip_exe_check;  /* skip for zombies */
+	pname = basename(pbuf);
+	if (!pname)
+		goto err;
+	if (strcmp(pname, proc_name) != 0)
+		return false;
+
+skip_exe_check:
+	/* remove '/exe', insert 'cat ', append '/status' + shell cmds */
+	memset(cmd_str + cmd_len, 0, pr_len);
+	pr_len = sizeof("cat ") - 1;
+	memmove(cmd_str + pr_len, cmd_str, cmd_len);
+	pr_len = sprintf(cmd_str, "cat %s", (cmd_str + pr_len));
+	if (pr_len <= 0)
+		goto err;
+	cmd_len = pr_len;
+	pr_len = sprintf((cmd_str + cmd_len),
+		"/status | sed -n 2p | sed \'s/State:	//g\'");
+	if (pr_len <= 0)
+		goto err;
+	cmd = cmd_str;
+
+	/* reset pipe buffer and run the shell cmd */
+	memset(pbuf, 0, sizeof(pbuf));
+	if (run_cmd_pipe(cmd, NULL, pbuf, sizeof(pbuf), true) <= 0)
+		goto err;
+
+	/* zombies are not running - parent doesn't wait */
+	if (pbuf[0] == 'Z')
+		return false;
+err:
+	return true;  /* In error case we expect the process still running. */
 }
 
 /*

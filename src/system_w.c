@@ -44,6 +44,11 @@ pid_t fork_proc (void (*task) (void *), void *argp)
 	return -1;
 }
 
+bool pid_is_running (pid_t pid, char *proc_name, bool use_wait)
+{
+	return true;
+}
+
 pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   const char *ccmd, char *const ccmdv[],
 		   char *const pid_str, char *proc_name,
