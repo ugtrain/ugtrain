@@ -33,7 +33,6 @@
 #include "getch.h"
 #include "cfgparser.h"
 #include "fifoparser.h"
-#include "memattach.h"
 #include "system.h"
 #include "discovery.h"
 
@@ -260,7 +259,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 	dpp.in_addr = mem_addr;
 	dpp.opt = opt;
 
-	while (1) {
+	while (true) {
 		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
 		    process_disc1234_malloc, process_disc1_free))
 			break;
@@ -319,15 +318,12 @@ out:
 
 void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 {
-	while (1) {
+	while (true) {
 		sleep_sec(1);
 		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, process_disc5_output,
 				NULL);
-		if (memattach_test(pid) != 0) {
-			cerr << "PTRACE ERROR PID[" << pid << "]!"
-			     << endl;
+		if (!pid_is_running(pid, NULL, true))
 			break;
-		}
 	}
 }
 
@@ -351,7 +347,7 @@ void run_stage1234_loop (void *argp)
 		exit(1);
 	}
 
-	while (1) {
+	while (true) {
 		rbytes = read(ifd, buf, sizeof(buf));
 		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN))
 			continue;
