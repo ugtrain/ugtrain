@@ -41,7 +41,7 @@
 #define DYNMEM_OUT "/tmp/memhack_out"
 
 #define PTR_INVAL (void *) 1
-#define NUM_CFG_PAGES 4
+#define NUM_CFG_PAGES sizeof(long) * 1
 
 #define DEBUG 0
 #if !DEBUG
