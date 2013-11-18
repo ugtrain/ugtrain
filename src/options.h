@@ -40,6 +40,7 @@ struct app_options {
 	char	*proc_name;
 	char	*game_path;
 	bool	use_gbt;
+	size_t	disc_offs;
 	void	*disc_addr;
 	pid_t	scanmem_pid;
 };

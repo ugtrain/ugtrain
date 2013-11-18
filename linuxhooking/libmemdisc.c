@@ -36,7 +36,7 @@
 #define PFX "[memdisc] "
 #define OW_MALLOC 1
 #define OW_FREE 1
-#define BUF_SIZE PIPE_BUF/2
+#define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 #define MAX_BT 11   /* for reverse stack search only */
@@ -62,6 +62,7 @@ static FILE *ofile = NULL;  /* much data - we need caching */
 
 /* Output control */
 static bool active = false;
+static bool discover_ptr = false;
 static i32 stage = 0;  /* 0: no output */
 
 /* Input parameters */
@@ -94,9 +95,21 @@ static void *code_addr = NULL;
  */
 static bool use_gbt = false;
 
+/* Config structure for pointer to heap object discovery */
+struct cfg {
+	size_t mem_size;
+	void *code_addr;
+	void *stack_offs;
+	void *mem_addr;   /* filled by malloc */
+	void *ptr_offs;
+};
+typedef struct cfg cfg_s;
+
+cfg_s ptr_cfg;
+
 
 #define READ_STAGE_CFG()  \
-	rbytes = read(ifd, ibuf, sizeof(ibuf)); \
+	rbytes = read(ifd, ibuf + ioffs, sizeof(ibuf) - ioffs); \
 	if (rbytes <= 0) { \
 		fprintf(stderr, PFX "Can't read config for stage %c, " \
 			"disabling output.\n", ibuf[0]); \
@@ -108,6 +121,7 @@ void __attribute ((constructor)) memdisc_init (void)
 {
 	ssize_t rbytes;
 	i32 read_tries, ioffs = 0;
+	char *iptr;
 	char ibuf[128] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
@@ -150,10 +164,34 @@ void __attribute ((constructor)) memdisc_init (void)
 			goto read_err;
 		usleep(250 * 1000);
 	}
+	ioffs = 2;
 
 	fprintf(ofile, "h%p\n", heap_start);
 
-	switch (ibuf[0]) {
+	if (ibuf[0] == 'p') {
+		READ_STAGE_CFG();
+		if (sscanf(ibuf + ioffs, "%zd;%p;%p;%p", &ptr_cfg.mem_size,
+		    &ptr_cfg.code_addr, &ptr_cfg.stack_offs,
+		    &ptr_cfg.ptr_offs) != 4)
+			goto parse_err;
+		iptr = strstr(ibuf, ";;");
+	        if (!iptr)
+			goto parse_err;
+		iptr = PTR_SUB(char *, iptr, ibuf);
+		ioffs = (ptr_t) iptr + 2;
+		discover_ptr = true;
+
+		printf(PFX "ibuf: %s\n", ibuf);
+		printf(PFX "ioffs; %d\n", ioffs);
+		printf(PFX "ptr_cfg: %zd;%p;%p;%p\n", ptr_cfg.mem_size,
+		       ptr_cfg.code_addr, ptr_cfg.stack_offs,
+		       ptr_cfg.ptr_offs);
+	} else if (ibuf[0] >= '1' && ibuf[0] <= '5') {
+		READ_STAGE_CFG();
+		ioffs = 0;
+	}
+
+	switch (*(ibuf + ioffs)) {
 	/*
 	 * stage 1: Find malloc size  (together with static memory search)
 	 *	There are lots of mallocs and frees - we need to filter the
@@ -162,12 +200,15 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	without a free where (mem_addr <= found_addr < mem_addr+size).
 	 */
 	case '1':
-		READ_STAGE_CFG();
-		if (sscanf(ibuf, "%p;%p", &heap_soffs, &heap_eoffs) == 2) {
+		ioffs += 2;
+		if (sscanf(ibuf + ioffs, "%p;%p", &heap_soffs,
+		    &heap_eoffs) == 2) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 1;
 			active = true;
+			printf(PFX "stage 1 cfg: %p;%p\n", heap_soffs,
+			       heap_eoffs);
 		} else {
 			goto parse_err;
 		}
@@ -183,13 +224,15 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	with ignoring the frees.
 	 */
 	case '2':
-		READ_STAGE_CFG();
-		if (sscanf(ibuf, "%p;%p;%zd", &heap_soffs, &heap_eoffs,
+		ioffs += 2;
+		if (sscanf(ibuf + ioffs, "%p;%p;%zd", &heap_soffs, &heap_eoffs,
 		    &malloc_size) == 3) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 2;
 			active = true;
+			printf(PFX "stage 2 cfg: %p;%p;%zd\n", heap_soffs,
+			       heap_eoffs, malloc_size);
 		} else {
 			goto parse_err;
 		}
@@ -211,11 +254,11 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	With that we can ignore invalid code addresses.
 	 */
 	case '3':
-		READ_STAGE_CFG();
-		if (sscanf(ibuf, "%3s;", gbt_buf) == 1 &&
+		ioffs += 2;
+		if (sscanf(ibuf + ioffs, "%3s;", gbt_buf) == 1 &&
 		    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
 			use_gbt = true;
-			ioffs = sizeof(GBT_CMD);
+			ioffs += sizeof(GBT_CMD);
 		}
 		if (sscanf(ibuf + ioffs, "%p;%p;%zd;%p;%p", &heap_soffs,
 		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
@@ -228,6 +271,9 @@ void __attribute ((constructor)) memdisc_init (void)
 					"This might crash with SIGSEGV!\n");
 			stage = 3;
 			active = true;
+			printf(PFX "stage 3 cfg: %p;%p;%zd;%p;%p\n",
+			       heap_soffs, heap_eoffs, malloc_size,
+			       bt_saddr, bt_eaddr);
 		} else {
 			goto parse_err;
 		}
@@ -250,13 +296,17 @@ void __attribute ((constructor)) memdisc_init (void)
 	 */
 	case '4':
 	case '5':
-		READ_STAGE_CFG();
-		if (sscanf(ibuf, "%p;%p;%zd;%p;%p;%p", &heap_soffs, &heap_eoffs,
-		    &malloc_size, &bt_saddr, &bt_eaddr, &code_addr) >= 5) {
+		ioffs += 2;
+		if (sscanf(ibuf + ioffs, "%p;%p;%zd;%p;%p;%p", &heap_soffs,
+		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr,
+		    &code_addr) >= 5) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 4;
 			active = true;
+			printf(PFX "stage 4 cfg: %p;%p;%zd;%p;%p;%p\n",
+			       heap_soffs, heap_eoffs, malloc_size,
+			       bt_saddr, bt_eaddr, code_addr);
 		} else {
 			goto parse_err;
 		}
@@ -276,6 +326,40 @@ read_err:
 parse_err:
 	fprintf(stderr, PFX "Error while discovery input parsing! Ignored.\n");
 	return;
+}
+
+/*
+ * Get a specific pointer value, pointing to a heap address:
+ * 1. from within another heap object
+ * 2. from a static memory address
+ *
+ * Assumption: (discover_ptr == true)
+ */
+static void get_ptr_to_heap (size_t size, void *mem_addr, void *ffp,
+			     char *obuf, i32 *obuf_offs)
+{
+	void *stack_addr, *ptr_addr = NULL;
+	static void *old_ptr_addr = NULL;
+
+	if (ptr_cfg.code_addr) {
+		if (size == ptr_cfg.mem_size) {
+			stack_addr = PTR_ADD(void *, ffp, ptr_cfg.stack_offs);
+			if (stack_addr <= __libc_stack_end - sizeof(void *) &&
+			    *(ptr_t *) stack_addr == (ptr_t) ptr_cfg.code_addr)
+				ptr_cfg.mem_addr = mem_addr;
+		}
+		if (ptr_cfg.mem_addr) {
+			ptr_addr = PTR_ADD(void *, ptr_cfg.mem_addr,
+					   ptr_cfg.ptr_offs);
+			ptr_addr = (void *) (*(ptr_t *) ptr_addr);
+		}
+	} else if (ptr_cfg.ptr_offs) {
+		ptr_addr = (void *) (*(ptr_t *) ptr_cfg.ptr_offs);
+	}
+	if (ptr_addr && ptr_addr != old_ptr_addr) {
+		*obuf_offs += sprintf(obuf + *obuf_offs, "p%p\n", ptr_addr);
+		old_ptr_addr = ptr_addr;
+	}
 }
 
 #if DEBUG && 0
@@ -313,13 +397,12 @@ static void dump_stack_raw (void* ffp) {}
  *
  * We expect the first frame pointer to be (32/64 bit) memory aligned here.
  */
-static bool find_code_pointers (void *ffp, char *obuf, i32 obuf_offs)
+static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
 {
 	void *offs, *code_ptr;
 	i32 i = 0;
 	bool found = false;
 
-	printf(PFX "ffp: %p\n", ffp);
 	for (offs = ffp;
 	     offs <= __libc_stack_end - sizeof(void *);
 	     offs += sizeof(void *)) {
@@ -328,13 +411,13 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 obuf_offs)
 			if (stage == 4 &&
 			    (code_addr == NULL ||
 			     code_ptr == code_addr)) {
-				obuf_offs += sprintf(obuf + obuf_offs, ";c%p;o%p",
-					code_ptr,
+				*obuf_offs += sprintf(obuf + *obuf_offs,
+					";c%p;o%p", code_ptr,
 					(void *) (offs - ffp));
 				found = true;
 			} else if (stage == 3) {
-				obuf_offs += sprintf(obuf + obuf_offs, ";c%p",
-					code_ptr);
+				*obuf_offs += sprintf(obuf + *obuf_offs,
+					";c%p", code_ptr);
 				found = true;
 			}
 			i++;
@@ -346,7 +429,7 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 obuf_offs)
 }
 
 /* ATTENTION: GNU backtrace() might crash with SIGSEGV! */
-static bool run_gnu_backtrace (char *obuf, i32 obuf_offs)
+static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 {
 	bool found = false;
 	void *trace[MAX_GNUBT] = { NULL };
@@ -357,8 +440,8 @@ static bool run_gnu_backtrace (char *obuf, i32 obuf_offs)
 		/* skip the first code addr (our own one) */
 		for (i = 1; i < num_taddr; i++) {
 			if (trace[i] >= bt_saddr && trace[i] <= bt_eaddr) {
-				obuf_offs += sprintf(obuf + obuf_offs, ";c%p",
-					trace[i]);
+				*obuf_offs += sprintf(obuf + *obuf_offs,
+					";c%p", trace[i]);
 				found = true;
 			}
 		}
@@ -389,20 +472,25 @@ void *malloc (size_t size)
 	mem_addr = orig_malloc(size);
 
 	if (active && mem_addr > heap_saddr && mem_addr < heap_eaddr) {
-		if (malloc_size > 0 && size != malloc_size)
+		if (malloc_size > 0 && size != malloc_size &&
+		    size != ptr_cfg.mem_size)
 			goto out;
 		obuf_offs = sprintf(obuf, "m%p;s%zd", mem_addr, size);
 
 		if (stage >= 3) {
 			dump_stack_raw(ffp);  /* debugging only */
 			if (use_gbt)
-				found = run_gnu_backtrace(obuf, obuf_offs);
+				found = run_gnu_backtrace(obuf, &obuf_offs);
 			else
-				found = find_code_pointers(ffp, obuf, obuf_offs);
+				found = find_code_pointers(ffp, obuf,
+					&obuf_offs);
 			if (!found)
 				goto out;
 		}
-		strcat(obuf, "\n");
+		obuf_offs += sprintf(obuf + obuf_offs, "\n");
+
+		if (discover_ptr)
+			get_ptr_to_heap(size, mem_addr, ffp, obuf, &obuf_offs);
 
 		wbytes = fprintf(ofile, "%s", obuf);
 		if (wbytes < 0) {

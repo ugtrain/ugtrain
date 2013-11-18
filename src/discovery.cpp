@@ -366,6 +366,7 @@ void run_stage1234_loop (void *argp)
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str, cmd_str;
+	char *iptr;
 	i32 i, ret, ioffs = 0;
 	list<CfgEntry>::iterator it;
 	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr;
@@ -378,6 +379,13 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		return 0;
 
 	switch (opt->disc_str[0]) {
+	case 'p':
+		iptr = strstr(opt->disc_str, ";;");
+		if (!iptr)
+			goto err;
+		opt->disc_offs = iptr - opt->disc_str + 2;
+		cout << "disc_str: " << opt->disc_str << endl;
+		break;
 	case '0':
 		// just get stack end and heap start
 		opt->disc_str = (char *) "0";

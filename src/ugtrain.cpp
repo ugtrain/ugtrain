@@ -1107,6 +1107,8 @@ prepare_dynmem:
 
 	if (opt.disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
+		if (opt.disc_str[0] == 'p')
+			memcpy(opt.disc_str, opt.disc_str + opt.disc_offs, 1);
 		if (opt.disc_str[0] == '0') {
 			if (opt.scanmem_pid > 0) {
 				wait_proc(opt.scanmem_pid);

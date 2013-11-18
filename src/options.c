@@ -118,6 +118,7 @@ static void init_options (struct app_options *opt)
 	opt->adp_required = false;
 	opt->adp_req_line = 0;
 	opt->use_gbt = false;
+	opt->disc_offs = 0;
 	opt->disc_addr = NULL;
 	opt->scanmem_pid = -1;
 }
