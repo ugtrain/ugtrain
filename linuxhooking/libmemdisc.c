@@ -404,6 +404,13 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
 	i32 i = 0;
 	bool found = false;
 
+	/*
+	 * check if we are in the correct section
+	 * -> we shouldn't be more that 16 MiB away
+	 */
+	if (!ffp || ffp < __libc_stack_end - (1 << 24))
+		return false;
+
 	for (offs = ffp;
 	     offs <= __libc_stack_end - sizeof(void *);
 	     offs += sizeof(void *)) {
