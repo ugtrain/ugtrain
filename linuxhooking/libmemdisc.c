@@ -35,6 +35,7 @@
 
 #define PFX "[memdisc] "
 #define OW_MALLOC 1
+#define OW_CALLOC 1
 #define OW_FREE 1
 #define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
@@ -454,22 +455,12 @@ static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 /* void *realloc (void *ptr, size_t size); */
 /* void free (void *ptr); */
 
-#ifdef OW_MALLOC
-void *malloc (size_t size)
+static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 {
-	void *ffp = FIRST_FRAME_POINTER;
-	void *mem_addr;
 	i32 wbytes;
 	char obuf[BUF_SIZE];
 	i32 obuf_offs = 0;
 	bool found;
-	static void *(*orig_malloc)(size_t size) = NULL;
-
-	/* get the libc malloc function */
-	if (!orig_malloc)
-		orig_malloc = (void *(*)(size_t)) dlsym(RTLD_NEXT, "malloc");
-
-	mem_addr = orig_malloc(size);
 
 	if (active && mem_addr > heap_saddr && mem_addr < heap_eaddr) {
 		if (malloc_size > 0 && size != malloc_size &&
@@ -499,6 +490,84 @@ void *malloc (size_t size)
 		}
 	}
 out:
+	return;
+}
+
+#ifdef OW_MALLOC
+void *malloc (size_t size)
+{
+	void *ffp = FIRST_FRAME_POINTER;
+	void *mem_addr;
+	static void *(*orig_malloc)(size_t size) = NULL;
+
+	/* get the libc malloc function */
+	if (!orig_malloc)
+		*(void **) (&orig_malloc) = dlsym(RTLD_NEXT, "malloc");
+
+	mem_addr = orig_malloc(size);
+
+	postprocess_malloc(ffp, size, mem_addr);
+
+	return mem_addr;
+}
+#endif
+
+
+#ifdef OW_CALLOC
+/*
+ * ATTENTION: The calloc function is special!
+ *
+ * The first calloc() call must come from static
+ * memory as we can't get the libc calloc pointer
+ * for it. There will be no free() for it.
+ *
+ * For details see:
+ * http://www.slideshare.net/tetsu.koba/tips-of-malloc-free
+ */
+static char stat_calloc_space[BUF_SIZE] = { 0 };
+
+/*
+ * Static memory allocation for first calloc.
+ *
+ * Call this only once and don't use functions
+ * which might call malloc() here!
+ */
+static void *stat_calloc (size_t size) {
+	static off_t offs = 0;
+	void *mem_addr;
+
+	mem_addr = (void *) (stat_calloc_space + offs);
+	offs += size;
+
+	if (offs >= sizeof(stat_calloc_space)) {
+		offs = sizeof(stat_calloc_space);
+		return NULL;
+	}
+	return mem_addr;
+}
+
+void *calloc (size_t nmemb, size_t size)
+{
+	void *ffp = FIRST_FRAME_POINTER;
+	void *mem_addr;
+	size_t full_size = nmemb * size;
+	static bool ready = false;
+	static void *(*orig_calloc)(size_t nmemb, size_t size) = NULL;
+
+	if (!ready) {
+		mem_addr = stat_calloc(full_size);
+		ready = true;
+		return mem_addr;
+	}
+
+	/* get the libc calloc function */
+	if (!orig_calloc)
+		*(void **) (&orig_calloc) = dlsym(RTLD_NEXT, "calloc");
+
+	mem_addr = orig_calloc(nmemb, size);
+
+	postprocess_malloc(ffp, full_size, mem_addr);
+
 	return mem_addr;
 }
 #endif
@@ -525,7 +594,7 @@ void free (void *ptr)
 out:
 	/* get the libc free function */
 	if (!orig_free)
-		orig_free = (void (*)(void *)) dlsym(RTLD_NEXT, "free");
+		*(void **) (&orig_free) = dlsym(RTLD_NEXT, "free");
 
 	orig_free(ptr);
 }
