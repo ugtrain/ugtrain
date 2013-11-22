@@ -209,7 +209,7 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
  *            We always parse floats as doubles here.
  */
 static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
-		        bool is_float, i32 *dynval, i32 *check)
+		        bool is_float, dynval_e *dynval, check_e *check)
 {
 	u32 lidx;
 	i64 ret = 0;

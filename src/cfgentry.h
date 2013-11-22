@@ -21,30 +21,6 @@
 #include <list>
 #include "common.h"
 
-enum {
-	DO_UNCHECKED,
-	DO_LT,
-	DO_GT
-};
-
-enum {
-	DYN_VAL_NONE,
-	DYN_VAL_MIN,
-	DYN_VAL_MAX,
-	DYN_VAL_ADDR,
-	DYN_VAL_WATCH,
-};
-
-class CheckEntry {
-public:
-	void *addr;
-	bool is_signed;
-	bool is_float;
-	i32 size;
-	i64 value;
-	i32 check;
-	bool is_objcheck;
-};
 
 class DynMemEntry {
 public:
@@ -53,17 +29,43 @@ public:
 	void *code_addr;
 	void *stack_offs;
 
-	/* later determined values */
-	vector<void *> v_maddr;    /* set by malloc calls */
-	u32 num_alloc;   /* how many obj. created at once */
-	u32 num_freed;   /* how many obj. freed at once */
-	u32 objidx;
-	u32 pridx;   /* print index */
+	// later determined values
+	vector<void *> v_maddr;    // set by malloc calls
+	u32 num_alloc;   // how many obj. created at once
+	u32 num_freed;   // how many obj. freed at once
+	u32 obj_idx;     // object index for object check
+	u32 pr_idx;      // print index
 
-	/* adaption */
-	void *adp_addr;               /* adapted code address */
-	void *adp_soffs;              /* adapted reverse stack offset */
-	u32 cfg_line;                 /* to write back new cfg */
+	// adaption
+	void *adp_addr;               // adapted code address
+	void *adp_soffs;              // adapted reverse stack offset
+	u32 cfg_line;                 // to write back new cfg
+};
+
+
+typedef enum {
+	DYN_VAL_NONE,
+	DYN_VAL_MIN,
+	DYN_VAL_MAX,
+	DYN_VAL_ADDR,
+	DYN_VAL_WATCH,
+} dynval_e;
+
+typedef enum {
+	DO_UNCHECKED,
+	DO_LT,
+	DO_GT
+} check_e;
+
+class CheckEntry {
+public:
+	void *addr;
+	bool is_objcheck;
+	bool is_signed;
+	bool is_float;
+	i32 size;
+	check_e check;
+	i64 value;
 };
 
 class CfgEntry {
@@ -73,14 +75,17 @@ public:
 	bool is_signed;
 	bool is_float;
 	i32 size;
+	check_e check;
+	dynval_e dynval;
+	void *val_addr;   // for DYN_VAL_ADDR only
 	i64 value;
-	i64 old_val;
-	i32 dynval;
-	void *val_addr;
-	i32 check;
+	i64 old_val;      // for static memory only
+
+	// more checks
 	list<CheckEntry> *checks;
+	// dynamic memory
 	DynMemEntry *dynmem;
-	vector<i64> v_oldval;
+	vector<i64> v_oldval;   // old value per object
 };
 
 #endif

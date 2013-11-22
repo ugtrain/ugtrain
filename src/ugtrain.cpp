@@ -193,9 +193,9 @@ static void inc_dec_mvec_pridx (list<CfgEntry> *cfg, bool do_inc)
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		if (it->dynmem && it->dynmem != old_dynmem) {
 			if (do_inc)
-				it->dynmem->pridx++;
-			else if (it->dynmem->pridx > 0)
-				it->dynmem->pridx--;
+				it->dynmem->pr_idx++;
+			else if (it->dynmem->pr_idx > 0)
+				it->dynmem->pr_idx--;
 			old_dynmem = it->dynmem;
 		}
 	}
@@ -257,7 +257,7 @@ static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
 	i32 hexfloat;
 
 	if (is_dynmem && cfg_en->dynmem->v_maddr.size() > 1)
-		cout << cfg_en->name << "[" << cfg_en->dynmem->pridx << "]"
+		cout << cfg_en->name << "[" << cfg_en->dynmem->pr_idx << "]"
 		     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
 		     << ", Data: 0x";
 	else
@@ -346,7 +346,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 			}
 			if (check_memory(*it, chk_buf) != 0) {
 				if (it->is_objcheck)
-					cfg_en->dynmem->v_maddr[cfg_en->dynmem->objidx] = NULL;
+					cfg_en->dynmem->v_maddr[cfg_en->dynmem->obj_idx] = NULL;
 				return;
 			}
 		}
@@ -1235,7 +1235,7 @@ prepare_dynmem:
 					mem_offs = cfg_en->dynmem->v_maddr[mem_idx];
 					if (mem_offs == NULL)
 						continue;
-					cfg_en->dynmem->objidx = mem_idx;
+					cfg_en->dynmem->obj_idx = mem_idx;
 
 					mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 					if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
@@ -1314,15 +1314,15 @@ prepare_dynmem:
 				if (mvec->empty()) {
 					continue;
 				} else {
-					if (cfg_en->dynmem->pridx >= mvec->size())
-						cfg_en->dynmem->pridx = mvec->size() - 1;
-					mem_offs = mvec->at(cfg_en->dynmem->pridx);
+					if (cfg_en->dynmem->pr_idx >= mvec->size())
+						cfg_en->dynmem->pr_idx = mvec->size() - 1;
+					mem_offs = mvec->at(cfg_en->dynmem->pr_idx);
 					cfg_en->old_val =
-						cfg_en->v_oldval[cfg_en->dynmem->pridx];
+						cfg_en->v_oldval[cfg_en->dynmem->pr_idx];
 					is_dynmem = true;
 					if (cfg_en->dynmem != old_dynmem) {
 						cout << "*" << cfg_en->dynmem->name << "["
-						     << cfg_en->dynmem->pridx << "]" << " = "
+						     << cfg_en->dynmem->pr_idx << "]" << " = "
 						     << hex << mem_offs << dec << ", "
 						     << mvec->size() << " obj." << endl;
 							old_dynmem = cfg_en->dynmem;
