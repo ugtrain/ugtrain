@@ -64,8 +64,8 @@ void output_configp (list<CfgEntry*> *cfg)
 	list<CfgEntry*>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		cfg_en = *it;
-		cout << cfg_en->name << " " << hex << cfg_en->addr << dec
-			<< " " << cfg_en->size << " ";
+		cout << "  "  << cfg_en->name << " " << hex << cfg_en->addr
+		     << dec << " " << cfg_en->size << "-bit ";
 		if (cfg_en->is_float) {
 			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
 			cout << tmp_dval << endl;
@@ -75,44 +75,63 @@ void output_configp (list<CfgEntry*> *cfg)
 	}
 }
 
+static char *get_objcheck_str (CheckEntry *chk_en)
+{
+	return (char *) ((chk_en->is_objcheck) ?" (objcheck)" : "");
+}
+
+static char *get_check_op (check_e check)
+{
+	char *check_op;
+
+	switch (check) {
+	case CHECK_LT:
+		check_op = (char *) " < ";
+		break;
+	case CHECK_GT:
+		check_op = (char *) " > ";
+		break;
+	case CHECK_EQ:
+		check_op = (char *) " == ";
+		break;
+	default:
+		check_op = NULL;
+		break;
+	}
+	return check_op;
+}
+
 static void output_checks (CfgEntry *cfg_en)
 {
-	list<CheckEntry> *chk_lp;
-	double tmp_dval;
-
-	if (cfg_en->check > DO_UNCHECKED) {
-		cout << "check " << hex << cfg_en->addr << dec;
-		if (cfg_en->check == DO_LT)
-			cout << " <";
-		else if (cfg_en->check == DO_GT)
-			cout << " >";
-	}
-	if (cfg_en->is_float) {
-		memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
-		cout << " " << tmp_dval << endl;
-	} else {
-		cout << " " << cfg_en->value << endl;
-	}
-
-	if (!cfg_en->checks)
-		return;
-	chk_lp = cfg_en->checks;
+	list<CheckEntry> *chk_lp = cfg_en->checks;
 	list<CheckEntry>::iterator it;
-	for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
-		if (it->check > DO_UNCHECKED) {
-			cout << "check " << hex << it->addr << dec;
-			if (it->check == DO_LT)
-				cout << " <";
-			else if (it->check == DO_GT)
-				cout << " >";
+	double tmp_dval;
+	char *check_op = get_check_op(cfg_en->check);
+
+	if (check_op) {
+		cout << "    check " << hex << cfg_en->addr << dec << check_op;
+
+		if (cfg_en->is_float) {
+			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
+			cout << tmp_dval << endl;
+		} else {
+			cout << cfg_en->value << endl;
 		}
+	}
+	if (!chk_lp)
+		return;
+
+	for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
+		check_op = get_check_op(it->check);
+		if (!check_op)
+			continue;
+
+		cout << "    check " << hex << it->addr << dec << check_op;
 		if (it->is_float) {
 			memcpy(&tmp_dval, &it->value, sizeof(i64));
-			cout << " " << tmp_dval
-			     << ((it->is_objcheck) ? " (objcheck)" : "") << endl;
+			cout << tmp_dval << get_objcheck_str(&(*it)) << endl;
 		} else {
-			cout << " " << it->value
-			     << ((it->is_objcheck) ?" (objcheck)" : "") << endl;
+			cout << it->value << get_objcheck_str(&(*it)) << endl;
 		}
 	}
 }
@@ -136,8 +155,10 @@ static void output_config (list<CfgEntry> *cfg)
 				<< cfg_en.dynmem->mem_size << " "
 				<< hex << cfg_en.dynmem->code_addr << " "
 				<< cfg_en.dynmem->stack_offs << dec << endl;
-		cout << cfg_en.name << " " << hex << cfg_en.addr << dec;
-		cout << " " << cfg_en.size << " ";
+		else
+			cout << "static: " << endl;
+		cout << "  " << cfg_en.name << " " << hex << cfg_en.addr << dec;
+		cout << " " << cfg_en.size << "-bit ";
 		if (cfg_en.is_float) {
 			memcpy(&tmp_dval, &cfg_en.value, sizeof(i64));
 			cout << tmp_dval << endl;
@@ -289,11 +310,24 @@ static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
 }
 
 template <typename T>
-static inline i32 check_mem_val (T value, u8 *chk_buf, i32 check)
+static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
 {
-	if ((check == DO_LT && *(T *)chk_buf < value) ||
-	    (check == DO_GT && *(T *)chk_buf > value))
+	switch (check) {
+	case CHECK_LT:
+		if (*(T *)chk_buf < value)
+			return 0;
+		break;
+	case CHECK_GT:
+		if (*(T *)chk_buf > value)
+			return 0;
+		break;
+	case CHECK_EQ:
+		if (*(T *)chk_buf == value)
+			return 0;
+		break;
+	default:
 		return 0;
+	}
 	return -1;
 }
 
@@ -327,16 +361,15 @@ static i32 check_memory (CheckEntry chk_en, u8 *chk_buf)
 template <typename T>
 static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void *mem_offs)
 {
-	list<CheckEntry> *chk_lp;
+	list<CheckEntry> *chk_lp = cfg_en->checks;
+	list<CheckEntry>::iterator it;
 	u8 chk_buf[sizeof(i64)];
 	void *mem_addr;
 
 	if (cfg_en->dynval == DYN_VAL_WATCH)
 		return;
 
-	if (cfg_en->checks) {
-		chk_lp = cfg_en->checks;
-		list<CheckEntry>::iterator it;
+	if (chk_lp) {
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
 			mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
@@ -352,9 +385,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		}
 	}
 
-	if ((cfg_en->check == DO_UNCHECKED) ||
-	    (cfg_en->check == DO_LT && *(T *)buf < value) ||
-	    (cfg_en->check == DO_GT && *(T *)buf > value)) {
+	if (check_mem_val(value, buf, cfg_en->check) == 0) {
 		memcpy(buf, &value, sizeof(T));
 		mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 
@@ -1024,8 +1055,11 @@ i32 main (i32 argc, char **argv, char **env)
 
 	cout << "Config:" << endl;
 	output_config(&cfg);
+	cout << endl;
 	cout << "Activated:" << endl;
 	output_configp(cfg_act);
+	cout << endl;
+
 	if (cfg.empty() && !emptycfg)
 		return -1;
 

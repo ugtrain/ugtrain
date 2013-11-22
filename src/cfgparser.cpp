@@ -202,7 +202,7 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
 
 /*
  * This function parses a signed/unsigned integer or a float/double value
- * from the config and also determines if a greater/less than check is wanted.
+ * from the config and also determines if a check is wanted.
  *
  * Attention: Hacky floats. A float has 4 bytes, a double has 8 bytes
  *            and i64 has 8 bytes. Why not copy the float/double into the i64?!
@@ -225,13 +225,18 @@ static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
 	if (lidx + 2 > line->length())
 		cfg_parse_err(line, lnr, --lidx);
 	if (line->at(lidx) == 'l' && line->at(lidx + 1) == ' ') {
-		*check = DO_LT;
+		*check = CHECK_LT;
 		*start += 2;
 	} else if (line->at(lidx) == 'g' && line->at(lidx + 1) == ' ') {
-		*check = DO_GT;
+		*check = CHECK_GT;
+		*start += 2;
+	} else if (line->at(lidx) == 'e' && line->at(lidx + 1) == ' ') {
+		*check = CHECK_EQ;
 		*start += 2;
 	} else {
-		*check = DO_UNCHECKED;
+		if (!dynval)    // This must be a check entry.
+			cfg_parse_err(line, lnr, --lidx);
+		*check = CHECK_OFF;
 	}
 
 skip_check:
@@ -467,7 +472,7 @@ list<CfgEntry*> *read_config (string *path,
 
 		default:
 			cfg_en.checks = NULL;
-			cfg_en.dynval = DYN_VAL_NONE;
+			cfg_en.dynval = DYN_VAL_OFF;
 			cfg_en.addr = parse_address(&line, lnr, &start);
 			cfg_en.size = parse_data_type(&line, lnr, &start,
 				&cfg_en.is_signed, &cfg_en.is_float);

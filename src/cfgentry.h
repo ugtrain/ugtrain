@@ -44,7 +44,7 @@ public:
 
 
 typedef enum {
-	DYN_VAL_NONE,
+	DYN_VAL_OFF,
 	DYN_VAL_MIN,
 	DYN_VAL_MAX,
 	DYN_VAL_ADDR,
@@ -52,9 +52,10 @@ typedef enum {
 } dynval_e;
 
 typedef enum {
-	DO_UNCHECKED,
-	DO_LT,
-	DO_GT
+	CHECK_OFF,
+	CHECK_LT,
+	CHECK_GT,
+	CHECK_EQ
 } check_e;
 
 class CheckEntry {
