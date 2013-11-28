@@ -169,6 +169,44 @@ static void output_config (list<CfgEntry> *cfg)
 	}
 }
 
+static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,
+			  void *mem_addr, size_t size)
+{
+	i32 fd;
+	string fname;
+	char buf[size];
+	ssize_t wbytes;
+
+	if (memattach(pid) != 0)
+		goto err;
+	if (memread(pid, mem_addr, buf, sizeof(buf)) != 0)
+		goto err_detach;
+	memdetach(pid);
+
+	fname += "p";
+	fname += to_string(ptr_id);
+	fname += "_";
+	if (obj_id < 100)
+		fname += "0";
+	if (obj_id < 10)
+		fname += "0";
+	fname += to_string(obj_id);
+	fname += ".dump";
+
+	fd = open(fname.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+	if (fd < 0)
+		goto err;
+	wbytes = write(fd, buf, sizeof(buf));
+	if (wbytes < (ssize_t) sizeof(buf))
+		cerr << fname << ": Write error!" << endl;
+	close(fd);
+	return;
+err_detach:
+	memdetach(pid);
+err:
+	return;
+}
+
 static void dump_mem_obj (pid_t pid, u32 class_id, u32 obj_id,
 			  void *mem_addr, size_t size)
 {
@@ -225,7 +263,7 @@ static void inc_dec_mvec_pridx (list<CfgEntry> *cfg, bool do_inc)
 static void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 {
 	DynMemEntry *old_dynmem = NULL;
-	u32 class_id = 0, obj_id = 0, i;
+	u32 class_id = 0, obj_id = 0, ptr_id = 0, i;
 	list<CfgEntry>::iterator it;
 
 	for (it = cfg->begin(); it != cfg->end(); it++) {
@@ -244,28 +282,48 @@ static void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 			old_dynmem = it->dynmem;
 		}
 	}
+
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->dynmem && it->ptrtgt) {
+			obj_id = 0;
+			for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
+				if ((u64)it->v_oldval[obj_id] > 0 &&
+				    it->ptrtgt->v_state[obj_id] >= PTR_SETTLED)
+					dump_ptr_mem(pid, obj_id, ptr_id,
+						     (void *) it->v_oldval[obj_id],
+						     it->ptrtgt->mem_size);
+				obj_id++;
+			}
+			ptr_id++;
+		}
+	}
 }
 
-static void toggle_cfg (list<CfgEntry*> *cfg, list<CfgEntry*> *cfg_act)
+static void toggle_cfg (list<CfgEntry*> *key_cfg, list<CfgEntry*> *cfg_act)
 {
 	bool found;
 	CfgEntry *cfg_en;
+	list<CfgEntry*> *used_cfg_act = NULL;
 
 	list<CfgEntry*>::iterator it, it_act;
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	for (it = key_cfg->begin(); it != key_cfg->end(); it++) {
+		cfg_en = *it;
+		if (cfg_en->ptrmem)
+			used_cfg_act = &cfg_en->ptrmem->cfg_act;
+		else
+			used_cfg_act = cfg_act;
 		found = false;
-		for (it_act = cfg_act->begin(); it_act != cfg_act->end(); it_act++) {
-			if (*it == *it_act) {
-				cfg_act->erase(it_act);
-				found = true;
+		for (it_act = used_cfg_act->begin(); it_act != used_cfg_act->end(); it_act++) {
+			if (cfg_en == *it_act) {
+				used_cfg_act->erase(it_act);
 				cfg_en = *it_act;
 				cout << cfg_en->name << " OFF" << endl;
+				found = true;
 				break;
 			}
 		}
 		if (!found) {
-			cfg_act->push_back(*it);
-			cfg_en = *it;
+			used_cfg_act->push_back(cfg_en);
 			cout << cfg_en->name << " ON" << endl;
 		}
 	}
@@ -273,18 +331,30 @@ static void toggle_cfg (list<CfgEntry*> *cfg, list<CfgEntry*> *cfg_act)
 
 static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
 {
+	DynMemEntry *dynmem;
 	double tmp_dval;
 	float  tmp_fval;
 	i32 hexfloat;
 
-	if (is_dynmem && cfg_en->dynmem->v_maddr.size() > 1)
+	if (cfg_en->ptrmem) {
+		dynmem = cfg_en->ptrmem->dynmem;
+		if (dynmem && dynmem->v_maddr.size() > 1)
+			cout << " -> " << cfg_en->name << "[" << dynmem->pr_idx << "]"
+			     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
+			     << ", Data: 0x";
+		else
+			cout << " -> " << cfg_en->name << " at " << hex
+			     << PTR_ADD(void *, cfg_en->addr, mem_offs)
+			     << ", Data: 0x";
+	} else if (is_dynmem && cfg_en->dynmem->v_maddr.size() > 1) {
 		cout << cfg_en->name << "[" << cfg_en->dynmem->pr_idx << "]"
 		     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
 		     << ", Data: 0x";
-	else
+	} else {
 		cout << cfg_en->name << " at " << hex
 		     << PTR_ADD(void *, cfg_en->addr, mem_offs)
 		     << ", Data: 0x";
+	}
 
 	if (cfg_en->is_float) {
 		memcpy(&tmp_dval, &cfg_en->old_val, sizeof(i64));
@@ -493,6 +563,71 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 			change_mem_val(pid, cfg_en, (u8) cfg_en->value, buf, mem_offs);
 			break;
 		}
+	}
+}
+
+static void output_ptrmem (CfgEntry *cfg_en)
+{
+	DynMemEntry *dynmem = cfg_en->ptrtgt->dynmem;
+	void *mem_offs;
+	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
+	list<CfgEntry*>::iterator it;
+
+	mem_offs = cfg_en->ptrtgt->v_offs[dynmem->pr_idx];
+	cout << " -> *" << cfg_en->ptrtgt->name << "["
+	     << dynmem->pr_idx << "]"
+	     << " = " << hex << mem_offs << dec << endl;
+
+	for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+		cfg_en = *it;
+		cfg_en->old_val = cfg_en->v_oldval[dynmem->pr_idx];
+		output_mem_val(cfg_en, mem_offs, false);
+	}
+}
+
+static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
+{
+	void *mem_addr;
+	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
+	list<CfgEntry*>::iterator it;
+
+	if (*(void **) buf == NULL || cfg_en->ptrtgt->v_state[mem_idx] == PTR_DONE)
+		return;
+
+	if (*(void **) buf == (void *) cfg_en->v_oldval[mem_idx]) {
+		if (cfg_en->dynval == DYN_VAL_PTR_ONCE)
+			cfg_en->ptrtgt->v_state[mem_idx] = PTR_DONE;
+		else
+			cfg_en->ptrtgt->v_state[mem_idx] = PTR_SETTLED;
+		cfg_en->ptrtgt->v_offs[mem_idx] = *(void **) buf;
+		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+			cfg_en = *it;
+			mem_addr = PTR_ADD(void *, cfg_en->ptrmem->v_offs[mem_idx], cfg_en->addr);
+			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
+				cerr << "PTRACE READ MEMORY ERROR PID["
+				     << pid << "]!" << endl;
+				exit(-1);
+			}
+			change_memory(pid, cfg_en, buf, cfg_en->ptrmem->v_offs[mem_idx],
+				      &cfg_en->v_oldval[mem_idx]);
+		}
+	} else {
+		memcpy(&cfg_en->v_oldval[mem_idx],
+		       buf, sizeof(void *));
+	}
+}
+
+static void allocate_ptrmem (CfgEntry *cfg_en)
+{
+	list<CfgEntry*> *cfg = &cfg_en->ptrtgt->cfg;
+	list<CfgEntry*>::iterator it;
+
+	cfg_en->ptrtgt->v_state.push_back(PTR_INIT);
+	cfg_en->ptrtgt->v_offs.push_back(0);
+
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		cfg_en = *it;
+		cfg_en->v_oldval.push_back(0);
 	}
 }
 
@@ -1246,8 +1381,11 @@ prepare_dynmem:
 				for (mem_idx = 0;
 				     mem_idx < cfg_en->dynmem->v_maddr.size();
 				     mem_idx++) {
-					if (mem_idx >= cfg_en->v_oldval.size())
+					if (mem_idx >= cfg_en->v_oldval.size()) {
 						cfg_en->v_oldval.push_back(0);
+						if (cfg_en->ptrtgt)
+							allocate_ptrmem(cfg_en);
+					}
 				}
 			}
 		}
@@ -1277,8 +1415,11 @@ prepare_dynmem:
 						     << pid << "]!" << endl;
 						return -1;
 					}
-					change_memory(pid, cfg_en, buf, mem_offs,
-						&cfg_en->v_oldval[mem_idx]);
+					if (cfg_en->ptrtgt)
+						process_ptrmem(pid, cfg_en, buf, mem_idx);
+					else
+						change_memory(pid, cfg_en, buf, mem_offs,
+							&cfg_en->v_oldval[mem_idx]);
 				}
 			} else {
 				mem_offs = NULL;
@@ -1366,6 +1507,8 @@ prepare_dynmem:
 				mem_offs = NULL;
 			}
 			output_mem_val(cfg_en, mem_offs, is_dynmem);
+			if (cfg_en->ptrtgt)
+				output_ptrmem(cfg_en);
 		}
 
 	}

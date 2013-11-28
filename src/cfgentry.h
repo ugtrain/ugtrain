@@ -22,6 +22,8 @@
 #include "common.h"
 
 
+class CfgEntry;
+
 class DynMemEntry {
 public:
 	string name;
@@ -42,6 +44,25 @@ public:
 	u32 cfg_line;                 // to write back new cfg
 };
 
+typedef enum {
+	PTR_INIT,
+	PTR_SETTLED,
+	PTR_DONE,
+} ptr_e;
+
+class PtrMemEntry {
+public:
+	string name;
+	size_t mem_size;
+
+	list<CfgEntry *> cfg;
+	list<CfgEntry *> cfg_act;
+
+	DynMemEntry *dynmem;
+	vector<ptr_e> v_state;
+	vector<void *> v_offs;
+};
+
 
 typedef enum {
 	DYN_VAL_OFF,
@@ -49,6 +70,8 @@ typedef enum {
 	DYN_VAL_MAX,
 	DYN_VAL_ADDR,
 	DYN_VAL_WATCH,
+	DYN_VAL_PTR_ONCE,
+	DYN_VAL_PTR_ALWAYS,
 } dynval_e;
 
 typedef enum {
@@ -87,6 +110,9 @@ public:
 	// dynamic memory
 	DynMemEntry *dynmem;
 	vector<i64> v_oldval;   // old value per object
+	// pointer memory
+	PtrMemEntry *ptrmem;
+	PtrMemEntry *ptrtgt;
 };
 
 #endif

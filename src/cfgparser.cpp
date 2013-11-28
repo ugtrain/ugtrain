@@ -26,17 +26,34 @@ using namespace std;
 #define CFG_DIR "~/.ugtrain/"
 #define CFG_EXT ".conf"
 
-enum {
+typedef enum {
+	NAME_GAME_PATH,
+	NAME_USE_GBT,
 	NAME_REGULAR,
 	NAME_CHECK,
 	NAME_CHECK_OBJ,
 	NAME_DYNMEM_START,
 	NAME_DYNMEM_END,
+	NAME_PTRMEM_START,
+	NAME_PTRMEM_END,
 	NAME_ADAPT,
-	NAME_ADP_REQ,
-	NAME_GAME_PATH,
-	NAME_USE_GBT
-};
+	NAME_ADP_REQ
+} name_e;
+
+static PtrMemEntry *find_ptr_mem (list<CfgEntry> *cfg, string *name)
+{
+	list<CfgEntry>::iterator it;
+	PtrMemEntry *old_ptrmem = NULL;
+
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		if (it->ptrmem && it->ptrmem != old_ptrmem) {
+			old_ptrmem = it->ptrmem;
+			if (it->ptrmem->name == *name)
+				return it->ptrmem;
+		}
+	}
+	return NULL;
+}
 
 static inline void proc_name_err (string *line, u32 lidx)
 {
@@ -76,7 +93,7 @@ static char *parse_proc_name (string *line, u32 *start)
 }
 
 static string parse_value_name (string *line, u32 lnr, u32 *start,
-				i32 *name_type)
+				name_e *name_type)
 {
 	u32 lidx;
 	string ret;
@@ -100,6 +117,13 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			*name_type = NAME_DYNMEM_START;
 		else if (ret.substr(6, string::npos) == "end")
 			*name_type = NAME_DYNMEM_END;
+		else
+			*name_type = NAME_REGULAR;
+	} else if (ret.substr(0, 6) == "ptrmem") {
+		if (ret.substr(6, string::npos) == "start")
+			*name_type = NAME_PTRMEM_START;
+		else if (ret.substr(6, string::npos) == "end")
+			*name_type = NAME_PTRMEM_END;
 		else
 			*name_type = NAME_REGULAR;
 	} else if (ret.substr(0, 5) == "check") {
@@ -179,6 +203,10 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
 		*is_signed = true;
 		*is_float = true;
 		break;
+	case 'p':
+		lidx += 2;
+		*start = lidx;
+		return 0;
 	default:
 		cfg_parse_err(line, lnr, --lidx);
 		break;
@@ -263,6 +291,10 @@ skip_check:
 				cfg_parse_err(line, lnr, lidx);
 		} else if (tmp_str == "watch") {
 			*dynval = DYN_VAL_WATCH;
+		} else if (tmp_str == "once") {
+			*dynval = DYN_VAL_PTR_ONCE;
+		} else if (tmp_str == "always") {
+			*dynval = DYN_VAL_PTR_ALWAYS;
 		} else {
 			cfg_parse_err(line, lnr, lidx);
 		}
@@ -351,12 +383,14 @@ list<CfgEntry*> *read_config (string *path,
 	CfgEntry cfg_en;
 	CfgEntry *cfg_enp;
 	list<CfgEntry*> *cfg_act = new list<CfgEntry*>();
+	list<CfgEntry*> *used_cfg_act = NULL;
 	CheckEntry chk_en;
 	list<CheckEntry> *chk_lp;
 	DynMemEntry *dynmem_enp = NULL;
+	PtrMemEntry *ptrmem_enp = NULL;
 	u32 lnr, start = 0;
-	i32 name_type;
-	bool in_dynmem = false;
+	name_e name_type;
+	bool in_dynmem = false, in_ptrmem = false;
 	string line;
 	string home(opt->home);
 	string tmp_str;
@@ -400,6 +434,8 @@ list<CfgEntry*> *read_config (string *path,
 			break;
 
 		case NAME_DYNMEM_START:
+			if (in_ptrmem)
+				cfg_parse_err(&line, lnr, start);
 			in_dynmem = true;
 			dynmem_enp = new DynMemEntry();
 			dynmem_enp->name = parse_value_name(&line, lnr,
@@ -421,8 +457,28 @@ list<CfgEntry*> *read_config (string *path,
 			}
 			break;
 
-		case NAME_ADAPT:
+		case NAME_PTRMEM_START:
 			if (in_dynmem)
+				cfg_parse_err(&line, lnr, start);
+			in_ptrmem = true;
+			ptrmem_enp = new PtrMemEntry();
+			ptrmem_enp->name = parse_value_name(&line, lnr,
+				&start, &name_type);
+			ptrmem_enp->mem_size = parse_value(&line, lnr,
+				&start, false, false, NULL, NULL);
+			break;
+
+		case NAME_PTRMEM_END:
+			if (in_ptrmem) {
+				in_ptrmem = false;
+				ptrmem_enp = NULL;
+			} else {
+				cfg_parse_err(&line, lnr, start);
+			}
+			break;
+
+		case NAME_ADAPT:
+			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
 			tmp_str = string("");
@@ -437,7 +493,7 @@ list<CfgEntry*> *read_config (string *path,
 			break;
 
 		case NAME_ADP_REQ:
-			if (in_dynmem)
+			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
 			if (parse_value(&line, lnr, &start,
@@ -447,7 +503,7 @@ list<CfgEntry*> *read_config (string *path,
 			break;
 
 		case NAME_GAME_PATH:
-			if (in_dynmem)
+			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
 			tmp_str = parse_value_name(&line,
@@ -464,7 +520,7 @@ list<CfgEntry*> *read_config (string *path,
 			break;
 
 		case NAME_USE_GBT:
-			if (in_dynmem)
+			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
 			opt->use_gbt = true;
@@ -476,20 +532,42 @@ list<CfgEntry*> *read_config (string *path,
 			cfg_en.addr = parse_address(&line, lnr, &start);
 			cfg_en.size = parse_data_type(&line, lnr, &start,
 				&cfg_en.is_signed, &cfg_en.is_float);
+			if (!cfg_en.size) {
+				tmp_str = parse_value_name(&line, lnr, &start, &name_type);
+				cfg_en.ptrtgt = find_ptr_mem(cfg, &tmp_str);
+				if (!cfg_en.ptrtgt)
+					cfg_parse_err(&line, lnr, start - 1);
+				if (in_dynmem)
+					cfg_en.ptrtgt->dynmem = dynmem_enp;
+				else
+					cfg_parse_err(&line, lnr, start);
+			} else {
+				cfg_en.ptrtgt = NULL;
+			}
+
 			cfg_en.value = parse_value(&line, lnr, &start, cfg_en.is_signed,
 				cfg_en.is_float, &cfg_en.dynval, &cfg_en.check);
 			if (cfg_en.dynval == DYN_VAL_ADDR)
 				cfg_en.val_addr = (void *) cfg_en.value;
-			if (in_dynmem) {
+			if (in_dynmem)
 				cfg_en.dynmem = dynmem_enp;
-			} else {
+			else
 				cfg_en.dynmem = NULL;
-			}
 
 			cfg->push_back(cfg_en);
 
-			if (cfg->back().dynval == DYN_VAL_WATCH) {
-				cfg_act->push_back(&cfg->back());
+			if (in_ptrmem) {
+				cfg->back().ptrmem = ptrmem_enp;
+				cfg->back().ptrmem->cfg.push_back(&cfg->back());
+				used_cfg_act = &cfg->back().ptrmem->cfg_act;
+			} else {
+				cfg->back().ptrmem = NULL;
+				used_cfg_act = cfg_act;
+			}
+
+			if (cfg->back().dynval == DYN_VAL_WATCH ||
+			    cfg->back().ptrtgt) {
+				used_cfg_act->push_back(&cfg->back());
 				break;
 			}
 
@@ -499,10 +577,10 @@ list<CfgEntry*> *read_config (string *path,
 			if (start > line.length()) {
 				cfg_parse_err(&line, lnr, --start);
 			} else if (line.at(start) == 'a') {
-				cfg_act->push_back(&cfg->back());
+				used_cfg_act->push_back(&cfg->back());
 			} else if (line.at(start) == 'w') {
 				cfg->back().dynval = DYN_VAL_WATCH;
-				cfg_act->push_back(&cfg->back());
+				used_cfg_act->push_back(&cfg->back());
 			}
 			break;
 		}
