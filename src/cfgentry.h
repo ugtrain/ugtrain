@@ -84,6 +84,7 @@ typedef enum {
 class CheckEntry {
 public:
 	void *addr;
+	CfgEntry *cfg_ref;
 	bool is_objcheck;
 	bool is_signed;
 	bool is_float;

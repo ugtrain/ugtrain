@@ -55,6 +55,20 @@ static PtrMemEntry *find_ptr_mem (list<CfgEntry> *cfg, string *name)
 	return NULL;
 }
 
+static CfgEntry *find_cfg_en (list<CfgEntry> *cfg, string *name)
+{
+	list<CfgEntry>::iterator it;
+	CfgEntry *cfg_en = NULL;
+
+
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		cfg_en = &(*it);
+		if (cfg_en->name == *name)
+			return cfg_en;
+	}
+	return NULL;
+}
+
 static inline void proc_name_err (string *line, u32 lidx)
 {
 	cerr << "First line doesn't contain a valid process name!" << endl;
@@ -112,6 +126,9 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 
 	ret = string(*line, *start, lidx - *start);
 	*start = lidx + 1;
+	if (!name_type)
+		return ret;
+
 	if (ret.substr(0, 6) == "dynmem") {
 		if (ret.substr(6, string::npos) == "start")
 			*name_type = NAME_DYNMEM_START;
@@ -154,15 +171,26 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	return ret;
 }
 
-static void *parse_address (string *line, u32 lnr, u32 *start)
+static void *parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
+			    string *line, u32 lnr, u32 *start)
 {
 	u32 lidx;
+	string tmp_str;
 	void *ret = NULL;
 
 	lidx = *start;
-	if (lidx + 2 > line->length() || line->at(lidx) != '0' ||
-	    line->at(lidx + 1) != 'x')
+	if (lidx + 2 > line->length())
 		cfg_parse_err(line, lnr, --lidx);
+	if (line->at(lidx) != '0' || line->at(lidx + 1) != 'x') {
+		if (!chk_en)
+			cfg_parse_err(line, lnr, lidx);
+		// So you want a cfg value reference?
+		tmp_str = parse_value_name(line, lnr, start, NULL);
+		chk_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
+		if (!chk_en->cfg_ref)
+			cfg_parse_err(line, lnr, lidx);
+		goto out;
+	}
 	*start = lidx + 2;
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (lidx == line->length() - 1) {
@@ -178,6 +206,7 @@ static void *parse_address (string *line, u32 lnr, u32 *start)
 		}
 	}
 	*start = lidx + 1;
+out:
 	return ret;
 }
 
@@ -417,7 +446,8 @@ list<CfgEntry*> *read_config (string *path,
 				cfg_enp->checks = new list<CheckEntry>();
 
 			chk_lp = cfg_enp->checks;
-			chk_en.addr = parse_address(&line, lnr, &start);
+			chk_en.cfg_ref = NULL;
+			chk_en.addr = parse_address(cfg, &chk_en, &line, lnr, &start);
 			chk_en.size = parse_data_type(&line, lnr, &start,
 				&chk_en.is_signed, &chk_en.is_float);
 			chk_en.value = parse_value(&line, lnr, &start, chk_en.is_signed,
@@ -439,11 +469,11 @@ list<CfgEntry*> *read_config (string *path,
 			in_dynmem = true;
 			dynmem_enp = new DynMemEntry();
 			dynmem_enp->name = parse_value_name(&line, lnr,
-				&start, &name_type);
+				&start, NULL);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
 				&start, false, false, NULL, NULL);
-			dynmem_enp->code_addr = parse_address(&line, lnr, &start);
-			dynmem_enp->stack_offs = parse_address(&line, lnr, &start);
+			dynmem_enp->code_addr = parse_address(cfg, NULL, &line, lnr, &start);
+			dynmem_enp->stack_offs = parse_address(cfg, NULL, &line, lnr, &start);
 			dynmem_enp->v_maddr.clear();
 			dynmem_enp->cfg_line = lnr;
 			break;
@@ -463,7 +493,7 @@ list<CfgEntry*> *read_config (string *path,
 			in_ptrmem = true;
 			ptrmem_enp = new PtrMemEntry();
 			ptrmem_enp->name = parse_value_name(&line, lnr,
-				&start, &name_type);
+				&start, NULL);
 			ptrmem_enp->mem_size = parse_value(&line, lnr,
 				&start, false, false, NULL, NULL);
 			break;
@@ -486,7 +516,7 @@ list<CfgEntry*> *read_config (string *path,
 			if (pos != string::npos)
 				tmp_str.append(path->substr(0, pos + 1));
 			tmp_str.append(parse_value_name(&line,
-				       lnr, &start, &name_type));
+				       lnr, &start, NULL));
 
 			// Copy into C string
 			opt->adp_script = to_c_str(&tmp_str);
@@ -507,7 +537,7 @@ list<CfgEntry*> *read_config (string *path,
 				cfg_parse_err(&line, lnr, start);
 
 			tmp_str = parse_value_name(&line,
-				  lnr, &start, &name_type);
+				  lnr, &start, NULL);
 
 			pos = tmp_str.rfind("/");
 			if (pos != string::npos &&
@@ -529,11 +559,11 @@ list<CfgEntry*> *read_config (string *path,
 		default:
 			cfg_en.checks = NULL;
 			cfg_en.dynval = DYN_VAL_OFF;
-			cfg_en.addr = parse_address(&line, lnr, &start);
+			cfg_en.addr = parse_address(cfg, NULL, &line, lnr, &start);
 			cfg_en.size = parse_data_type(&line, lnr, &start,
 				&cfg_en.is_signed, &cfg_en.is_float);
 			if (!cfg_en.size) {
-				tmp_str = parse_value_name(&line, lnr, &start, &name_type);
+				tmp_str = parse_value_name(&line, lnr, &start, NULL);
 				cfg_en.ptrtgt = find_ptr_mem(cfg, &tmp_str);
 				if (!cfg_en.ptrtgt)
 					cfg_parse_err(&line, lnr, start - 1);

@@ -126,7 +126,10 @@ static void output_checks (CfgEntry *cfg_en)
 		if (!check_op)
 			continue;
 
-		cout << "    check " << hex << it->addr << dec << check_op;
+		if (it->cfg_ref)
+			cout << "    check " << it->cfg_ref->name << check_op;
+		else
+			cout << "    check " << hex << it->addr << dec << check_op;
 		if (it->is_float) {
 			memcpy(&tmp_dval, &it->value, sizeof(i64));
 			cout << tmp_dval << get_objcheck_str(&(*it)) << endl;
@@ -433,6 +436,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 {
 	list<CheckEntry> *chk_lp = cfg_en->checks;
 	list<CheckEntry>::iterator it;
+	DynMemEntry *dynmem;
 	u8 chk_buf[sizeof(i64)];
 	void *mem_addr;
 
@@ -441,11 +445,29 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 
 	if (chk_lp) {
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
-			mem_addr = PTR_ADD(void *, mem_offs, it->addr);
+			if (it->cfg_ref) {
+				if (it->cfg_ref->dynmem) {
+					dynmem = it->cfg_ref->dynmem;
+					if (it->cfg_ref->v_oldval.size() <= 0)
+						continue;
+					memcpy(chk_buf, &it->cfg_ref->v_oldval[
+						dynmem->obj_idx], sizeof(i64));
+				} else if (it->cfg_ref->ptrmem && it->cfg_ref->ptrmem->dynmem) {
+					dynmem = it->cfg_ref->ptrmem->dynmem;
+					if (it->cfg_ref->v_oldval.size() <= 0)
+						continue;
+					memcpy(chk_buf, &it->cfg_ref->v_oldval[
+						dynmem->obj_idx], sizeof(i64));
+				} else {
+					memcpy(chk_buf, &it->cfg_ref->old_val, sizeof(i64));
+				}
+			} else {
+				mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
-			if (memread(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
-				cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
-				exit(-1);
+				if (memread(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
+					cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
+					exit(-1);
+				}
 			}
 			if (check_memory(*it, chk_buf) != 0) {
 				if (it->is_objcheck)
