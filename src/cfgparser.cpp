@@ -266,7 +266,7 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
  *            We always parse floats as doubles here.
  */
 static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
-		        bool is_float, dynval_e *dynval, check_e *check)
+		        bool is_float, dynval_e *dynval, check_e *check, u32 i)
 {
 	u32 lidx;
 	i64 ret = 0;
@@ -279,8 +279,12 @@ static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
 		goto skip_check;
 
 	// determine check
-	if (lidx + 2 > line->length())
-		cfg_parse_err(line, lnr, --lidx);
+	if (lidx + 2 > line->length()) {
+		if (i == 0)
+			cfg_parse_err(line, lnr, --lidx);
+		*check = CHECK_END;
+		return 0;
+	}
 	if (line->at(lidx) == 'l' && line->at(lidx + 1) == ' ') {
 		*check = CHECK_LT;
 		*start += 2;
@@ -417,7 +421,7 @@ list<CfgEntry*> *read_config (string *path,
 	list<CheckEntry> *chk_lp;
 	DynMemEntry *dynmem_enp = NULL;
 	PtrMemEntry *ptrmem_enp = NULL;
-	u32 lnr, start = 0;
+	u32 i, lnr, start = 0;
 	name_e name_type;
 	bool in_dynmem = false, in_ptrmem = false;
 	string line;
@@ -439,8 +443,14 @@ list<CfgEntry*> *read_config (string *path,
 
 		cfg_en.name = parse_value_name(&line, lnr, &start, &name_type);
 		switch (name_type) {
-		case NAME_CHECK:
 		case NAME_CHECK_OBJ:
+			if (!in_dynmem)
+				cfg_parse_err(&line, lnr, start);
+		case NAME_CHECK:
+			if (name_type == NAME_CHECK_OBJ)
+				chk_en.is_objcheck = true;
+			else
+				chk_en.is_objcheck = false;
 			cfg_enp = &cfg->back();
 			if (!cfg_enp->checks)
 				cfg_enp->checks = new list<CheckEntry>();
@@ -450,16 +460,10 @@ list<CfgEntry*> *read_config (string *path,
 			chk_en.addr = parse_address(cfg, &chk_en, &line, lnr, &start);
 			chk_en.size = parse_data_type(&line, lnr, &start,
 				&chk_en.is_signed, &chk_en.is_float);
-			chk_en.value = parse_value(&line, lnr, &start, chk_en.is_signed,
-				chk_en.is_float, NULL, &chk_en.check);
-
-			if (name_type == NAME_CHECK_OBJ) {
-				if (!in_dynmem)
-					cfg_parse_err(&line, lnr, start);
-				chk_en.is_objcheck = true;
-			} else {
-				chk_en.is_objcheck = false;
-			}
+			for (i = 0; i < MAX_CHK_VALS; i++)
+				chk_en.value[i] = parse_value(&line, lnr, &start, chk_en.is_signed,
+					chk_en.is_float, NULL, &chk_en.check[i], i);
+			chk_en.check[MAX_CHK_VALS] = CHECK_END;
 			chk_lp->push_back(chk_en);
 			break;
 
@@ -471,7 +475,7 @@ list<CfgEntry*> *read_config (string *path,
 			dynmem_enp->name = parse_value_name(&line, lnr,
 				&start, NULL);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
-				&start, false, false, NULL, NULL);
+				&start, false, false, NULL, NULL, 0);
 			dynmem_enp->code_addr = parse_address(cfg, NULL, &line, lnr, &start);
 			dynmem_enp->stack_offs = parse_address(cfg, NULL, &line, lnr, &start);
 			dynmem_enp->v_maddr.clear();
@@ -495,7 +499,7 @@ list<CfgEntry*> *read_config (string *path,
 			ptrmem_enp->name = parse_value_name(&line, lnr,
 				&start, NULL);
 			ptrmem_enp->mem_size = parse_value(&line, lnr,
-				&start, false, false, NULL, NULL);
+				&start, false, false, NULL, NULL, 0);
 			break;
 
 		case NAME_PTRMEM_END:
@@ -527,7 +531,7 @@ list<CfgEntry*> *read_config (string *path,
 				cfg_parse_err(&line, lnr, start);
 
 			if (parse_value(&line, lnr, &start,
-					false, false, NULL, NULL))
+					false, false, NULL, NULL, 0))
 				opt->adp_required = true;
 			opt->adp_req_line = lnr;
 			break;
@@ -576,7 +580,7 @@ list<CfgEntry*> *read_config (string *path,
 			}
 
 			cfg_en.value = parse_value(&line, lnr, &start, cfg_en.is_signed,
-				cfg_en.is_float, &cfg_en.dynval, &cfg_en.check);
+				cfg_en.is_float, &cfg_en.dynval, &cfg_en.check, 0);
 			if (cfg_en.dynval == DYN_VAL_ADDR)
 				cfg_en.val_addr = (void *) cfg_en.value;
 			if (in_dynmem)

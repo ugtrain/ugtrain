@@ -78,8 +78,11 @@ typedef enum {
 	CHECK_OFF,
 	CHECK_LT,
 	CHECK_GT,
-	CHECK_EQ
+	CHECK_EQ,
+	CHECK_END,
 } check_e;
+
+#define MAX_CHK_VALS 4  // for "or" checks
 
 class CheckEntry {
 public:
@@ -89,8 +92,8 @@ public:
 	bool is_signed;
 	bool is_float;
 	i32 size;
-	check_e check;
-	i64 value;
+	check_e check[MAX_CHK_VALS + 1];
+	i64 value[MAX_CHK_VALS + 1];
 };
 
 class CfgEntry {

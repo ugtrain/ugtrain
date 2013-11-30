@@ -105,6 +105,7 @@ static void output_checks (CfgEntry *cfg_en)
 {
 	list<CheckEntry> *chk_lp = cfg_en->checks;
 	list<CheckEntry>::iterator it;
+	u32 i;
 	double tmp_dval;
 	char *check_op = get_check_op(cfg_en->check);
 
@@ -122,20 +123,24 @@ static void output_checks (CfgEntry *cfg_en)
 		return;
 
 	for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
-		check_op = get_check_op(it->check);
-		if (!check_op)
-			continue;
-
 		if (it->cfg_ref)
-			cout << "    check " << it->cfg_ref->name << check_op;
+			cout << "    check " << it->cfg_ref->name;
 		else
-			cout << "    check " << hex << it->addr << dec << check_op;
-		if (it->is_float) {
-			memcpy(&tmp_dval, &it->value, sizeof(i64));
-			cout << tmp_dval << get_objcheck_str(&(*it)) << endl;
-		} else {
-			cout << it->value << get_objcheck_str(&(*it)) << endl;
+			cout << "    check " << hex << it->addr << dec;
+		for (i = 0; it->check[i] != CHECK_END; i++) {
+			if (i > 0)
+				cout << " ||";
+			check_op = get_check_op(it->check[i]);
+			cout << check_op;
+
+			if (it->is_float) {
+				memcpy(&tmp_dval, &it->value[i], sizeof(i64));
+				cout << tmp_dval << get_objcheck_str(&(*it));
+			} else {
+				cout << it->value[i] << get_objcheck_str(&(*it));
+			}
 		}
+		cout << endl;
 	}
 }
 
@@ -404,29 +409,29 @@ static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
 	return -1;
 }
 
-static i32 check_memory (CheckEntry chk_en, u8 *chk_buf)
+static i32 check_memory (CheckEntry chk_en, u8 *chk_buf, u32 i)
 {
 	if (chk_en.is_signed) {
 		switch (chk_en.size) {
 		case 64:
-			return check_mem_val((i64) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i64) chk_en.value[i], chk_buf, chk_en.check[i]);
 		case 32:
-			return check_mem_val((i32) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i32) chk_en.value[i], chk_buf, chk_en.check[i]);
 		case 16:
-			return check_mem_val((i16) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i16) chk_en.value[i], chk_buf, chk_en.check[i]);
 		default:
-			return check_mem_val((i8) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((i8) chk_en.value[i], chk_buf, chk_en.check[i]);
 		}
 	} else {
 		switch (chk_en.size) {
 		case 64:
-			return check_mem_val((u64) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u64) chk_en.value[i], chk_buf, chk_en.check[i]);
 		case 32:
-			return check_mem_val((u32) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u32) chk_en.value[i], chk_buf, chk_en.check[i]);
 		case 16:
-			return check_mem_val((u16) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u16) chk_en.value[i], chk_buf, chk_en.check[i]);
 		default:
-			return check_mem_val((u8) chk_en.value, chk_buf, chk_en.check);
+			return check_mem_val((u8) chk_en.value[i], chk_buf, chk_en.check[i]);
 		}
 	}
 }
@@ -439,6 +444,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 	DynMemEntry *dynmem;
 	u8 chk_buf[sizeof(i64)];
 	void *mem_addr;
+	u32 i;
 
 	if (cfg_en->dynval == DYN_VAL_WATCH)
 		return;
@@ -465,15 +471,20 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 				mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
 				if (memread(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
-					cerr << "PTRACE READ MEMORY ERROR PID[" << pid << "]!" << endl;
+					cerr << "PTRACE READ MEMORY ERROR PID["
+					     << pid << "]!" << endl;
 					exit(-1);
 				}
 			}
-			if (check_memory(*it, chk_buf) != 0) {
-				if (it->is_objcheck)
-					cfg_en->dynmem->v_maddr[cfg_en->dynmem->obj_idx] = NULL;
-				return;
+			for (i = 0; it->check[i] != CHECK_END; i++) {
+				if (check_memory(*it, chk_buf, i) == 0)
+					goto passed;
 			}
+			if (it->is_objcheck)
+				cfg_en->dynmem->v_maddr[cfg_en->dynmem->obj_idx] = NULL;
+			return;
+passed:
+			continue;
 		}
 	}
 
