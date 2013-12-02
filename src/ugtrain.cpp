@@ -679,6 +679,20 @@ static void allocate_ptrmem (CfgEntry *cfg_en)
 	}
 }
 
+static void deallocate_ptrmem (CfgEntry *cfg_en, u32 idx)
+{
+	list<CfgEntry*> *cfg = &cfg_en->ptrtgt->cfg;
+	list<CfgEntry*>::iterator it;
+
+	cfg_en->ptrtgt->v_state.erase(cfg_en->ptrtgt->v_state.begin() + idx);
+	cfg_en->ptrtgt->v_offs.erase(cfg_en->ptrtgt->v_offs.begin() + idx);
+
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		cfg_en = *it;
+		cfg_en->v_oldval.erase(cfg_en->v_oldval.begin() + idx);
+	}
+}
+
 /*
  * The function run_pgrp_bg() is so hacky OS security
  * bypassing so that it is not possible to wait for the
@@ -1120,6 +1134,57 @@ void set_dynmem_addr (list<CfgEntry> *cfg,
 	}
 }
 
+static void deallocate_objects (list<CfgEntry> *cfg, bool process_kicked)
+{
+	list<CfgEntry>::iterator it;
+	CfgEntry *cfg_en;
+	DynMemEntry *old_dynmem = NULL;
+	vector<void *> *mvec;
+	u32 mem_idx, ov_idx, num_kicked;
+
+	// remove old values marked to be removed by free() or by object check
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		cfg_en = &(*it);
+		if (cfg_en->dynmem) {
+			mvec = &cfg_en->dynmem->v_maddr;
+			for (mem_idx = 0, ov_idx = 0;
+			     mem_idx < mvec->size() &&
+			     ov_idx < cfg_en->v_oldval.size();
+			     mem_idx++, ov_idx++) {
+				if (!mvec->at(mem_idx)) {
+					cfg_en->v_oldval.erase(cfg_en->v_oldval.begin()
+						+ ov_idx);
+					if (cfg_en->ptrtgt)
+						deallocate_ptrmem(cfg_en, ov_idx);
+					ov_idx--;
+				}
+			}
+		}
+	}
+
+	// remove objects marked to be removed by free() or by object check
+	old_dynmem = NULL;
+	for (it = cfg->begin(); it != cfg->end(); it++) {
+		cfg_en = &(*it);
+		if (cfg_en->dynmem && cfg_en->dynmem != old_dynmem) {
+			mvec = &cfg_en->dynmem->v_maddr;
+			num_kicked = 0;
+			for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
+				if (!mvec->at(mem_idx)) {
+					mvec->erase(mvec->begin() + mem_idx);
+					num_kicked++;
+					mem_idx--;
+				}
+			}
+			if (process_kicked && num_kicked > 0)
+				cout << "===> Obj. " << cfg_en->dynmem->name
+				     << " kicked out " << num_kicked
+				     << " time(s); remaining: " << mvec->size() << endl;
+			old_dynmem = cfg_en->dynmem;
+		}
+	}
+}
+
 i32 find_addr_idx(vector<void *> *vec, void *addr)
 {
 	u32 i;
@@ -1149,7 +1214,7 @@ void unset_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
 			idx = find_addr_idx(mvec, mem_addr);
 			if (idx < 0)
 				continue;
-			mvec->erase(mvec->begin() + idx);
+			mvec->at(idx) = NULL;
 			it->dynmem->num_freed++;
 
 			/*cout << "Obj. " << it->dynmem->name << "; c"
@@ -1183,7 +1248,7 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
 	bool emptycfg = false;
-	u32 mem_idx, ov_idx, num_kicked;
+	u32 mem_idx;
 	bool is_dynmem;
 
 	atexit(restore_getch);
@@ -1405,11 +1470,13 @@ prepare_dynmem:
 				if (cfg_it->dynmem->num_alloc > 0)
 					cout << "===> Obj. " << cfg_it->dynmem->name
 					     << " created " << cfg_it->dynmem->num_alloc
-					     << " time(s); now: " << mvec->size() << endl;
+					     << " time(s); now: " << mvec->size() -
+						cfg_it->dynmem->num_freed << endl;
 				if (cfg_it->dynmem->num_freed > 0)
 					cout << "===> Obj. " << cfg_it->dynmem->name
 					     << " freed " << cfg_it->dynmem->num_freed
-					     << " time(s); remaining: " << mvec->size() << endl;
+					     << " time(s); remaining: " << mvec->size() -
+						cfg_it->dynmem->num_freed << endl;
 				cfg_it->dynmem->num_alloc = 0;
 				cfg_it->dynmem->num_freed = 0;
 				old_dynmem = cfg_it->dynmem;
@@ -1422,9 +1489,12 @@ prepare_dynmem:
 			continue;
 		}
 
+		// handle freed objects
+		deallocate_objects (&cfg, false);
+
 		// allocate old values per memory object
-		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
-			cfg_en = *it;
+		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
+			cfg_en = &(*cfg_it);
 			if (cfg_en->dynmem) {
 				for (mem_idx = 0;
 				     mem_idx < cfg_en->dynmem->v_maddr.size();
@@ -1487,45 +1557,8 @@ prepare_dynmem:
 			return -1;
 		}
 
-		// remove old values marked to be removed by object check
-		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
-			cfg_en = *it;
-			if (cfg_en->dynmem) {
-				mvec = &cfg_en->dynmem->v_maddr;
-				for (mem_idx = 0, ov_idx = 0;
-				     mem_idx < mvec->size() &&
-				     ov_idx < cfg_en->v_oldval.size();
-				     mem_idx++, ov_idx++) {
-					if (!mvec->at(mem_idx)) {
-						cfg_en->v_oldval.erase(cfg_en->v_oldval.begin()
-							+ ov_idx);
-						ov_idx--;
-					}
-				}
-			}
-		}
-
-		// remove objects marked to be removed by object check
-		old_dynmem = NULL;
-		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
-			cfg_en = *it;
-			if (cfg_en->dynmem && cfg_en->dynmem != old_dynmem) {
-				mvec = &cfg_en->dynmem->v_maddr;
-				num_kicked = 0;
-				for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
-					if (!mvec->at(mem_idx)) {
-						mvec->erase(mvec->begin() + mem_idx);
-						num_kicked++;
-						mem_idx--;
-					}
-				}
-				if (num_kicked > 0)
-					cout << "===> Obj. " << cfg_en->dynmem->name
-					     << " kicked out " << num_kicked
-					     << " time(s); remaining: " << mvec->size() << endl;
-				old_dynmem = cfg_en->dynmem;
-			}
-		}
+		// deallocate memory used for objects kicked out by object check
+		deallocate_objects (&cfg, true);
 
 		// output old values
 		old_dynmem = NULL;
