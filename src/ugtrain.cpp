@@ -392,15 +392,15 @@ static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
 {
 	switch (check) {
 	case CHECK_LT:
-		if (*(T *)chk_buf < value)
+		if (*(T *) chk_buf < value)
 			return 0;
 		break;
 	case CHECK_GT:
-		if (*(T *)chk_buf > value)
+		if (*(T *) chk_buf > value)
 			return 0;
 		break;
 	case CHECK_EQ:
-		if (*(T *)chk_buf == value)
+		if (*(T *) chk_buf == value)
 			return 0;
 		break;
 	default:
@@ -549,13 +549,13 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 		memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
 		switch (cfg_en->size) {
 		case 64:
-			old_dval = *(double *)buf;
+			old_dval = *(double *) buf;
 			handle_dynval(pid, cfg_en, old_dval, &tmp_dval, mem_offs);
 			memcpy(old_val, &old_dval, sizeof(i64));
 			change_mem_val(pid, cfg_en, tmp_dval, buf, mem_offs);
 			break;
 		case 32:
-			old_fval = *(float *)buf;
+			old_fval = *(float *) buf;
 			tmp_fval = (float) tmp_dval;
 			handle_dynval(pid, cfg_en, old_fval, &tmp_fval, mem_offs);
 			old_dval = (double) old_fval;
@@ -568,46 +568,46 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 	} else if (cfg_en->is_signed) {
 		switch (cfg_en->size) {
 		case 64:
-			*old_val = *(i64 *)buf;
-			handle_dynval(pid, cfg_en, *(i64 *)buf, (i64 *) &cfg_en->value, mem_offs);
+			*old_val = *(i64 *) buf;
+			handle_dynval(pid, cfg_en, *(i64 *) buf, (i64 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i64) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
-			*old_val = *(i32 *)buf;
-			handle_dynval(pid, cfg_en, *(i32 *)buf, (i32 *) &cfg_en->value, mem_offs);
+			*old_val = *(i32 *) buf;
+			handle_dynval(pid, cfg_en, *(i32 *) buf, (i32 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i32) cfg_en->value, buf, mem_offs);
 			break;
 		case 16:
-			*old_val = *(i16 *)buf;
-			handle_dynval(pid, cfg_en, *(i16 *)buf, (i16 *) &cfg_en->value, mem_offs);
+			*old_val = *(i16 *) buf;
+			handle_dynval(pid, cfg_en, *(i16 *) buf, (i16 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i16) cfg_en->value, buf, mem_offs);
 			break;
 		default:
-			*old_val = *(i8 *)buf;
-			handle_dynval(pid, cfg_en, *(i8 *)buf, (i8 *) &cfg_en->value, mem_offs);
+			*old_val = *(i8 *) buf;
+			handle_dynval(pid, cfg_en, *(i8 *) buf, (i8 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (i8) cfg_en->value, buf, mem_offs);
 			break;
 		}
 	} else {
 		switch (cfg_en->size) {
 		case 64:
-			*old_val = *(u64 *)buf;
-			handle_dynval(pid, cfg_en, *(u64 *)buf, (u64 *) &cfg_en->value, mem_offs);
+			*old_val = *(u64 *) buf;
+			handle_dynval(pid, cfg_en, *(u64 *) buf, (u64 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u64) cfg_en->value, buf, mem_offs);
 			break;
 		case 32:
-			*old_val = *(u32 *)buf;
-			handle_dynval(pid, cfg_en, *(u32 *)buf, (u32 *) &cfg_en->value, mem_offs);
+			*old_val = *(u32 *) buf;
+			handle_dynval(pid, cfg_en, *(u32 *) buf, (u32 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u32) cfg_en->value, buf, mem_offs);
 			break;
 		case 16:
-			*old_val = *(u16 *)buf;
-			handle_dynval(pid, cfg_en, *(u16 *)buf, (u16 *) &cfg_en->value, mem_offs);
+			*old_val = *(u16 *) buf;
+			handle_dynval(pid, cfg_en, *(u16 *) buf, (u16 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u16) cfg_en->value, buf, mem_offs);
 			break;
 		default:
-			*old_val = *(u8 *)buf;
-			handle_dynval(pid, cfg_en, *(u8 *)buf, (u8 *) &cfg_en->value, mem_offs);
+			*old_val = *(u8 *) buf;
+			handle_dynval(pid, cfg_en, *(u8 *) buf, (u8 *) &cfg_en->value, mem_offs);
 			change_mem_val(pid, cfg_en, (u8) cfg_en->value, buf, mem_offs);
 			break;
 		}
