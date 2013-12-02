@@ -436,12 +436,33 @@ static i32 check_memory (CheckEntry chk_en, u8 *chk_buf, u32 i)
 	}
 }
 
+static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, u8 *buf)
+{
+	DynMemEntry *dynmem;
+
+	if (cfg_ref->dynmem) {
+		dynmem = cfg_ref->dynmem;
+		if (cfg_ref->v_oldval.size() <= 0)
+			goto err;
+		memcpy(buf, &cfg_ref->v_oldval[dynmem->obj_idx], sizeof(i64));
+	} else if (cfg_ref->ptrmem && cfg_ref->ptrmem->dynmem) {
+		dynmem = cfg_ref->ptrmem->dynmem;
+		if (cfg_ref->v_oldval.size() <= 0)
+			goto err;
+		memcpy(buf, &cfg_ref->v_oldval[dynmem->obj_idx], sizeof(i64));
+	} else {
+		memcpy(buf, &cfg_ref->old_val, sizeof(i64));
+	}
+	return 0;
+err:
+	return -1;
+}
+
 template <typename T>
 static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void *mem_offs)
 {
 	list<CheckEntry> *chk_lp = cfg_en->checks;
 	list<CheckEntry>::iterator it;
-	DynMemEntry *dynmem;
 	u8 chk_buf[sizeof(i64)];
 	void *mem_addr;
 	u32 i;
@@ -452,21 +473,8 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 	if (chk_lp) {
 		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
 			if (it->cfg_ref) {
-				if (it->cfg_ref->dynmem) {
-					dynmem = it->cfg_ref->dynmem;
-					if (it->cfg_ref->v_oldval.size() <= 0)
-						continue;
-					memcpy(chk_buf, &it->cfg_ref->v_oldval[
-						dynmem->obj_idx], sizeof(i64));
-				} else if (it->cfg_ref->ptrmem && it->cfg_ref->ptrmem->dynmem) {
-					dynmem = it->cfg_ref->ptrmem->dynmem;
-					if (it->cfg_ref->v_oldval.size() <= 0)
-						continue;
-					memcpy(chk_buf, &it->cfg_ref->v_oldval[
-						dynmem->obj_idx], sizeof(i64));
-				} else {
-					memcpy(chk_buf, &it->cfg_ref->old_val, sizeof(i64));
-				}
+				if (handle_cfg_ref(it->cfg_ref, chk_buf) != 0)
+					continue;
 			} else {
 				mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
@@ -514,13 +522,20 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 	    read_val < *value) {
 		*value = read_val;
 	} else if (cfg_en->dynval == DYN_VAL_ADDR) {
-		mem_addr = PTR_ADD(void *, mem_offs, cfg_en->val_addr);
-		if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-			cerr << "PTRACE READ MEMORY ERROR PID["
-			     << pid << "]!" << endl;
-			exit(-1);
+		if (cfg_en->cfg_ref) {
+			if (handle_cfg_ref(cfg_en->cfg_ref, bufp) != 0)
+				*value = 0;
+			else
+				*value = *(T *) bufp;
+		} else {
+			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->val_addr);
+			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
+				cerr << "PTRACE READ MEMORY ERROR PID["
+				     << pid << "]!" << endl;
+				exit(-1);
+			}
+			*value = *(T *) bufp;
 		}
-		*value = *(T *)bufp;
 	}
 }
 

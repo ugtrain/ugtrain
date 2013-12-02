@@ -259,20 +259,31 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
 
 /*
  * This function parses a signed/unsigned integer or a float/double value
- * from the config and also determines if a check is wanted.
+ * from the config and also determines if a check is wanted. Dynamic wish
+ * values are also possible.
  *
  * Attention: Hacky floats. A float has 4 bytes, a double has 8 bytes
  *            and i64 has 8 bytes. Why not copy the float/double into the i64?!
  *            We always parse floats as doubles here.
  */
-static i64 parse_value (string *line, u32 lnr, u32 *start, bool is_signed,
-		        bool is_float, dynval_e *dynval, check_e *check, u32 i)
+static i64 parse_value (string *line, u32 lnr, u32 *start,
+			list<CfgEntry> *cfg, CfgEntry *cfg_en, CheckEntry *chk_en,
+			dynval_e *dynval, check_e *check, u32 i)
 {
 	u32 lidx;
 	i64 ret = 0;
 	double tmp_dval;
+	bool is_signed = false, is_float = false;
 	bool dynval_detected = false;
 	string tmp_str;
+
+	if (cfg_en) {
+		is_signed = cfg_en->is_signed;
+		is_float = cfg_en->is_float;
+	} else if (chk_en) {
+		is_signed = chk_en->is_signed;
+		is_float = chk_en->is_float;
+	}
 
 	lidx = *start;
 	if (!check)
@@ -329,7 +340,13 @@ skip_check:
 		} else if (tmp_str == "always") {
 			*dynval = DYN_VAL_PTR_ALWAYS;
 		} else {
-			cfg_parse_err(line, lnr, lidx);
+			if (!cfg || !cfg_en)
+				cfg_parse_err(line, lnr, lidx);
+			// So you want a cfg value reference?
+			cfg_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
+			if (!cfg_en->cfg_ref)
+				cfg_parse_err(line, lnr, lidx);
+			*dynval = DYN_VAL_ADDR;
 		}
 		goto out;
 
@@ -461,8 +478,8 @@ list<CfgEntry*> *read_config (string *path,
 			chk_en.size = parse_data_type(&line, lnr, &start,
 				&chk_en.is_signed, &chk_en.is_float);
 			for (i = 0; i < MAX_CHK_VALS; i++)
-				chk_en.value[i] = parse_value(&line, lnr, &start, chk_en.is_signed,
-					chk_en.is_float, NULL, &chk_en.check[i], i);
+				chk_en.value[i] = parse_value(&line, lnr, &start, cfg,
+					NULL, &chk_en, NULL, &chk_en.check[i], i);
 			chk_en.check[MAX_CHK_VALS] = CHECK_END;
 			chk_lp->push_back(chk_en);
 			break;
@@ -475,7 +492,7 @@ list<CfgEntry*> *read_config (string *path,
 			dynmem_enp->name = parse_value_name(&line, lnr,
 				&start, NULL);
 			dynmem_enp->mem_size = parse_value(&line, lnr,
-				&start, false, false, NULL, NULL, 0);
+				&start, NULL, NULL, NULL, NULL, NULL, 0);
 			dynmem_enp->code_addr = parse_address(cfg, NULL, &line, lnr, &start);
 			dynmem_enp->stack_offs = parse_address(cfg, NULL, &line, lnr, &start);
 			dynmem_enp->v_maddr.clear();
@@ -499,7 +516,7 @@ list<CfgEntry*> *read_config (string *path,
 			ptrmem_enp->name = parse_value_name(&line, lnr,
 				&start, NULL);
 			ptrmem_enp->mem_size = parse_value(&line, lnr,
-				&start, false, false, NULL, NULL, 0);
+				&start, NULL, NULL, NULL, NULL, NULL, 0);
 			break;
 
 		case NAME_PTRMEM_END:
@@ -531,7 +548,7 @@ list<CfgEntry*> *read_config (string *path,
 				cfg_parse_err(&line, lnr, start);
 
 			if (parse_value(&line, lnr, &start,
-					false, false, NULL, NULL, 0))
+					NULL, NULL, NULL, NULL, NULL, 0))
 				opt->adp_required = true;
 			opt->adp_req_line = lnr;
 			break;
@@ -563,6 +580,7 @@ list<CfgEntry*> *read_config (string *path,
 		default:
 			cfg_en.checks = NULL;
 			cfg_en.dynval = DYN_VAL_OFF;
+			cfg_en.cfg_ref = NULL;
 			cfg_en.addr = parse_address(cfg, NULL, &line, lnr, &start);
 			cfg_en.size = parse_data_type(&line, lnr, &start,
 				&cfg_en.is_signed, &cfg_en.is_float);
@@ -579,8 +597,8 @@ list<CfgEntry*> *read_config (string *path,
 				cfg_en.ptrtgt = NULL;
 			}
 
-			cfg_en.value = parse_value(&line, lnr, &start, cfg_en.is_signed,
-				cfg_en.is_float, &cfg_en.dynval, &cfg_en.check, 0);
+			cfg_en.value = parse_value(&line, lnr, &start, cfg, &cfg_en,
+				NULL, &cfg_en.dynval, &cfg_en.check, 0);
 			if (cfg_en.dynval == DYN_VAL_ADDR)
 				cfg_en.val_addr = (void *) cfg_en.value;
 			if (in_dynmem)

@@ -109,6 +109,8 @@ public:
 	i64 value;
 	i64 old_val;      // for static memory only
 
+	// get value from other cfg entry (DYN_VAL_ADDR)
+	CfgEntry *cfg_ref;
 	// more checks
 	list<CheckEntry> *checks;
 	// dynamic memory
