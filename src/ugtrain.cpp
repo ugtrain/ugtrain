@@ -481,7 +481,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 				if (memread(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
 					cerr << "PTRACE READ MEMORY ERROR PID["
 					     << pid << "]!" << endl;
-					exit(-1);
+					return;
 				}
 			}
 			for (i = 0; it->check[i] != CHECK_END; i++) {
@@ -502,7 +502,7 @@ passed:
 
 		if (memwrite(pid, mem_addr, buf, sizeof(i64)) != 0) {
 			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
-			exit(-1);
+			return;
 		}
 	}
 }
@@ -532,7 +532,7 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID["
 				     << pid << "]!" << endl;
-				exit(-1);
+				return;
 			}
 			*value = *(T *) bufp;
 		}
@@ -654,7 +654,7 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
 				cerr << "PTRACE READ MEMORY ERROR PID["
 				     << pid << "]!" << endl;
-				exit(-1);
+				continue;
 			}
 			change_memory(pid, cfg_en, buf, cfg_en->ptrmem->v_offs[mem_idx],
 				      &cfg_en->v_oldval[mem_idx]);
@@ -1512,7 +1512,7 @@ prepare_dynmem:
 			if (!pid_is_running(pid, opt.proc_name, true))
 				return 0;
 			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
-			return -1;
+			continue;
 		}
 
 		// TIME CRITICAL! Process all activated config entries
@@ -1531,7 +1531,7 @@ prepare_dynmem:
 					if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
 						cerr << "PTRACE READ MEMORY ERROR PID["
 						     << pid << "]!" << endl;
-						return -1;
+						continue;
 					}
 					if (cfg_en->ptrtgt)
 						process_ptrmem(pid, cfg_en, buf, mem_idx);
@@ -1546,7 +1546,7 @@ prepare_dynmem:
 				if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
 					cerr << "PTRACE READ MEMORY ERROR PID["
 					     << pid << "]!" << endl;
-					return -1;
+					continue;
 				}
 				change_memory(pid, cfg_en, buf, mem_offs, &cfg_en->old_val);
 			}
