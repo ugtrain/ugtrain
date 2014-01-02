@@ -32,8 +32,8 @@ struct post_parse {
 	void	*argp;
 };
 
-i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask, bool reverse,
-		     void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
-				void *, size_t, void *, void *),
-		     void (*ff)(list<CfgEntry> *, void *, void *));
+ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask, bool reverse,
+			 void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
+				    void *, size_t, void *, void *),
+			 void (*ff)(list<CfgEntry> *, void *, void *));
 #endif

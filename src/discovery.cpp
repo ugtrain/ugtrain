@@ -261,7 +261,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 
 	while (true) {
 		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
-		    process_disc1234_malloc, process_disc1_free))
+		    process_disc1234_malloc, process_disc1_free) < 0)
 			break;
 	}
 

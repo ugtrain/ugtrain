@@ -1251,6 +1251,7 @@ i32 main (i32 argc, char **argv, char **env)
 	bool emptycfg = false;
 	u32 mem_idx;
 	bool is_dynmem;
+	ssize_t rbytes;
 
 	atexit(restore_getch);
 
@@ -1460,8 +1461,10 @@ prepare_dynmem:
 		}
 
 		// get allocated and freed objects (TIME CRITICAL!)
-		read_dynmem_buf(&cfg, NULL, ifd, pmask, false,
-				set_dynmem_addr, unset_dynmem_addr);
+		do {
+			rbytes = read_dynmem_buf(&cfg, NULL, ifd, pmask, false,
+						 set_dynmem_addr, unset_dynmem_addr);
+		} while (rbytes > 0);
 
 		// print allocated and freed object counts
 		old_dynmem = NULL;

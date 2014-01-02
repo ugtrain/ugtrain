@@ -24,10 +24,10 @@
 #define REVERSE_EOF -3  // reverse file read end
 
 
-i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask, bool reverse,
-		     void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
-				void *, size_t, void *, void *),
-		     void (*ff)(list<CfgEntry> *, void *, void *))
+ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask, bool reverse,
+			 void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
+				    void *, size_t, void *, void *),
+			 void (*ff)(list<CfgEntry> *, void *, void *))
 {
 	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
 	static void *heap_start = NULL;
@@ -45,7 +45,7 @@ i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask, bool r
 			// read heap start from file first
 			tmp_ilen = read(ifd, ibuf, 50);
 			if (tmp_ilen <= 0 && argp)
-				return 1;
+				return -1;
 			if (sscanf(msg_start, "%c", &scan_ch) != 1)
 				goto parse_err;
 			if (scan_ch == 'h') {
@@ -59,18 +59,18 @@ i32 read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, int pmask, bool r
 			fd_offs = lseek(ifd, 0, SEEK_END);
 		}
 		if (fd_offs < 0)
-			return 1;
+			return -1;
 		// we use ipos as read length here
 		ipos = fd_offs;
 		if ((unsigned) ipos > sizeof(ibuf) - 1 - ilen) {
 			ipos = sizeof(ibuf) - 1 - ilen;
 			fd_offs = lseek(ifd, fd_offs - ipos, SEEK_SET);
 			if (fd_offs < 0)
-				return 1;
+				return -1;
 		} else {
 			fd_offs = lseek(ifd, 0, SEEK_SET);
 			if (fd_offs < 0)
-				return 1;
+				return -1;
 			fd_offs = REVERSE_EOF;
 		}
 		// move rest to the end
@@ -95,21 +95,21 @@ next:
 		if (reverse) {
 			msg_end = strrchr(ibuf, '\n');
 			if (msg_end == NULL)
-				return 0;
+				return tmp_ilen;
 			else
 				*msg_end = '\0';
 			msg_start = strrchr(ibuf, '\n');
 			if (msg_start == NULL) {
 				// incomplete message, restore message end
 				*msg_end = '\n';
-				return 0;
+				return tmp_ilen;
 			} else {
 				msg_start += 1;
 			}
 		} else {
 			msg_end = strchr(ibuf, '\n');
 			if (msg_end == NULL)
-				return 0;
+				return tmp_ilen;
 		}
 
 		if (sscanf(msg_start, "%c", &scan_ch) != 1)
@@ -204,9 +204,9 @@ skip_o:
 
 		goto next;
 	} else if (argp) {
-		return 1;
+		return -1;
 	}
-	return 0;
+	return tmp_ilen;
 
 parse_err:
 	cerr << "parse error at ppos: " << ppos << endl;
