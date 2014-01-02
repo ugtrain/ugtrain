@@ -479,8 +479,8 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 				mem_addr = PTR_ADD(void *, mem_offs, it->addr);
 
 				if (memread(pid, mem_addr, chk_buf, sizeof(i64)) != 0) {
-					cerr << "PTRACE READ MEMORY ERROR PID["
-					     << pid << "]!" << endl;
+					cerr << "MEMORY READ ERROR PID[" << pid << "] ("
+					     << hex << mem_addr << dec << ")!" << endl;
 					return;
 				}
 			}
@@ -501,7 +501,8 @@ passed:
 		mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 
 		if (memwrite(pid, mem_addr, buf, sizeof(i64)) != 0) {
-			cerr << "PTRACE WRITE MEMORY ERROR PID[" << pid << "]!" << endl;
+			cerr << "MEMORY WRITE ERROR PID[" << pid << "] ("
+			     << hex << mem_addr << dec << ")!" << endl;
 			return;
 		}
 	}
@@ -530,8 +531,8 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 		} else {
 			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->val_addr);
 			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-				cerr << "PTRACE READ MEMORY ERROR PID["
-				     << pid << "]!" << endl;
+				cerr << "DYNVAL MEMORY READ ERROR PID[" << pid << "] ("
+				     << hex << mem_addr << dec << ")!" << endl;
 				return;
 			}
 			*value = *(T *) bufp;
@@ -652,8 +653,8 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 			cfg_en = *it;
 			mem_addr = PTR_ADD(void *, cfg_en->ptrmem->v_offs[mem_idx], cfg_en->addr);
 			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-				cerr << "PTRACE READ MEMORY ERROR PID["
-				     << pid << "]!" << endl;
+				cerr << "PTR MEMORY READ ERROR PID[" << pid << "] ("
+				     << hex << mem_addr << dec << ")!" << endl;
 				continue;
 			}
 			change_memory(pid, cfg_en, buf, cfg_en->ptrmem->v_offs[mem_idx],
@@ -1440,7 +1441,7 @@ prepare_dynmem:
 	set_getch_nb(1);
 
 	if (memattach_test(pid) != 0) {
-		cerr << "PTRACE ERROR PID[" << pid << "]!" << endl;
+		cerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;
 		return -1;
 	}
 
@@ -1511,7 +1512,7 @@ prepare_dynmem:
 		if (memattach(pid) != 0) {
 			if (!pid_is_running(pid, opt.proc_name, true))
 				return 0;
-			cerr << "PTRACE ATTACH ERROR PID[" << pid << "]!" << endl;
+			cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
 			continue;
 		}
 
@@ -1529,8 +1530,8 @@ prepare_dynmem:
 
 					mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 					if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-						cerr << "PTRACE READ MEMORY ERROR PID["
-						     << pid << "]!" << endl;
+						cerr << "MEMORY READ ERROR PID[" << pid << "] ("
+						     << hex << mem_addr << dec << ")!" << endl;
 						continue;
 					}
 					if (cfg_en->ptrtgt)
@@ -1544,8 +1545,8 @@ prepare_dynmem:
 
 				mem_addr = cfg_en->addr;
 				if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-					cerr << "PTRACE READ MEMORY ERROR PID["
-					     << pid << "]!" << endl;
+					cerr << "MEMORY READ ERROR PID[" << pid << "] ("
+					     << hex << mem_addr << dec << ")!" << endl;
 					continue;
 				}
 				change_memory(pid, cfg_en, buf, mem_offs, &cfg_en->old_val);
@@ -1553,7 +1554,7 @@ prepare_dynmem:
 		}
 
 		if (memdetach(pid) != 0) {
-			cerr << "PTRACE DETACH ERROR PID[" << pid << "]!" << endl;
+			cerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
 		}
 
