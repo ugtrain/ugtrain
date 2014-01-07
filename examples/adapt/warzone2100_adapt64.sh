@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Tested with: Warzone 2100 3.1.0, 2.3.8
+# Tested with: Warzone 2100 2.3.8, 2.3.9, 3.1.0
 
 # We already know that warzone2100 is a 64-bit C++ application and that
-# the DROID and Structure classes are allocated with _Znwm() or malloc().
+# the Droid and Structure classes are allocated with _Znwm() or malloc().
 # From previous discovery runs we already know the malloc sizes.
 
 CWD=`dirname $0`
@@ -13,7 +13,7 @@ APP_VERS=`${APP_PATH} --version | grep -o "\([0-9]\+\\.\)\{2\}[0-9]\+"`
 
 . _common_adapt.sh
 
-if [ "$APP_VERS" == "2.3.8" ]; then
+if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
     get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x410," 3 3
 else
     get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360," 4 4
@@ -23,7 +23,7 @@ CODE_ADDR1="$CODE_ADDR"
 
 ############################################
 
-if [ "$APP_VERS" == "2.3.8" ]; then
+if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
     get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x160," 7 7
 else
     get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 8 4
