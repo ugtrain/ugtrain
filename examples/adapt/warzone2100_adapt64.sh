@@ -19,7 +19,10 @@ if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
     if [ $RC -ne 0 ]; then exit 1; fi
 else
     get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360," 4 4
-    if [ $RC -ne 0 ]; then exit 1; fi
+    if [ $RC -ne 0 ]; then
+        get_malloc_code_3 "$APP_PATH" "\<_Znwm@plt\>" "0x360," 3 3
+        if [ $RC -ne 0 ]; then exit 1; fi
+    fi
 fi
 
 CODE_ADDR1="$CODE_ADDR"
@@ -31,7 +34,10 @@ if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
     if [ $RC -ne 0 ]; then exit 1; fi
 else
     get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 8 4
-    if [ $RC -ne 0 ]; then exit 1; fi
+    if [ $RC -ne 0 ]; then
+        get_malloc_code_3 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 7 7
+        if [ $RC -ne 0 ]; then exit 1; fi
+    fi
 fi
 
 CODE_ADDR2="$CODE_ADDR"
