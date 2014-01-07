@@ -11,10 +11,12 @@
 CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
+RC=0
 
 . _common_adapt.sh
 
 get_malloc_code_3 "$APP_PATH" "\<_Znwj@plt\>" "0x110" 3 3
+if [ $RC -ne 0 ]; then exit 1; fi
 
 RESULT=`echo "1;HeroAircraft;0x$CODE_ADDR"`
 echo "$RESULT"

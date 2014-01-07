@@ -10,13 +10,16 @@ CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
 APP_VERS=`${APP_PATH} --version | grep -o "\([0-9]\+\\.\)\{2\}[0-9]\+"`
+RC=0
 
 . _common_adapt.sh
 
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
     get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x410," 3 3
+    if [ $RC -ne 0 ]; then exit 1; fi
 else
     get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360," 4 4
+    if [ $RC -ne 0 ]; then exit 1; fi
 fi
 
 CODE_ADDR1="$CODE_ADDR"
@@ -25,8 +28,10 @@ CODE_ADDR1="$CODE_ADDR"
 
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
     get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x160," 7 7
+    if [ $RC -ne 0 ]; then exit 1; fi
 else
     get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 8 4
+    if [ $RC -ne 0 ]; then exit 1; fi
 fi
 
 CODE_ADDR2="$CODE_ADDR"
