@@ -6,6 +6,10 @@
 
 DEBUG=0
 
+CODE=""
+OLD_FNAME=""
+FUNC_CALLS=""
+
 function get_malloc_code_3()
 {
     app_path="$1"
@@ -17,9 +21,17 @@ function get_malloc_code_3()
     RC=0
 
     IFS=`printf '\n+'`
-    if [ $DEBUG -eq 1 ]; then echo "objdump -D $app_path | grep $fname -B 2 -A 1 | grep -A 2 $msize"; fi
-    CODE_PART=`objdump -D "$app_path" | grep "$fname" -B 2 -A 1 \
-              | grep -A 2 "$msize"`
+    if [ "$CODE" == "" ]; then
+        if [ $DEBUG -eq 1 ]; then echo "objdump -D $app_path"; fi
+        CODE=`objdump -D "$app_path"`
+    fi
+    if [ "$OLD_FNAME" != "$fname" ]; then
+        if [ $DEBUG -eq 1 ]; then echo "echo -e \$CODE | grep $fname -B 2 -A 1"; fi
+        FUNC_CALLS=`echo -e "$CODE" | grep "$fname" -B 2 -A 1`
+        OLD_FNAME="$fname"
+    fi
+    if [ $DEBUG -eq 1 ]; then echo "echo -e \$FUNC_CALLS | grep -A 2 $msize"; fi
+    CODE_PART=`echo -e "$FUNC_CALLS" | grep -A 2 "$msize"`
     if [ "$CODE_PART" == "" ]; then RC=1; return; fi
     if [ $DEBUG -eq 1 ]; then echo -e "$CODE_PART"; fi
 
@@ -59,9 +71,17 @@ function get_malloc_code_4()
     RC=0
 
     IFS=`printf '\n+'`
-    if [ $DEBUG -eq 1 ]; then echo "objdump -D $app_path | grep $fname -B 2 -A 1 | grep -A 3 $msize"; fi
-    CODE_PART=`objdump -D "$app_path" | grep "$fname" -B 2 -A 1 \
-              | grep -A 3 "$msize"`
+    if [ "$CODE" == "" ]; then
+        if [ $DEBUG -eq 1 ]; then echo "objdump -D $app_path"; fi
+        CODE=`objdump -D "$app_path"`
+    fi
+    if [ "$OLD_FNAME" != "$fname" ]; then
+        if [ $DEBUG -eq 1 ]; then echo "echo -e \$CODE | grep $fname -B 2 -A 1"; fi
+        FUNC_CALLS=`echo -e "$CODE" | grep "$fname" -B 2 -A 1`
+        OLD_FNAME="$fname"
+    fi
+    if [ $DEBUG -eq 1 ]; then echo "echo -e \$FUNC_CALLS | grep -A 3 $msize"; fi
+    CODE_PART=`echo -e "$FUNC_CALLS" | grep -A 3 "$msize"`
     if [ "$CODE_PART" == "" ]; then RC=1; return; fi
     if [ $DEBUG -eq 1 ]; then echo -e "$CODE_PART"; fi
 
