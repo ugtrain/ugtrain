@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Tested with: Warzone 2100 2.3.8, 2.3.9
+# Tested with: Warzone 2100 2.3.8, 2.3.9, 3.1.0
 
 # We already know that warzone2100 is a 32-bit C++ application and that
 # the Droid and Structure classes are allocated with _Znwj() or malloc().
@@ -17,6 +17,9 @@ RC=0
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
   get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x36c" 3 3
   if [ $RC -ne 0 ]; then exit 1; fi
+else
+  get_malloc_code_3 "$APP_PATH" "\<_Znwj@plt\>" "0x2fc," 3 3
+  if [ $RC -ne 0 ]; then exit 1; fi
 fi
 
 CODE_ADDR1="$CODE_ADDR"
@@ -25,6 +28,9 @@ CODE_ADDR1="$CODE_ADDR"
 
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
   get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x128" 7 7
+  if [ $RC -ne 0 ]; then exit 1; fi
+else
+  get_malloc_code_3 "$APP_PATH" "\<_Znwj@plt\>" "0x16c," 7 7
   if [ $RC -ne 0 ]; then exit 1; fi
 fi
 
