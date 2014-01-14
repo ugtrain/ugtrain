@@ -15,10 +15,10 @@ RC=0
 . _common_adapt.sh
 
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
-  get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x36c" 3 3
+  get_malloc_code "$APP_PATH" "\<malloc@plt\>" "0x36c" 3 3 3
   if [ $RC -ne 0 ]; then exit 1; fi
 else
-  get_malloc_code_3 "$APP_PATH" "\<_Znwj@plt\>" "0x2fc," 3 3
+  get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "0x2fc," 3 3 3
   if [ $RC -ne 0 ]; then exit 1; fi
 fi
 
@@ -27,10 +27,10 @@ CODE_ADDR1="$CODE_ADDR"
 ############################################
 
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
-  get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x128" 7 7
+  get_malloc_code "$APP_PATH" "\<malloc@plt\>" "0x128" 3 7 7
   if [ $RC -ne 0 ]; then exit 1; fi
 else
-  get_malloc_code_3 "$APP_PATH" "\<_Znwj@plt\>" "0x16c," 7 7
+  get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "0x16c," 3 7 7
   if [ $RC -ne 0 ]; then exit 1; fi
 fi
 

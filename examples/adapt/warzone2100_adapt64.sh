@@ -15,12 +15,12 @@ RC=0
 . _common_adapt.sh
 
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
-    get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x410," 3 3
+    get_malloc_code "$APP_PATH" "\<malloc@plt\>" "0x410," 3 3 3
     if [ $RC -ne 0 ]; then exit 1; fi
 else
-    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x360," 4 4
+    get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "0x360," 4 4 4
     if [ $RC -ne 0 ]; then
-        get_malloc_code_3 "$APP_PATH" "\<_Znwm@plt\>" "0x360," 3 3
+        get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "0x360," 3 3 3
         if [ $RC -ne 0 ]; then exit 1; fi
     fi
 fi
@@ -30,12 +30,12 @@ CODE_ADDR1="$CODE_ADDR"
 ############################################
 
 if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
-    get_malloc_code_3 "$APP_PATH" "\<malloc@plt\>" "0x160," 7 7
+    get_malloc_code "$APP_PATH" "\<malloc@plt\>" "0x160," 3 7 7
     if [ $RC -ne 0 ]; then exit 1; fi
 else
-    get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 8 4
+    get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 4 8 4
     if [ $RC -ne 0 ]; then
-        get_malloc_code_3 "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 7 7
+        get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "0x1a8," 3 7 7
         if [ $RC -ne 0 ]; then exit 1; fi
     fi
 fi

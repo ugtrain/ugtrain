@@ -15,7 +15,7 @@ RC=0
 
 . _common_adapt.sh
 
-get_malloc_code_4 "$APP_PATH" "\<_Znwm@plt\>" "0x120" 4 4
+get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "0x120" 4 4 4
 if [ $RC -ne 0 ]; then exit 1; fi
 
 RESULT=`echo "1;HeroAircraft;0x$CODE_ADDR"`
