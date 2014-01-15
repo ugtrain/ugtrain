@@ -15,8 +15,8 @@ libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -m32 -Wall
 libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -m32 -Wall
 libmemdisc32_la_LIBADD = $(DEPS_LIBS)
 libmemhack32_la_LIBADD = $(DEPS_LIBS)
-libmemdisc32_la_LDFLAGS =
-libmemhack32_la_LDFLAGS =
+libmemdisc32_la_LDFLAGS = -ldl
+libmemhack32_la_LDFLAGS = -ldl
 
 if BITS_64
 libmemdisc64_la_SOURCES = libmemdisc.c
@@ -25,8 +25,8 @@ libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -m64 -Wall
 libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -m64 -Wall
 libmemdisc64_la_LIBADD = $(DEPS_LIBS)
 libmemhack64_la_LIBADD = $(DEPS_LIBS)
-libmemdisc64_la_LDFLAGS =
-libmemhack64_la_LDFLAGS =
+libmemdisc64_la_LDFLAGS = -ldl
+libmemhack64_la_LDFLAGS = -ldl
 endif
 
 bin_PROGRAMS = ugpreload
