@@ -34,9 +34,9 @@
 #include "../src/common.h"
 
 #define PFX "[memdisc] "
-#define OW_MALLOC 1
-#define OW_CALLOC 1
-#define OW_FREE 1
+#define HOOK_MALLOC 1
+#define HOOK_CALLOC 1
+#define HOOK_FREE 1
 #define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
@@ -500,7 +500,7 @@ out:
 	return;
 }
 
-#ifdef OW_MALLOC
+#ifdef HOOK_MALLOC
 void *malloc (size_t size)
 {
 	void *ffp = FIRST_FRAME_POINTER;
@@ -520,7 +520,7 @@ void *malloc (size_t size)
 #endif
 
 
-#ifdef OW_CALLOC
+#ifdef HOOK_CALLOC
 /*
  * ATTENTION: The calloc function is special!
  *
@@ -580,7 +580,7 @@ void *calloc (size_t nmemb, size_t size)
 #endif
 
 
-#ifdef OW_FREE
+#ifdef HOOK_FREE
 void free (void *ptr)
 {
 	i32 wbytes;
