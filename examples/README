@@ -19,6 +19,7 @@
 #
 #    Value:
 # ValName AbsAddress DataType [optional check] WishValue KeyBindings ActState
+# ValName AbsAddress DataType [optional check] watch
 #
 #    All addresses and offsets are in HEX starting with "0x" (e.g. 0xdeadbeef).
 #
@@ -28,13 +29,15 @@
 #
 #    Static wish values are in decimal (e.g. 42). But the dynamic wish values
 #    'min', 'max' and 'watch' are also possible. 'min' and 'max' start with 0
-#    and if the value gets less than min or greater than max, they are freezed
+#    and if the value gets less than min or greater than max, they are frozen
 #    at that value. This is good to find out the possible limits within the
 #    game. 'watch' makes KeyBindings and ActState useless. The line ends here
-#    then and the value is watched but never freezed. The last possibility is
+#    then and the value is watched but never frozen. Another possibility is
 #    to use an absolute address or in dynamic memory an offset in the object
 #    (e.g. 0xdeadbeef). Then, the wish value is read from that location each
-#    time before checking and freezing it.
+#    time before checking and freezing it. The name of another configured and
+#    already parsed value is the last possibility. Its value is used then or
+#    0 in case that this value hasn't been read, yet.
 #
 #    KeyBindings are alphanumeric chars [0-9a-zA-Z] separated by ','. These are
 #    processed by non-blocking getch and toggle the activation state at
@@ -48,9 +51,14 @@
 #    and off.
 #
 #    Check entry:
-# check AbsAddress DataType <'l' or 'g'> CheckValue
+# check AbsAddress DataType <'l', 'g' or 'e'> CheckValue [further 'or' checks]
 #
-#    Checks are applied to the previously defined value entry.
+#    Checks are applied to the previously defined value entry. Here it is also
+#    possible to use another already parsed value name as the AbsAddress.
+#    'e' for "equals" is another possible check here and the same value can be
+#    compared combined with 'or' and upto four checks (e.g. "e 1 e 2" means
+#    (Value == 1 || Value == 2)). Checks in following lines are combined with
+#    'and'.
 #
 ###############################################################################
 #
@@ -66,20 +74,32 @@
 #
 #    Value:
 # ValName OffsInObj DataType [optional check] WishValue KeyBindings ActState
+# ValName OffsInObj DataType [optional check] watch
+#
+# ValName OffsInObj p PtrMemName <'once' or 'always'>
+#
+#    In dynamic memory also pointers are possible. These have the DataType
+#    'p' followed by the name of an already parsed pointer memory section
+#    and 'once' or 'always'. It chooses when to follow the pointer. E.g.
+#    never changing pointer memory has to be processed only once directly
+#    at the location of the configured pointer. Pointers must be settled,
+#    meaning having the same value != NULL in two cycles so that it is safe
+#    following this pointer.
 #
 #    Check entries:
-# check OffsInObj DataType <'l' or 'g'> CheckValue
+# check OffsInObj DataType <'l', 'g' or 'e'> CheckValue [further 'or' checks]
 #
-# checko OffsInObj DataType <'l' or 'g'> CheckValue
+# checko OffsInObj DataType <'l', 'g' or 'e'> CheckValue [further 'or' checks]
 #
 #    This is special. If this object check fails, it removes the object from
 #    the actively tracked object list like a free() would do. E.g. Warzone
 #    2100 uses the player ID in all objects. We don't want to make opponents
-#    immortal, so we check the player ID with this.
+#    indestructible, so we check the player ID with this.
 #
 # dynmemend
 #
-#    Here, the memory class is closed. Static or dynamic memory can follow.
+#    Here, the memory class is closed. Static, dynamic or pointer memory can
+#    follow.
 #
 ###############################################################################
 #
@@ -102,13 +122,39 @@
 #
 ###############################################################################
 #
+#    +++ Pointer memory +++:
+#
+# ptrmemstart PtrMemName PtrMemSize
+#
+#    The size is only important for the dump and the name is used for the
+#    pointer entry in a dynamic memory section.
+#
+#    < Values + checks like in static memory but with PtrMemOffset as Addr >
+#
+#    Value:
+# ValName OffsInPtrMem DataType [optional check] WishValue KeyBindings ActState
+# ValName OffsInPtrMem DataType [optional check] watch
+#
+#    Further pointers in pointer memory (chaining) is not possible. The offset
+#    in pointer memory is added to the value of the read pointer value.
+#
+#    Check entries:
+# check OffsInPtrMem DataType <'l', 'g' or 'e'> CheckValue [further 'or' checks]
+#
+# ptrmemend
+#
+#    Here, the pointer memory is closed. Static, dynamic or pointer memory can
+#    follow.
+#
+###############################################################################
+#
 #    +++ Additional info +++
 #
 #    Dynamic memory always needs the preloader. Here, only the code address
 #    in the binary where "malloc" is called remains static. We have to find
-#    it and its locations on the stack with information from inside the game
+#    it and its location on the stack with information from inside the game
 #    process.
-#    See linuxhooking/examples how to discover and adapt it to other versions.
+#    See doc/ugtrain-dynmem.txt how to discover and adapt it to other versions.
 #
 #    Call the trainer first. Then, call the preloaded game in another terminal.
 #    Use the preloader for hooking libmemhack32/64.so into the game process.
