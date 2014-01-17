@@ -1,16 +1,12 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-PACKAGE=ugtrain
-VERSION=0.2.0
-EMAIL=sebastian.riemer@gmx.de
-
-AC_INIT(ugtrain, 0.2.0, sebastian.riemer@gmx.de)
+AC_INIT([ugtrain], [0.2.0-pre], [ugtrain-devel@lists.berlios.de])
 
 AC_CONFIG_MACRO_DIR(m4)
 AC_CANONICAL_SYSTEM
 
-AM_INIT_AUTOMAKE(ugtrain, 0.2.0)
+AM_INIT_AUTOMAKE()
 AM_MAINTAINER_MODE
 
 AC_PROG_LIBTOOL
@@ -23,24 +19,38 @@ LIB_AGE=0
 VERSION_INFO="$LIB_CURRENT:$LIB_REVERSION:$LIB_AGE"
 AC_SUBST(VERSION_INFO)
 
+AC_ARG_ENABLE([multilib],
+  [  --enable-multilib  enable multilib support],
+  [], [enable_multilib=no])
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_CC_STDC
 
-case $target in
-  *x86_64*)
-    TMP_CC="$CC"
-    CC="$CC -m32"
-    AC_MSG_CHECKING([whether $CC works])
-    AC_LINK_IFELSE([AC_LANG_PROGRAM()],AC_MSG_RESULT([yes]),
-                   [AC_MSG_RESULT([no])
-                    AC_MSG_ERROR([Cannot build a 32-bit program, you need to install 32-bit development libraries.])])
-    CC="$TMP_CC"
+# Check for 64-bit CPU
+bits64="no"
+case $target_cpu in
+  x86_64)
+    bits64="yes"
     ;;
 esac
+
+# Test multilib compile
+if test "$enable_multilib" != "no" -a bits64 != "no"; then
+  TMP_CC="$CC"
+  CC="$CC -m32"
+  AC_MSG_CHECKING([whether $CC works])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM()],AC_MSG_RESULT([yes]),
+		 [AC_MSG_RESULT([no])
+		  AC_MSG_ERROR([Cannot build a 32-bit program, you need \
+				to install 32-bit development libraries.])])
+  CC="$TMP_CC"
+fi
 AM_CONDITIONAL([LINUX], test "$target_os" = "linux-gnu")
-AM_CONDITIONAL([BITS_64], test "$target_cpu" = "x86_64")
+AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
+AM_CONDITIONAL([BITS_32], test "$bits64" = "no" -o "$enable_multilib" != "no")
+AM_CONDITIONAL([BITS_64], test "$bits64" != "no")
 
 # Checks for pkg-config.
 AC_SUBST(DEPS_CFLAGS)
