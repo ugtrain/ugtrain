@@ -31,14 +31,13 @@
 #			* doesn't work for WINE, yet
 #
 # Compilation:		* dyn. mem. support can't be deactivated,
-#			* requires multilib support on 64 bit arch for dyn. mem.
 #			* 32-bit and x86_64 only
 #
 # GUI:			* can't serve as a backend, yet
 #
 # ### Why this tool if only FOSS games allow cheating? ###
 #
-# For the challange of cheating them without looking at the source or
+# For the challenge of cheating them without looking at the source or
 # even modifying the source code and also for education purposes. Advanced
 # reverse engineering methods are often used by computer criminals
 # (Crackers) for cheating games. They don't tell you how they do it. The
@@ -141,7 +140,7 @@
 ################################
 
 # Make sure that the "autotools-dev" package is installed on your system
-# together with "autoconf", "automake" and "libtool".
+# together with "autoconf", "automake", "libtoolize" and "libtool".
 
 # Run the following command to generate the missing autotools files:
 ./autogen.sh
@@ -158,9 +157,11 @@ sudo make install
 # (optional:) ensure $PATH includes /usr/local/bin
 PATH=$PATH:/usr/local/bin
 
-# (optional:) ensure $LD_PATH or $LD_LIBRARY_PATH includes /usr/local/lib*
+# (optional:) ensure $LD_PATH, $LD_LIBRARY_PATH or the ld.so config
+# includes /usr/local/lib*
 LD_PATH=$LD_PATH:/usr/local/lib:/usr/local/lib64
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib64
+echo -e "/usr/local/lib\n/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf
 
 # These pathes simplify file usage. Where to set these environment
 # variables is distribution-specific. See "man ld.so".
