@@ -1,13 +1,10 @@
 Version 0.2
 This tool is still under heavy development. Dyn. mem. support is new.
 There is still a lot of work to do. We appreciate any help we can get.
-Just drop an e-mail with your contribution wish to:
-sebastian.riemer@gmx.de
 
 Autotools:
 + create and include config.in and config.h
 + make compilation of dyn. mem. support optional
-+ make multilib (32 bit + 64 bit) support optional
 
 Config files:
 + make search paths for config files configurable
@@ -25,7 +22,7 @@ Multi-platform support:
 + write getch functions for Windows
 + add Windows support for memory changing (KeStackAttachProcess)
 + support mingw compilation
-+ put process name to PID function into separate multi-platform files
++ implement arbitrary command execution helpers for Windows
 + check boost libraries for help with that
 + add dyn. mem. support for Windows (Inline Hooking)
 + add dyn. mem. support for WINE (Inline Hooking)
@@ -38,9 +35,11 @@ Trainer:
 Documentation:
 + create man pages
 
-Languages:
-+ support gettext
-
 Other:
 + record more videos of ugtrain cheating FOSS games and upload them to YouTube
 + evaluate "Cheat Engine" (source code) for Windows stuff
+
+Roadmap:
+0.3.0: Windows support
+0.4.0: WINE support
+0.5.0: GUI frontend support
