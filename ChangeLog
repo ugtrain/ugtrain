@@ -1,11 +1,21 @@
-Version 0.2:
-Support for dynamic memory values is implemented (constructors-only).
-+ use 'pidof' to get the game process pid
-+ removed libgcheater dependency
-+ added '~/.ugtrain/' config search path
-+ added float support
-+ added "Chromium B.S.U." example for dyn. mem.
+0.2.0 (Dietmar release)
+* getting the game PID with 'pidof'
+* removed libgcheater dependency
+* handling ptrace errors gracefully
+* added float support
+* added dynamic wish value support
+* added dynamic memory support for Linux
+* implemented dynmem discovery, object dump and adaption
+* implemented multiple object cheating support
+* added Chromium B.S.U. and Warzone 2100 examples
+* integrated 'scanmem' into discovery run
+* added logo, drawings, tools and more doc
+* added pointer following support
 
-Version 0.1:
-Support for static memory values is implemented.
-Support for universal checks is implemented.
+0.1.0 (basic release)
+* implemented compilation by autotools
+* config parsing implemented
+* lookup PID by process name implemented
+* freezing of static memory values supported
+* universal memory checks supported
+* nonblocking getch for activation toggling by key press
