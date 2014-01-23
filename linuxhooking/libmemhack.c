@@ -58,6 +58,14 @@
 	# define FIRST_FRAME_POINTER  __builtin_frame_address (0)
 #endif
 
+
+/* Hooking control (avoid recursion)
+ *
+ * For details see:
+ * http://www.slideshare.net/tetsu.koba/tips-of-malloc-free
+ */
+static __thread bool no_hook = false;
+
 /*
  * ATTENTION: GNU backtrace() might crash with SIGSEGV!
  */
@@ -310,13 +318,18 @@ void *malloc (size_t size)
 	void *mem_addr;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
+	if (no_hook)
+		return orig_malloc(size);
+
 	/* get the libc malloc function */
+	no_hook = true;
 	if (!orig_malloc)
 		*(void **) (&orig_malloc) = dlsym(RTLD_NEXT, "malloc");
 
 	mem_addr = orig_malloc(size);
 
 	postprocess_malloc(ffp, size, mem_addr);
+	no_hook = false;
 
 	return mem_addr;
 }
@@ -361,22 +374,23 @@ void *calloc (size_t nmemb, size_t size)
 	void *ffp = FIRST_FRAME_POINTER;
 	void *mem_addr;
 	size_t full_size = nmemb * size;
-	static bool ready = false;
 	static void *(*orig_calloc)(size_t nmemb, size_t size) = NULL;
 
-	if (!ready) {
-		mem_addr = stat_calloc(full_size);
-		ready = true;
-		return mem_addr;
+	if (no_hook) {
+		if (!orig_calloc)
+			return stat_calloc(full_size);
+		return orig_calloc(nmemb, size);
 	}
 
 	/* get the libc calloc function */
+	no_hook = true;
 	if (!orig_calloc)
 		*(void **) (&orig_calloc) = dlsym(RTLD_NEXT, "calloc");
 
 	mem_addr = orig_calloc(nmemb, size);
 
 	postprocess_malloc(ffp, full_size, mem_addr);
+	no_hook = false;
 
 	return mem_addr;
 }
@@ -389,6 +403,12 @@ void free (void *ptr)
 	i32 i, j, wbytes;
 	static void (*orig_free)(void *ptr) = NULL;
 
+	if (no_hook) {
+		orig_free(ptr);
+		return;
+	}
+
+	no_hook = true;
 	if (active && ptr != NULL) {
 		for (i = 0; config[i] != NULL; i++) {
 			if (!config[i]->mem_addrs)
@@ -414,5 +434,6 @@ found:
 		*(void **) (&orig_free) = dlsym(RTLD_NEXT, "free");
 
 	orig_free(ptr);
+	no_hook = false;
 }
 #endif
