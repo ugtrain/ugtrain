@@ -366,7 +366,7 @@ void run_stage1234_loop (void *argp)
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str, cmd_str;
-	char *iptr;
+	char *iptr, *main_part;
 	i32 i, ret, ioffs = 0;
 	list<CfgEntry>::iterator it;
 	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr;
@@ -378,42 +378,44 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	if (!opt->disc_str)
 		return 0;
 
-	switch (opt->disc_str[0]) {
-	case 'p':
+	if (opt->disc_str[0] == 'p') {
 		iptr = strstr(opt->disc_str, ";;");
 		if (!iptr)
 			goto err;
 		opt->disc_offs = iptr - opt->disc_str + 2;
-		cout << "disc_str: " << opt->disc_str << endl;
-		break;
+	}
+
+	main_part = opt->disc_str + opt->disc_offs;
+	switch (main_part[0]) {
 	case '0':
 		// just get stack end and heap start
 		opt->disc_str = (char *) "0";
+		opt->disc_offs = 0;
 		break;
 	case '1':
 	case '2':
-		if (strlen(opt->disc_str) == 1) {
-			disc_str = opt->disc_str[0];
+		if (strlen(main_part) == 1) {
+			disc_str = opt->disc_str;
 			disc_str += ";0x0;0x0;0";
 			opt->disc_str = to_c_str(&disc_str);
 		}
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '3':
-		ret = sscanf(&opt->disc_str[1], ";%3s;", gbt_buf);
+		ret = sscanf(&main_part[1], ";%3s;", gbt_buf);
 		if (ret == 1 &&
 		    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
 			use_gbt = true;
 			ioffs = sizeof(GBT_CMD);
 		}
 	case '4':
-		ret = sscanf(&opt->disc_str[1] + ioffs, ";%p;%p;%lu;%p;%p",
+		ret = sscanf(&main_part[1] + ioffs, ";%p;%p;%lu;%p;%p",
 			     &heap_soffs, &heap_eoffs, &mem_size, &bt_saddr,
 			     &bt_eaddr);
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
-				"stage " << opt->disc_str[0] << "!" << endl;
-			cerr << "Use at least \'" << opt->disc_str[0]
+				"stage " << main_part[0] << "!" << endl;
+			cerr << "Use at least \'" << main_part[0]
 			     << ";0x0;0x0;<size>\'" << endl;
 			goto err;
 		}
@@ -434,7 +436,8 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			if (sscanf(pbuf, "%p\n%p", &bt_saddr, &bt_eaddr) != 2) {
 				goto err;
 			} else {
-				disc_str = opt->disc_str[0];
+				main_part[1] = '\0';
+				disc_str = opt->disc_str;
 				if (use_gbt)
 					disc_str += ";" GBT_CMD ";";
 				else
