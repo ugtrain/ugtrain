@@ -50,10 +50,65 @@
 #define DYNMEM_OUT "/tmp/memhack_in"
 
 
-void output_configp (list<CfgEntry*> *cfg)
+static void output_config_val (CfgEntry *cfg_en)
+{
+	switch (cfg_en->dynval) {
+	case DYN_VAL_WATCH:
+		cout << "(watch)" << endl;
+		break;
+	case DYN_VAL_MIN:
+		cout << cfg_en->value << " (min)" << endl;
+		break;
+	case DYN_VAL_MAX:
+		cout << cfg_en->value << " (max)" << endl;
+		break;
+	case DYN_VAL_ADDR:
+		if (cfg_en->cfg_ref)
+			cout << cfg_en->cfg_ref->name << endl;
+		else
+			cout << "0x" << hex << cfg_en->value
+				<< " (from addr)" << dec << endl;
+		break;
+	default:
+		cout << cfg_en->value << endl;
+		break;
+	}
+}
+
+static void output_config_en (CfgEntry *cfg_en)
 {
 	double tmp_dval;
 
+	if (cfg_en->ptrtgt) {
+		cout << "  " << cfg_en->name << " 0x" << hex << (long) cfg_en->addr << dec
+			<< " " << 8 * sizeof(void *) << "-bit -> "
+			<< cfg_en->ptrtgt->name << endl;
+	} else {
+		cout << "  " << cfg_en->name << " 0x" << hex << (long) cfg_en->addr << dec
+			<< " " << cfg_en->size << "-bit ";
+		if (cfg_en->is_float) {
+			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
+			cout << tmp_dval << endl;
+		} else {
+			output_config_val(cfg_en);
+		}
+	}
+}
+
+static void output_ptrmem (CfgEntry *cfg_en)
+{
+	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
+	list<CfgEntry*>::iterator it;
+
+	for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+		cfg_en = *it;
+		cout << "  ->";
+		output_config_en(cfg_en);
+	}
+}
+
+void output_configp (list<CfgEntry*> *cfg)
+{
 	if (!cfg || cfg->empty()) {
 		cout << "<none>" << endl;
 		return;
@@ -64,14 +119,9 @@ void output_configp (list<CfgEntry*> *cfg)
 	list<CfgEntry*>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		cfg_en = *it;
-		cout << "  "  << cfg_en->name << " " << hex << cfg_en->addr
-		     << dec << " " << cfg_en->size << "-bit ";
-		if (cfg_en->is_float) {
-			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
-			cout << tmp_dval << endl;
-		} else {
-			cout << cfg_en->value << endl;
-		}
+		output_config_en(cfg_en);
+		if (cfg_en->ptrtgt)
+			output_ptrmem (cfg_en);
 	}
 }
 
@@ -110,13 +160,13 @@ static void output_checks (CfgEntry *cfg_en)
 	char *check_op = get_check_op(cfg_en->check);
 
 	if (check_op) {
-		cout << "    check " << hex << cfg_en->addr << dec << check_op;
+		cout << "    check 0x" << hex << (long) cfg_en->addr << dec << check_op;
 
 		if (cfg_en->is_float) {
 			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
 			cout << tmp_dval << endl;
 		} else {
-			cout << cfg_en->value << endl;
+			output_config_val(cfg_en);
 		}
 	}
 	if (!chk_lp)
@@ -126,7 +176,7 @@ static void output_checks (CfgEntry *cfg_en)
 		if (it->cfg_ref)
 			cout << "    check " << it->cfg_ref->name;
 		else
-			cout << "    check " << hex << it->addr << dec;
+			cout << "    check 0x" << hex << (long) it->addr << dec;
 		for (i = 0; it->check[i] != CHECK_END; i++) {
 			if (i > 0)
 				cout << " ||";
@@ -146,8 +196,6 @@ static void output_checks (CfgEntry *cfg_en)
 
 static void output_config (list<CfgEntry> *cfg)
 {
-	double tmp_dval;
-
 	if (!cfg || cfg->empty()) {
 		cout << "<none>" << endl;
 		return;
@@ -158,21 +206,20 @@ static void output_config (list<CfgEntry> *cfg)
 	list<CfgEntry>::iterator it;
 	for (it = cfg->begin(); it != cfg->end(); it++) {
 		cfg_en = *it;
+		// headline
 		if (cfg_en.dynmem)
 			cout << "dynmem: " << cfg_en.dynmem->name << " "
 				<< cfg_en.dynmem->mem_size << " "
 				<< hex << cfg_en.dynmem->code_addr << " "
 				<< cfg_en.dynmem->stack_offs << dec << endl;
+		else if (cfg_en.ptrmem)
+			cout << "ptrmem: " << cfg_en.ptrmem->name << " "
+				<<  cfg_en.ptrmem->mem_size << endl;
 		else
 			cout << "static: " << endl;
-		cout << "  " << cfg_en.name << " " << hex << cfg_en.addr << dec;
-		cout << " " << cfg_en.size << "-bit ";
-		if (cfg_en.is_float) {
-			memcpy(&tmp_dval, &cfg_en.value, sizeof(i64));
-			cout << tmp_dval << endl;
-		} else {
-			cout << cfg_en.value << endl;
-		}
+
+		// value line
+		output_config_en(&cfg_en);
 		output_checks(&cfg_en);
 	}
 }
@@ -615,7 +662,7 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 	}
 }
 
-static void output_ptrmem (CfgEntry *cfg_en)
+static void output_ptrmem_values (CfgEntry *cfg_en)
 {
 	DynMemEntry *dynmem = cfg_en->ptrtgt->dynmem;
 	void *mem_offs;
@@ -1593,7 +1640,7 @@ prepare_dynmem:
 			}
 			output_mem_val(cfg_en, mem_offs, is_dynmem);
 			if (cfg_en->ptrtgt)
-				output_ptrmem(cfg_en);
+				output_ptrmem_values(cfg_en);
 		}
 
 	}
