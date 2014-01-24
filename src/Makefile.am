@@ -5,6 +5,7 @@ ugtrain_SOURCES = common.h \
                   getch.h \
                   system.h \
                   cfgparser.h \
+                  cfgoutput.h \
                   fifoparser.h \
                   discovery.h \
                   commont.cpp \
@@ -12,6 +13,7 @@ ugtrain_SOURCES = common.h \
                   ugtrain.cpp \
                   options.c \
                   cfgparser.cpp \
+                  cfgoutput.cpp \
                   getch_l.c \
                   getch_w.c \
                   system_l.c \
