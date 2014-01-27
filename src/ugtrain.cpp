@@ -172,7 +172,21 @@ static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
 
 static i32 check_memory (CheckEntry chk_en, u8 *chk_buf, u32 i)
 {
-	if (chk_en.is_signed) {
+	double tmp_dval;
+	float  tmp_fval;
+
+	if (chk_en.is_float) {
+		memcpy(&tmp_dval, &chk_en.value[i], sizeof(i64));
+		switch (chk_en.size) {
+		case 64:
+			return check_mem_val(tmp_dval, chk_buf, chk_en.check[i]);
+		case 32:
+			tmp_fval = (float) tmp_dval;
+			return check_mem_val(tmp_fval, chk_buf, chk_en.check[i]);
+		default:
+			return -1;
+		}
+	} else if (chk_en.is_signed) {
 		switch (chk_en.size) {
 		case 64:
 			return check_mem_val((i64) chk_en.value[i], chk_buf, chk_en.check[i]);
