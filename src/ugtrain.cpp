@@ -35,15 +35,20 @@
 
 // local includes
 #include "common.h"
+// input
 #include "options.h"
 #include "cfgentry.h"
 #include "cfgparser.h"
+#include "getch.h"
+#include "fifoparser.h"
+// processing
+#include "system.h"
+#include "memattach.h"
+// output
 #include "cfgoutput.h"
 #include "dump.h"
-#include "system.h"
-#include "getch.h"
-#include "memattach.h"
-#include "fifoparser.h"
+#include "valoutput.h"
+// special features
 #include "discovery.h"
 
 #define HOME_VAR   "HOME"
@@ -94,56 +99,6 @@ static void toggle_cfg (list<CfgEntry*> *key_cfg, list<CfgEntry*> *cfg_act)
 			used_cfg_act->push_back(cfg_en);
 			cout << cfg_en->name << " ON" << endl;
 		}
-	}
-}
-
-static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
-{
-	DynMemEntry *dynmem;
-	double tmp_dval;
-	float  tmp_fval;
-	i32 hexfloat;
-
-	if (cfg_en->ptrmem) {
-		dynmem = cfg_en->ptrmem->dynmem;
-		if (dynmem && dynmem->v_maddr.size() > 1)
-			cout << " -> " << cfg_en->name << "[" << dynmem->pr_idx << "]"
-			     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
-			     << ", Data: 0x";
-		else
-			cout << " -> " << cfg_en->name << " at " << hex
-			     << PTR_ADD(void *, cfg_en->addr, mem_offs)
-			     << ", Data: 0x";
-	} else if (is_dynmem && cfg_en->dynmem->v_maddr.size() > 1) {
-		cout << cfg_en->name << "[" << cfg_en->dynmem->pr_idx << "]"
-		     << " at " << hex << PTR_ADD(void *, cfg_en->addr, mem_offs)
-		     << ", Data: 0x";
-	} else {
-		cout << cfg_en->name << " at " << hex
-		     << PTR_ADD(void *, cfg_en->addr, mem_offs)
-		     << ", Data: 0x";
-	}
-
-	if (cfg_en->is_float) {
-		memcpy(&tmp_dval, &cfg_en->old_val, sizeof(i64));
-		if (cfg_en->size == 32) {
-			tmp_fval = (float) tmp_dval;
-			memcpy(&hexfloat, &tmp_fval, sizeof(i32));
-			cout << hex << hexfloat;
-		} else {
-			cout << hex << (i64) cfg_en->old_val;
-		}
-		cout << " (" << dec << tmp_dval << ")" << endl;
-	} else {
-		if (cfg_en->size == 64)
-			cout << hex << (i64) cfg_en->old_val;
-		else
-			cout << hex << (i32) cfg_en->old_val;
-
-		if (cfg_en->is_signed)
-			cout << " (" << dec << cfg_en->old_val << ")" << endl;
-		else
-			cout << " (" << dec << (u64) cfg_en->old_val << ")" << endl;
 	}
 }
 
@@ -386,25 +341,6 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 			change_mem_val(pid, cfg_en, (u8) cfg_en->value, buf, mem_offs);
 			break;
 		}
-	}
-}
-
-static void output_ptrmem_values (CfgEntry *cfg_en)
-{
-	DynMemEntry *dynmem = cfg_en->ptrtgt->dynmem;
-	void *mem_offs;
-	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
-	list<CfgEntry*>::iterator it;
-
-	mem_offs = cfg_en->ptrtgt->v_offs[dynmem->pr_idx];
-	cout << " -> *" << cfg_en->ptrtgt->name << "["
-	     << dynmem->pr_idx << "]"
-	     << " = " << hex << mem_offs << dec << endl;
-
-	for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
-		cfg_en = *it;
-		cfg_en->old_val = cfg_en->v_oldval[dynmem->pr_idx];
-		output_mem_val(cfg_en, mem_offs, false);
 	}
 }
 

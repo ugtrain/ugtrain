@@ -8,6 +8,7 @@ ugtrain_SOURCES = common.h \
                   cfgoutput.h \
                   fifoparser.h \
                   dump.h \
+                  valoutput.h \
                   discovery.h \
                   commont.cpp \
                   common.cpp \
@@ -23,6 +24,7 @@ ugtrain_SOURCES = common.h \
                   memattach_w.c \
                   fifoparser.cpp \
                   dump.cpp \
+                  valoutput.cpp \
                   discovery.cpp
 
 ugtrain_LDADD = $(DEPS_LIBS)
