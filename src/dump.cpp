@@ -19,6 +19,7 @@
 // local includes
 #include "dump.h"
 #include "memattach.h"
+#include "commont.cpp"
 
 
 static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,
