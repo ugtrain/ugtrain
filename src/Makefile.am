@@ -10,6 +10,7 @@ ugtrain_SOURCES = common.h \
                   dump.h \
                   valoutput.h \
                   discovery.h \
+                  adaption.h \
                   commont.cpp \
                   common.cpp \
                   ugtrain.cpp \
@@ -25,7 +26,8 @@ ugtrain_SOURCES = common.h \
                   fifoparser.cpp \
                   dump.cpp \
                   valoutput.cpp \
-                  discovery.cpp
+                  discovery.cpp \
+                  adaption.cpp
 
 ugtrain_LDADD = $(DEPS_LIBS)
 AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
