@@ -55,6 +55,9 @@ typedef ulong ptr_t;
 #define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)
 #define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
 
+#define list_for_each(list, it) \
+	for (it = list->begin(); it != list->end(); it++)
+
 // Common functions
 #ifdef __cplusplus
 	template <class T>

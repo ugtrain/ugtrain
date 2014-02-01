@@ -369,19 +369,21 @@ out:
 
 static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 				list<CfgEntry> *cfg,
-				list<CfgEntry*> **cfgp_map)
+				list<CfgEntry*> *cfgp_map[])
 {
 	u32 lidx;
-	char key;
+	char ch;
+	i32 ch_idx;
 
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ',' || line->at(lidx) == ' ') {
 			if (lidx == *start + 1) {
-				key = line->at(*start);
+				ch = line->at(*start);
+				ch_idx = (i32) ch;
 				*start = lidx + 1;
-				if (!cfgp_map[(i32)key])
-					cfgp_map[(i32)key] = new list<CfgEntry*>();
-				cfgp_map[(i32)key]->push_back(&cfg->back());
+				if (!cfgp_map[ch_idx])
+					cfgp_map[ch_idx] = new list<CfgEntry*>();
+				cfgp_map[ch_idx]->push_back(&cfg->back());
 			} else {
 				cfg_parse_err(line, lnr, lidx);
 			}
@@ -427,7 +429,7 @@ static void read_config_vect (string *path, string *home, vector<string> *lines)
 list<CfgEntry*> *read_config (string *path,
 			      struct app_options *opt,
 			      list<CfgEntry> *cfg,
-			      list<CfgEntry*> **cfgp_map,
+			      list<CfgEntry*> *cfgp_map[],
 			      vector<string> *lines)
 {
 	CfgEntry cfg_en;

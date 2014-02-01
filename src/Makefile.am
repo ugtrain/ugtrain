@@ -7,6 +7,7 @@ ugtrain_SOURCES = common.h \
                   cfgparser.h \
                   cfgoutput.h \
                   fifoparser.h \
+                  control.h \
                   dump.h \
                   valoutput.h \
                   discovery.h \
@@ -24,6 +25,7 @@ ugtrain_SOURCES = common.h \
                   memattach_l.c \
                   memattach_w.c \
                   fifoparser.cpp \
+                  control.cpp \
                   dump.cpp \
                   valoutput.cpp \
                   discovery.cpp \

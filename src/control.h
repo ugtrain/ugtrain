@@ -1,4 +1,4 @@
-/* cfgparser.h:    parsing functions to read in the config file
+/* control.h:    change processing according to user input
  *
  * Copyright (c) 2012..13, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
@@ -14,19 +14,14 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CFGPARSER_H
-#define CFGPARSER_H
+#ifndef CONTROL_H
+#define CONTROL_H
 
 #include <list>
 #include "common.h"
-#include "options.h"
 #include "cfgentry.h"
 
-list<CfgEntry*> *read_config (string *cfg_path,
-			      struct app_options *opt,
-			      list<CfgEntry> *cfg,
-			      list<CfgEntry*> *cfgp_map[],
-			      vector<string> *lines);
+void handle_input_char (char ch, list<CfgEntry*> *cfgp_map[], pid_t pid,
+			list<CfgEntry> *cfg, list<CfgEntry*> *cfg_act);
 
-void write_config_vect (string *path, vector<string> *lines);
 #endif

@@ -42,11 +42,11 @@
 #include "getch.h"
 #include "fifoparser.h"
 // processing
+#include "control.h"
 #include "system.h"
 #include "memattach.h"
 // output
 #include "cfgoutput.h"
-#include "dump.h"
 #include "valoutput.h"
 // special features
 #include "discovery.h"
@@ -56,52 +56,6 @@
 #define DYNMEM_IN  "/tmp/memhack_out"
 #define DYNMEM_OUT "/tmp/memhack_in"
 
-
-static void inc_dec_mvec_pridx (list<CfgEntry> *cfg, bool do_inc)
-{
-	DynMemEntry *old_dynmem = NULL;
-	list<CfgEntry>::iterator it;
-
-	for (it = cfg->begin(); it != cfg->end(); it++) {
-		if (it->dynmem && it->dynmem != old_dynmem) {
-			if (do_inc)
-				it->dynmem->pr_idx++;
-			else if (it->dynmem->pr_idx > 0)
-				it->dynmem->pr_idx--;
-			old_dynmem = it->dynmem;
-		}
-	}
-}
-
-static void toggle_cfg (list<CfgEntry*> *key_cfg, list<CfgEntry*> *cfg_act)
-{
-	bool found;
-	CfgEntry *cfg_en;
-	list<CfgEntry*> *used_cfg_act = NULL;
-
-	list<CfgEntry*>::iterator it, it_act;
-	for (it = key_cfg->begin(); it != key_cfg->end(); it++) {
-		cfg_en = *it;
-		if (cfg_en->ptrmem)
-			used_cfg_act = &cfg_en->ptrmem->cfg_act;
-		else
-			used_cfg_act = cfg_act;
-		found = false;
-		for (it_act = used_cfg_act->begin(); it_act != used_cfg_act->end(); it_act++) {
-			if (cfg_en == *it_act) {
-				used_cfg_act->erase(it_act);
-				cfg_en = *it_act;
-				cout << cfg_en->name << " OFF" << endl;
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
-			used_cfg_act->push_back(cfg_en);
-			cout << cfg_en->name << " ON" << endl;
-		}
-	}
-}
 
 template <typename T>
 static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
@@ -845,7 +799,7 @@ i32 main (i32 argc, char **argv, char **env)
 	list<CfgEntry>::iterator cfg_it;
 	list<CfgEntry*> *cfg_act = NULL;
 	list<CfgEntry*>::iterator it;
-	list<CfgEntry*> *cfgp_map[256] = { NULL };
+	list<CfgEntry*> *cfgp_map[128] = { NULL };
 	CfgEntry *cfg_en;
 	DynMemEntry *old_dynmem = NULL;
 	vector<void *> *mvec;
@@ -1058,16 +1012,7 @@ prepare_dynmem:
 	while (true) {
 		sleep_sec(1);
 		ch = do_getch();
-		if (ch > 0) {
-			if (cfgp_map[(i32)ch])
-				toggle_cfg(cfgp_map[(i32)ch], cfg_act);
-			else if (ch == '>')
-				dump_all_mem_obj(pid, &cfg);
-			else if (ch == '+')
-				inc_dec_mvec_pridx(&cfg, true);
-			else if (ch == '-')
-				inc_dec_mvec_pridx(&cfg, false);
-		}
+		handle_input_char(ch, cfgp_map, pid, &cfg, cfg_act);
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		do {
