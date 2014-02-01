@@ -82,7 +82,7 @@ void output_ptrmem_values (CfgEntry *cfg_en)
 	     << dynmem->pr_idx << "]"
 	     << " = " << hex << mem_offs << dec << endl;
 
-	for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+	list_for_each (cfg_act, it) {
 		cfg_en = *it;
 		cfg_en->old_val = cfg_en->v_oldval[dynmem->pr_idx];
 		output_mem_val(cfg_en, mem_offs, false);

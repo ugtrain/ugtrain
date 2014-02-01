@@ -62,7 +62,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 
 		// find object and set adp_addr
 		found = 0;
-		for (it = cfg->begin(); it != cfg->end(); it++) {
+		list_for_each (cfg, it) {
 			tmp = it->dynmem;
 			if (tmp && !tmp->adp_addr &&
 			    tmp->name == *obj_name) {

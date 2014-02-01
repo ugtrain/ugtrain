@@ -45,7 +45,7 @@ static PtrMemEntry *find_ptr_mem (list<CfgEntry> *cfg, string *name)
 	list<CfgEntry>::iterator it;
 	PtrMemEntry *old_ptrmem = NULL;
 
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		if (it->ptrmem && it->ptrmem != old_ptrmem) {
 			old_ptrmem = it->ptrmem;
 			if (it->ptrmem->name == *name)
@@ -61,7 +61,7 @@ static CfgEntry *find_cfg_en (list<CfgEntry> *cfg, string *name)
 	CfgEntry *cfg_en = NULL;
 
 
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		cfg_en = &(*it);
 		if (cfg_en->name == *name)
 			return cfg_en;
@@ -655,7 +655,7 @@ void write_config_vect (string *path, vector<string> *lines)
 		cerr << "File \"" << *path << "\" doesn't exist!" << endl;
 		exit(-1);
 	}
-	for (it = lines->begin(); it != lines->end(); ++it)
+	vect_for_each (lines, it)
 		cfg_file << (*it) << endl;
 
 	cfg_file.close();

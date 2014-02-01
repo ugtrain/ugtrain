@@ -70,7 +70,7 @@ static void output_ptrmem (CfgEntry *cfg_en)
 	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
 
-	for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+	list_for_each (cfg_act, it) {
 		cfg_en = *it;
 		cout << "  ->";
 		output_config_en(cfg_en);
@@ -124,7 +124,7 @@ static void output_checks (CfgEntry *cfg_en)
 	if (!chk_lp)
 		return;
 
-	for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
+	list_for_each (chk_lp, it) {
 		if (it->cfg_ref)
 			cout << "    check " << it->cfg_ref->name;
 		else
@@ -156,7 +156,7 @@ void output_configp (list<CfgEntry*> *cfg)
 	CfgEntry *cfg_en;
 
 	list<CfgEntry*>::iterator it;
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		cfg_en = *it;
 		output_config_en(cfg_en);
 		if (cfg_en->ptrtgt)
@@ -174,7 +174,7 @@ void output_config (list<CfgEntry> *cfg)
 	CfgEntry cfg_en;
 
 	list<CfgEntry>::iterator it;
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		cfg_en = *it;
 		// headline
 		if (cfg_en.dynmem)

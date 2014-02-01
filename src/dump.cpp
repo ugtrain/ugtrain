@@ -103,7 +103,7 @@ void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 	u32 class_id = 0, obj_id = 0, ptr_id = 0, i;
 	list<CfgEntry>::iterator it;
 
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		if (it->dynmem && it->dynmem != old_dynmem) {
 			obj_id = 0;
 			for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
@@ -120,7 +120,7 @@ void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 		}
 	}
 
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		if (it->dynmem && it->ptrtgt) {
 			obj_id = 0;
 			for (i = 0; i < it->dynmem->v_maddr.size(); i++) {

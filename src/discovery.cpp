@@ -47,7 +47,7 @@ void take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 	DynMemEntry *tmp = NULL;
 	u32 lnr;
 
-	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
+	list_for_each (cfg, cfg_it) {
 		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
 			continue;
 		tmp = cfg_it->dynmem;
@@ -90,7 +90,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	bool discovered = false;
 	char ch;
 
-	for (cfg_it = cfg->begin(); cfg_it != cfg->end(); cfg_it++) {
+	list_for_each (cfg, cfg_it) {
 		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
 			continue;
 		tmp = cfg_it->dynmem;
@@ -300,7 +300,7 @@ static void process_disc5_output (list<CfgEntry> *cfg,
 	     << ";o" << stack_offs << dec << endl;
 
 	// find object and set adp_soffs
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		if (it->dynmem &&
 		    it->dynmem->adp_addr == code_addr) {
 			if (it->dynmem->adp_soffs == stack_offs) {
@@ -458,7 +458,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		break;
 	case '5':
 		if (!opt->do_adapt) {
-			for (it = cfg->begin(); it != cfg->end(); it++) {
+			list_for_each (cfg, it) {
 				if (it->dynmem && !it->dynmem->adp_addr)
 					it->dynmem->adp_addr = it->dynmem->code_addr;
 			}
@@ -468,7 +468,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 				"auto-adaption!" << endl;
 			goto err;
 		} else {
-			for (it = cfg->begin(); it != cfg->end(); it++) {
+			list_for_each (cfg, it) {
 				if (it->dynmem && it->dynmem->adp_addr &&
 				    !it->dynmem->adp_soffs) {
 					opt->disc_addr = it->dynmem->adp_addr;

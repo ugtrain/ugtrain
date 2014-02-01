@@ -155,7 +155,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 		return;
 
 	if (chk_lp) {
-		for (it = chk_lp->begin(); it != chk_lp->end(); it++) {
+		list_for_each (chk_lp, it) {
 			if (it->cfg_ref) {
 				if (handle_cfg_ref(it->cfg_ref, chk_buf) != 0)
 					continue;
@@ -314,7 +314,7 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 		else
 			cfg_en->ptrtgt->v_state[mem_idx] = PTR_SETTLED;
 		cfg_en->ptrtgt->v_offs[mem_idx] = *(void **) buf;
-		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+		list_for_each (cfg_act, it) {
 			cfg_en = *it;
 			mem_addr = PTR_ADD(void *, cfg_en->ptrmem->v_offs[mem_idx], cfg_en->addr);
 			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
@@ -339,7 +339,7 @@ static void allocate_ptrmem (CfgEntry *cfg_en)
 	cfg_en->ptrtgt->v_state.push_back(PTR_INIT);
 	cfg_en->ptrtgt->v_offs.push_back(0);
 
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		cfg_en = *it;
 		cfg_en->v_oldval.push_back(0);
 	}
@@ -353,7 +353,7 @@ static void deallocate_ptrmem (CfgEntry *cfg_en, u32 idx)
 	cfg_en->ptrtgt->v_state.erase(cfg_en->ptrtgt->v_state.begin() + idx);
 	cfg_en->ptrtgt->v_offs.erase(cfg_en->ptrtgt->v_offs.begin() + idx);
 
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		cfg_en = *it;
 		cfg_en->v_oldval.erase(cfg_en->v_oldval.begin() + idx);
 	}
@@ -577,7 +577,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 	}
 
 	// fill the output buffer with the dynmem cfg
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
@@ -682,7 +682,7 @@ void set_dynmem_addr (list<CfgEntry> *cfg,
 	//	<< code_addr << dec << endl;
 
 	// find object and set mem_addr
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		if (it->dynmem &&
 		    it->dynmem->code_addr == code_addr) {
 			mvec = &it->dynmem->v_maddr;
@@ -707,7 +707,7 @@ static void deallocate_objects (list<CfgEntry> *cfg, bool process_kicked)
 	u32 mem_idx, ov_idx, num_kicked;
 
 	// remove old values marked to be removed by free() or by object check
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		cfg_en = &(*it);
 		if (cfg_en->dynmem) {
 			mvec = &cfg_en->dynmem->v_maddr;
@@ -728,7 +728,7 @@ static void deallocate_objects (list<CfgEntry> *cfg, bool process_kicked)
 
 	// remove objects marked to be removed by free() or by object check
 	old_dynmem = NULL;
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		cfg_en = &(*it);
 		if (cfg_en->dynmem && cfg_en->dynmem != old_dynmem) {
 			mvec = &cfg_en->dynmem->v_maddr;
@@ -772,7 +772,7 @@ void unset_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
 	i32 idx;
 
 	//cout << "f" << hex << mem_addr << dec << endl;
-	for (it = cfg->begin(); it != cfg->end(); it++) {
+	list_for_each (cfg, it) {
 		if (it->dynmem) {
 			mvec = &it->dynmem->v_maddr;
 			idx = find_addr_idx(mvec, mem_addr);
@@ -795,11 +795,11 @@ i32 main (i32 argc, char **argv, char **env)
 {
 	string input_str, *cfg_path = NULL;
 	vector<string> lines;
-	list<CfgEntry> cfg;
+	list<CfgEntry> __cfg, *cfg = &__cfg;
 	list<CfgEntry>::iterator cfg_it;
 	list<CfgEntry*> *cfg_act = NULL;
-	list<CfgEntry*>::iterator it;
 	list<CfgEntry*> *cfgp_map[128] = { NULL };
+	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
 	DynMemEntry *old_dynmem = NULL;
 	vector<void *> *mvec;
@@ -829,7 +829,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	if (strncmp(argv[optind - 1], "NONE", sizeof("NONE") - 1) != 0) {
 		cfg_path = new string(argv[optind - 1]);
-		cfg_act = read_config(cfg_path, &opt, &cfg, cfgp_map, &lines);
+		cfg_act = read_config(cfg_path, &opt, cfg, cfgp_map, &lines);
 		cout << "Found config for \"" << opt.proc_name << "\"." << endl;
 	} else {
 		cfg_path = new string("NONE");
@@ -848,7 +848,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (opt.disc_str) {
 		if (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '4') {
 			cout << "Clearing config for discovery!" << endl;
-			cfg.clear();
+			cfg->clear();
 			cfg_act->clear();
 			emptycfg = true;
 		} else {
@@ -856,7 +856,7 @@ i32 main (i32 argc, char **argv, char **env)
 		}
 	} else if (opt.run_scanmem) {
 		cout << "Clearing config for scanmem!" << endl;
-		cfg.clear();
+		cfg->clear();
 		cfg_act->clear();
 		emptycfg = true;
 	}
@@ -867,13 +867,13 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 
 	cout << "Config:" << endl;
-	output_config(&cfg);
+	output_config(cfg);
 	cout << endl;
 	cout << "Activated:" << endl;
 	output_configp(cfg_act);
 	cout << endl;
 
-	if (cfg.empty() && !emptycfg)
+	if (cfg->empty() && !emptycfg)
 		return -1;
 
 	if (prepare_getch() != 0) {
@@ -905,12 +905,12 @@ i32 main (i32 argc, char **argv, char **env)
 			cerr << "Error, no adaption script!" << endl;
 			return -1;
 		}
-		if (adapt_config(&opt, &cfg) != 0) {
+		if (adapt_config(&opt, cfg) != 0) {
 			cerr << "Error while code address adaption!" << endl;
 			return -1;
 		}
 		if (opt.use_gbt) {
-			take_over_config(&opt, &cfg, cfg_path, &lines);
+			take_over_config(&opt, cfg, cfg_path, &lines);
 		} else {
 			cout << "Adapt reverse stack offset(s) (y/n)? : ";
 			fflush(stdout);
@@ -918,16 +918,16 @@ i32 main (i32 argc, char **argv, char **env)
 			ch = do_getch();
 			cout << ch << endl;
 			if (ch != 'y')
-				take_over_config(&opt, &cfg, cfg_path, &lines);
+				take_over_config(&opt, cfg, cfg_path, &lines);
 		}
 	}
 
 discover_next:
-	if (prepare_discovery(&opt, &cfg) != 0)
+	if (prepare_discovery(&opt, cfg) != 0)
 		return -1;
 
 prepare_dynmem:
-	if (prepare_dynmem(&opt, &cfg, &ifd, &ofd) != 0) {
+	if (prepare_dynmem(&opt, cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}
@@ -978,9 +978,9 @@ prepare_dynmem:
 			if (worker_pid < 0)
 				return -1;
 		} else if (opt.disc_str[0] == '5') {
-			run_stage5_loop(&cfg, ifd, pmask, pid);
+			run_stage5_loop(cfg, ifd, pmask, pid);
 		}
-		ret = postproc_discovery(&opt, &cfg, cfg_path, &lines);
+		ret = postproc_discovery(&opt, cfg, cfg_path, &lines);
 		switch (ret) {
 		case DISC_NEXT:
 			goto discover_next;
@@ -1012,17 +1012,17 @@ prepare_dynmem:
 	while (true) {
 		sleep_sec(1);
 		ch = do_getch();
-		handle_input_char(ch, cfgp_map, pid, &cfg, cfg_act);
+		handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		do {
-			rbytes = read_dynmem_buf(&cfg, NULL, ifd, pmask, false,
+			rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
 						 set_dynmem_addr, unset_dynmem_addr);
 		} while (rbytes > 0);
 
 		// print allocated and freed object counts
 		old_dynmem = NULL;
-		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
+		list_for_each (cfg, cfg_it) {
 			if (cfg_it->dynmem && cfg_it->dynmem != old_dynmem) {
 				mvec = &cfg_it->dynmem->v_maddr;
 				if (cfg_it->dynmem->num_alloc > 0)
@@ -1048,10 +1048,10 @@ prepare_dynmem:
 		}
 
 		// handle freed objects
-		deallocate_objects (&cfg, false);
+		deallocate_objects (cfg, false);
 
 		// allocate old values per memory object
-		for (cfg_it = cfg.begin(); cfg_it != cfg.end(); cfg_it++) {
+		list_for_each (cfg, cfg_it) {
 			cfg_en = &(*cfg_it);
 			if (cfg_en->dynmem) {
 				for (mem_idx = 0;
@@ -1074,7 +1074,7 @@ prepare_dynmem:
 		}
 
 		// TIME CRITICAL! Process all activated config entries
-		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+		list_for_each (cfg_act, it) {
 			cfg_en = *it;
 			if (cfg_en->dynmem) {
 				for (mem_idx = 0;
@@ -1116,11 +1116,11 @@ prepare_dynmem:
 		}
 
 		// deallocate memory used for objects kicked out by object check
-		deallocate_objects (&cfg, true);
+		deallocate_objects (cfg, true);
 
 		// output old values
 		old_dynmem = NULL;
-		for (it = cfg_act->begin(); it != cfg_act->end(); it++) {
+		list_for_each (cfg_act, it) {
 			cfg_en = *it;
 			is_dynmem = false;
 			if (cfg_en->dynmem) {
