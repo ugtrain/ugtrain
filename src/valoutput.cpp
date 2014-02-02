@@ -14,13 +14,14 @@
  * GNU General Public License for more details.
  */
 
+#include <vector>
 #include <cstring>
 
 // local includes
 #include "valoutput.h"
 
 
-void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
+static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
 {
 	DynMemEntry *dynmem;
 	double tmp_dval;
@@ -70,7 +71,7 @@ void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
 	}
 }
 
-void output_ptrmem_values (CfgEntry *cfg_en)
+static void output_ptrmem_values (CfgEntry *cfg_en)
 {
 	DynMemEntry *dynmem = cfg_en->ptrtgt->dynmem;
 	void *mem_offs;
@@ -86,5 +87,45 @@ void output_ptrmem_values (CfgEntry *cfg_en)
 		cfg_en = *it;
 		cfg_en->old_val = cfg_en->v_oldval[dynmem->pr_idx];
 		output_mem_val(cfg_en, mem_offs, false);
+	}
+}
+
+void output_mem_values (list<CfgEntry*> *cfg_act)
+{
+	list<CfgEntry*>::iterator it;
+	CfgEntry *cfg_en;
+	DynMemEntry *old_dynmem = NULL;
+	vector<void *> *mvec;
+	void *mem_offs = NULL;
+	bool is_dynmem;
+
+	list_for_each (cfg_act, it) {
+		cfg_en = *it;
+		is_dynmem = false;
+		if (cfg_en->dynmem) {
+			mvec = &cfg_en->dynmem->v_maddr;
+			if (mvec->empty()) {
+				continue;
+			} else {
+				if (cfg_en->dynmem->pr_idx >= mvec->size())
+					cfg_en->dynmem->pr_idx = mvec->size() - 1;
+				mem_offs = mvec->at(cfg_en->dynmem->pr_idx);
+				cfg_en->old_val =
+					cfg_en->v_oldval[cfg_en->dynmem->pr_idx];
+				is_dynmem = true;
+				if (cfg_en->dynmem != old_dynmem) {
+					cout << "*" << cfg_en->dynmem->name << "["
+					     << cfg_en->dynmem->pr_idx << "]" << " = "
+					     << hex << mem_offs << dec << ", "
+					     << mvec->size() << " obj." << endl;
+						old_dynmem = cfg_en->dynmem;
+				}
+			}
+		} else {
+			mem_offs = NULL;
+		}
+		output_mem_val(cfg_en, mem_offs, is_dynmem);
+		if (cfg_en->ptrtgt)
+			output_ptrmem_values(cfg_en);
 	}
 }

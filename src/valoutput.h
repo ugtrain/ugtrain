@@ -17,10 +17,10 @@
 #ifndef VALOUTPUT_H
 #define VALOUTPUT_H
 
+#include <list>
 #include "common.h"
 #include "cfgentry.h"
 
-void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem);
-void output_ptrmem_values (CfgEntry *cfg_en);
+void output_mem_values (list<CfgEntry*> *cfg_act);
 
 #endif

@@ -813,7 +813,6 @@ i32 main (i32 argc, char **argv, char **env)
 	struct app_options opt;
 	bool emptycfg = false;
 	u32 mem_idx;
-	bool is_dynmem;
 	ssize_t rbytes;
 
 	atexit(restore_getch);
@@ -1119,37 +1118,7 @@ prepare_dynmem:
 		deallocate_objects (cfg, true);
 
 		// output old values
-		old_dynmem = NULL;
-		list_for_each (cfg_act, it) {
-			cfg_en = *it;
-			is_dynmem = false;
-			if (cfg_en->dynmem) {
-				mvec = &cfg_en->dynmem->v_maddr;
-				if (mvec->empty()) {
-					continue;
-				} else {
-					if (cfg_en->dynmem->pr_idx >= mvec->size())
-						cfg_en->dynmem->pr_idx = mvec->size() - 1;
-					mem_offs = mvec->at(cfg_en->dynmem->pr_idx);
-					cfg_en->old_val =
-						cfg_en->v_oldval[cfg_en->dynmem->pr_idx];
-					is_dynmem = true;
-					if (cfg_en->dynmem != old_dynmem) {
-						cout << "*" << cfg_en->dynmem->name << "["
-						     << cfg_en->dynmem->pr_idx << "]" << " = "
-						     << hex << mem_offs << dec << ", "
-						     << mvec->size() << " obj." << endl;
-							old_dynmem = cfg_en->dynmem;
-					}
-				}
-			} else {
-				mem_offs = NULL;
-			}
-			output_mem_val(cfg_en, mem_offs, is_dynmem);
-			if (cfg_en->ptrtgt)
-				output_ptrmem_values(cfg_en);
-		}
-
+		output_mem_values(cfg_act);
 	}
 
 	return 0;
