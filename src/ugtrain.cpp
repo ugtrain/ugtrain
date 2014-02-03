@@ -42,8 +42,9 @@
 #include "getch.h"
 #include "fifoparser.h"
 // processing
-#include "control.h"
 #include "system.h"
+#include "control.h"
+#include "memmgmt.h"
 #include "memattach.h"
 // output
 #include "cfgoutput.h"
@@ -328,34 +329,6 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 	} else {
 		memcpy(&cfg_en->v_oldval[mem_idx],
 		       buf, sizeof(void *));
-	}
-}
-
-static void allocate_ptrmem (CfgEntry *cfg_en)
-{
-	list<CfgEntry*> *cfg = &cfg_en->ptrtgt->cfg;
-	list<CfgEntry*>::iterator it;
-
-	cfg_en->ptrtgt->v_state.push_back(PTR_INIT);
-	cfg_en->ptrtgt->v_offs.push_back(0);
-
-	list_for_each (cfg, it) {
-		cfg_en = *it;
-		cfg_en->v_oldval.push_back(0);
-	}
-}
-
-static void deallocate_ptrmem (CfgEntry *cfg_en, u32 idx)
-{
-	list<CfgEntry*> *cfg = &cfg_en->ptrtgt->cfg;
-	list<CfgEntry*>::iterator it;
-
-	cfg_en->ptrtgt->v_state.erase(cfg_en->ptrtgt->v_state.begin() + idx);
-	cfg_en->ptrtgt->v_offs.erase(cfg_en->ptrtgt->v_offs.begin() + idx);
-
-	list_for_each (cfg, it) {
-		cfg_en = *it;
-		cfg_en->v_oldval.erase(cfg_en->v_oldval.begin() + idx);
 	}
 }
 
@@ -666,143 +639,15 @@ skip_memhack:
 	return 0;
 }
 
-// mf() callback for read_dynmem_buf()
-void set_dynmem_addr (list<CfgEntry> *cfg,
-		      struct post_parse *pp,
-		      void *heap_start,
-		      void *mem_addr,
-		      size_t mem_size,
-		      void *code_addr,
-		      void *stack_offs)
-{
-	list<CfgEntry>::iterator it;
-	vector<void *> *mvec;
-
-	//cout << "m" << hex << mem_addr << ";c"
-	//	<< code_addr << dec << endl;
-
-	// find object and set mem_addr
-	list_for_each (cfg, it) {
-		if (it->dynmem &&
-		    it->dynmem->code_addr == code_addr) {
-			mvec = &it->dynmem->v_maddr;
-			mvec->push_back(mem_addr);
-			it->dynmem->num_alloc++;
-			/*cout << "Obj. " << it->dynmem->name << "; c"
-				<< it->dynmem->code_addr << "; s"
-				<< it->dynmem->mem_size << "; created at "
-				<< mvec->back() << "; now: " << mvec->size()
-				<< endl;*/
-			break;
-		}
-	}
-}
-
-static void deallocate_objects (list<CfgEntry> *cfg, bool process_kicked)
-{
-	list<CfgEntry>::iterator it;
-	CfgEntry *cfg_en;
-	DynMemEntry *old_dynmem = NULL;
-	vector<void *> *mvec;
-	u32 mem_idx, ov_idx, num_kicked;
-
-	// remove old values marked to be removed by free() or by object check
-	list_for_each (cfg, it) {
-		cfg_en = &(*it);
-		if (cfg_en->dynmem) {
-			mvec = &cfg_en->dynmem->v_maddr;
-			for (mem_idx = 0, ov_idx = 0;
-			     mem_idx < mvec->size() &&
-			     ov_idx < cfg_en->v_oldval.size();
-			     mem_idx++, ov_idx++) {
-				if (!mvec->at(mem_idx)) {
-					cfg_en->v_oldval.erase(cfg_en->v_oldval.begin()
-						+ ov_idx);
-					if (cfg_en->ptrtgt)
-						deallocate_ptrmem(cfg_en, ov_idx);
-					ov_idx--;
-				}
-			}
-		}
-	}
-
-	// remove objects marked to be removed by free() or by object check
-	old_dynmem = NULL;
-	list_for_each (cfg, it) {
-		cfg_en = &(*it);
-		if (cfg_en->dynmem && cfg_en->dynmem != old_dynmem) {
-			mvec = &cfg_en->dynmem->v_maddr;
-			num_kicked = 0;
-			for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
-				if (!mvec->at(mem_idx)) {
-					mvec->erase(mvec->begin() + mem_idx);
-					num_kicked++;
-					mem_idx--;
-				}
-			}
-			if (process_kicked && num_kicked > 0)
-				cout << "===> Obj. " << cfg_en->dynmem->name
-				     << " kicked out " << num_kicked
-				     << " time(s); remaining: " << mvec->size() << endl;
-			old_dynmem = cfg_en->dynmem;
-		}
-	}
-}
-
-i32 find_addr_idx(vector<void *> *vec, void *addr)
-{
-	u32 i;
-	i32 ret = -1;
-
-	for (i = 0; i < vec->size(); i++) {
-		if (vec->at(i) == addr) {
-			ret = i;
-			break;
-		}
-	}
-
-	return ret;
-}
-
-// ff() callback for read_dynmem_buf()
-void unset_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
-{
-	list<CfgEntry>::iterator it;
-	vector<void *> *mvec;
-	i32 idx;
-
-	//cout << "f" << hex << mem_addr << dec << endl;
-	list_for_each (cfg, it) {
-		if (it->dynmem) {
-			mvec = &it->dynmem->v_maddr;
-			idx = find_addr_idx(mvec, mem_addr);
-			if (idx < 0)
-				continue;
-			mvec->at(idx) = NULL;
-			it->dynmem->num_freed++;
-
-			/*cout << "Obj. " << it->dynmem->name << "; c"
-				<< it->dynmem->code_addr << "; s"
-				<< it->dynmem->mem_size << "; freed from "
-				<< mem_addr << "; remaining: " << mvec->size()
-				<< endl;*/
-			break;
-		}
-	}
-}
-
 i32 main (i32 argc, char **argv, char **env)
 {
 	string input_str, *cfg_path = NULL;
 	vector<string> lines;
 	list<CfgEntry> __cfg, *cfg = &__cfg;
-	list<CfgEntry>::iterator cfg_it;
 	list<CfgEntry*> *cfg_act = NULL;
 	list<CfgEntry*> *cfgp_map[128] = { NULL };
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
-	DynMemEntry *old_dynmem = NULL;
-	vector<void *> *mvec;
 	void *mem_addr, *mem_offs = NULL;
 	pid_t pid, worker_pid;
 	char def_home[] = "~";
@@ -1016,54 +861,24 @@ prepare_dynmem:
 		// get allocated and freed objects (TIME CRITICAL!)
 		do {
 			rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
-						 set_dynmem_addr, unset_dynmem_addr);
+						 alloc_dynmem_addr, clear_dynmem_addr);
 		} while (rbytes > 0);
 
 		// print allocated and freed object counts
-		old_dynmem = NULL;
-		list_for_each (cfg, cfg_it) {
-			if (cfg_it->dynmem && cfg_it->dynmem != old_dynmem) {
-				mvec = &cfg_it->dynmem->v_maddr;
-				if (cfg_it->dynmem->num_alloc > 0)
-					cout << "===> Obj. " << cfg_it->dynmem->name
-					     << " created " << cfg_it->dynmem->num_alloc
-					     << " time(s); now: " << mvec->size() -
-						cfg_it->dynmem->num_freed << endl;
-				if (cfg_it->dynmem->num_freed > 0)
-					cout << "===> Obj. " << cfg_it->dynmem->name
-					     << " freed " << cfg_it->dynmem->num_freed
-					     << " time(s); remaining: " << mvec->size() -
-						cfg_it->dynmem->num_freed << endl;
-				cfg_it->dynmem->num_alloc = 0;
-				cfg_it->dynmem->num_freed = 0;
-				old_dynmem = cfg_it->dynmem;
-			}
-		}
+		output_dynmem_changes(cfg);
 
+		// check for active config
 		if (cfg_act->empty()) {
 			if (!pid_is_running(pid, opt.proc_name, true))
 				return 0;
 			continue;
 		}
 
-		// handle freed objects
-		deallocate_objects (cfg, false);
+		// handle objects freed in the game
+		free_dynmem(cfg, false);
 
 		// allocate old values per memory object
-		list_for_each (cfg, cfg_it) {
-			cfg_en = &(*cfg_it);
-			if (cfg_en->dynmem) {
-				for (mem_idx = 0;
-				     mem_idx < cfg_en->dynmem->v_maddr.size();
-				     mem_idx++) {
-					if (mem_idx >= cfg_en->v_oldval.size()) {
-						cfg_en->v_oldval.push_back(0);
-						if (cfg_en->ptrtgt)
-							allocate_ptrmem(cfg_en);
-					}
-				}
-			}
-		}
+		alloc_dynmem(cfg);
 
 		if (memattach(pid) != 0) {
 			if (!pid_is_running(pid, opt.proc_name, true))
@@ -1114,8 +929,8 @@ prepare_dynmem:
 			return -1;
 		}
 
-		// deallocate memory used for objects kicked out by object check
-		deallocate_objects (cfg, true);
+		// free memory used for objects kicked out by object check
+		free_dynmem(cfg, true);
 
 		// output old values
 		output_mem_values(cfg_act);

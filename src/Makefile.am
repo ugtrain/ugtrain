@@ -9,6 +9,7 @@ ugtrain_SOURCES = common.h \
                   fifoparser.h \
                   control.h \
                   dump.h \
+                  memmgmt.h \
                   valoutput.h \
                   discovery.h \
                   adaption.h \
@@ -27,6 +28,7 @@ ugtrain_SOURCES = common.h \
                   fifoparser.cpp \
                   control.cpp \
                   dump.cpp \
+                  memmgmt.cpp \
                   valoutput.cpp \
                   discovery.cpp \
                   adaption.cpp
