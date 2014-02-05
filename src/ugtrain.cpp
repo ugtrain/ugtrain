@@ -300,6 +300,7 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 	}
 }
 
+// TIME CRITICAL! Process all activated config entries from pointer
 static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 {
 	void *mem_addr;
@@ -329,6 +330,52 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 	} else {
 		memcpy(&cfg_en->v_oldval[mem_idx],
 		       buf, sizeof(void *));
+	}
+}
+
+// TIME CRITICAL! Process all activated config entries
+static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
+{
+	list<CfgEntry*>::iterator it;
+	CfgEntry *cfg_en;
+	u8 buf[sizeof(i64)] = { 0 };
+	void *mem_addr, *mem_offs;
+	u32 mem_idx;
+
+	list_for_each (cfg_act, it) {
+		cfg_en = *it;
+		if (cfg_en->dynmem) {
+			for (mem_idx = 0;
+			     mem_idx < cfg_en->dynmem->v_maddr.size();
+			     mem_idx++) {
+				mem_offs = cfg_en->dynmem->v_maddr[mem_idx];
+				if (mem_offs == NULL)
+					continue;
+				cfg_en->dynmem->obj_idx = mem_idx;
+
+				mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
+				if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
+					cerr << "MEMORY READ ERROR PID[" << pid << "] ("
+					     << hex << mem_addr << dec << ")!" << endl;
+					continue;
+				}
+				if (cfg_en->ptrtgt)
+					process_ptrmem(pid, cfg_en, buf, mem_idx);
+				else
+					change_memory(pid, cfg_en, buf, mem_offs,
+						&cfg_en->v_oldval[mem_idx]);
+			}
+		} else {
+			mem_offs = NULL;
+
+			mem_addr = cfg_en->addr;
+			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
+				cerr << "MEMORY READ ERROR PID[" << pid << "] ("
+				     << hex << mem_addr << dec << ")!" << endl;
+				continue;
+			}
+			change_memory(pid, cfg_en, buf, mem_offs, &cfg_en->old_val);
+		}
 	}
 }
 
@@ -646,18 +693,13 @@ i32 main (i32 argc, char **argv, char **env)
 	list<CfgEntry> __cfg, *cfg = &__cfg;
 	list<CfgEntry*> *cfg_act = NULL;
 	list<CfgEntry*> *cfgp_map[128] = { NULL };
-	list<CfgEntry*>::iterator it;
-	CfgEntry *cfg_en;
-	void *mem_addr, *mem_offs = NULL;
 	pid_t pid, worker_pid;
 	char def_home[] = "~";
-	u8 buf[sizeof(i64)] = { 0 };
 	i32 ret, pmask = PARSE_M | PARSE_C;
 	char ch;
 	i32 ifd = -1, ofd = -1;
 	struct app_options opt;
 	bool emptycfg = false;
-	u32 mem_idx;
 	ssize_t rbytes;
 
 	atexit(restore_getch);
@@ -888,41 +930,7 @@ prepare_dynmem:
 		}
 
 		// TIME CRITICAL! Process all activated config entries
-		list_for_each (cfg_act, it) {
-			cfg_en = *it;
-			if (cfg_en->dynmem) {
-				for (mem_idx = 0;
-				     mem_idx < cfg_en->dynmem->v_maddr.size();
-				     mem_idx++) {
-					mem_offs = cfg_en->dynmem->v_maddr[mem_idx];
-					if (mem_offs == NULL)
-						continue;
-					cfg_en->dynmem->obj_idx = mem_idx;
-
-					mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
-					if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-						cerr << "MEMORY READ ERROR PID[" << pid << "] ("
-						     << hex << mem_addr << dec << ")!" << endl;
-						continue;
-					}
-					if (cfg_en->ptrtgt)
-						process_ptrmem(pid, cfg_en, buf, mem_idx);
-					else
-						change_memory(pid, cfg_en, buf, mem_offs,
-							&cfg_en->v_oldval[mem_idx]);
-				}
-			} else {
-				mem_offs = NULL;
-
-				mem_addr = cfg_en->addr;
-				if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-					cerr << "MEMORY READ ERROR PID[" << pid << "] ("
-					     << hex << mem_addr << dec << ")!" << endl;
-					continue;
-				}
-				change_memory(pid, cfg_en, buf, mem_offs, &cfg_en->old_val);
-			}
-		}
+		process_act_cfg(pid, cfg_act);
 
 		if (memdetach(pid) != 0) {
 			cerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
