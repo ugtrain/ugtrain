@@ -423,7 +423,7 @@ static i32 run_game (struct app_options *opt)
 			     << "$ " << cmdv[0] << " &" << endl;
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->proc_name, 3,
+					  pid_str, opt->game_call, 3,
 					  false, false);
 			if (pid > 0)
 				opt->scanmem_pid = pid;
@@ -456,7 +456,7 @@ static i32 run_game (struct app_options *opt)
 			     << "$ " << cmd << " &" << endl;
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->proc_name, 3,
+					  pid_str, opt->game_call, 3,
 					  false, true);
 			if (pid > 0)
 				opt->scanmem_pid = pid;
@@ -508,7 +508,7 @@ static i32 run_preloader (struct app_options *opt)
 			     << " " << cmdv[2] <<" &" << endl;
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->proc_name, 3,
+					  pid_str, opt->game_call, 3,
 					  false, false);
 			if (pid > 0)
 				opt->scanmem_pid = pid;
@@ -547,7 +547,7 @@ static i32 run_preloader (struct app_options *opt)
 			     << "$ " << cmd << " &" << endl;
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->proc_name, 3,
+					  pid_str, opt->game_call, 3,
 					  false, true);
 			if (pid > 0)
 				opt->scanmem_pid = pid;
@@ -729,6 +729,7 @@ i32 main (i32 argc, char **argv, char **env)
 		fflush(stdout);
 		cin >> input_str;
 		opt.proc_name = to_c_str(&input_str);
+		opt.game_call = opt.proc_name;
 	}
 
 	if (opt.disc_str) {
@@ -748,7 +749,7 @@ i32 main (i32 argc, char **argv, char **env)
 	}
 
 	if (!opt.game_path)
-		opt.game_path = get_abs_app_path(opt.proc_name);
+		opt.game_path = get_abs_app_path(opt.game_call);
 	if (!opt.game_path)
 		return -1;
 

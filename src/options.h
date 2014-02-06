@@ -38,6 +38,7 @@ struct app_options {
 	char	*adp_script;
 	char	*home;
 	char	*proc_name;
+	char	*game_call;
 	char	*game_path;
 	bool	use_gbt;
 	size_t	disc_offs;

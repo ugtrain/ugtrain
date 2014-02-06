@@ -28,6 +28,7 @@ using namespace std;
 
 typedef enum {
 	NAME_GAME_PATH,
+	NAME_GAME_CALL,
 	NAME_USE_GBT,
 	NAME_REGULAR,
 	NAME_CHECK,
@@ -160,6 +161,8 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	} else if (ret.substr(0, 5) == "game_") {
 		if (ret.substr(5, string::npos) == "path")
 			*name_type = NAME_GAME_PATH;
+		else if (ret.substr(5, string::npos) == "call")
+			*name_type = NAME_GAME_CALL;
 		else
 			*name_type = NAME_REGULAR;
 	} else if (ret == "use_gbt") {
@@ -453,6 +456,7 @@ list<CfgEntry*> *read_config (string *path,
 
 	// parse config
 	opt->proc_name = parse_proc_name(&lines->at(0), &start);
+	opt->game_call = opt->proc_name;
 
 	for (lnr = 1; lnr < lines->size(); lnr++) {
 		line = lines->at(lnr);
@@ -565,11 +569,22 @@ list<CfgEntry*> *read_config (string *path,
 			pos = tmp_str.rfind("/");
 			if (pos != string::npos &&
 			    tmp_str.substr(pos + 1, string::npos) !=
-			    opt->proc_name)
+			    opt->game_call)
 				cfg_parse_err(&line, lnr, start);
 
 			// Copy into C string
 			opt->game_path = to_c_str(&tmp_str);
+			break;
+
+		case NAME_GAME_CALL:
+			if (in_dynmem || in_ptrmem)
+				cfg_parse_err(&line, lnr, start);
+
+			tmp_str = parse_value_name(&line,
+				  lnr, &start, NULL);
+
+			// Copy into C string
+			opt->game_call = to_c_str(&tmp_str);
 			break;
 
 		case NAME_USE_GBT:
