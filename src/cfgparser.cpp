@@ -29,6 +29,7 @@ using namespace std;
 typedef enum {
 	NAME_GAME_PATH,
 	NAME_GAME_CALL,
+	NAME_GAME_PARAMS,
 	NAME_USE_GBT,
 	NAME_REGULAR,
 	NAME_CHECK,
@@ -163,6 +164,8 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			*name_type = NAME_GAME_PATH;
 		else if (ret.substr(5, string::npos) == "call")
 			*name_type = NAME_GAME_CALL;
+		else if (ret.substr(5, string::npos) == "params")
+			*name_type = NAME_GAME_PARAMS;
 		else
 			*name_type = NAME_REGULAR;
 	} else if (ret == "use_gbt") {
@@ -585,6 +588,17 @@ list<CfgEntry*> *read_config (string *path,
 
 			// Copy into C string
 			opt->game_call = to_c_str(&tmp_str);
+			break;
+
+		case NAME_GAME_PARAMS:
+			if (in_dynmem || in_ptrmem)
+				cfg_parse_err(&line, lnr, start);
+
+			tmp_str = line.substr(start, string::npos);
+
+			// Copy into C string
+			opt->game_params = to_c_str(&tmp_str);
+			opt->need_shell = true;
 			break;
 
 		case NAME_USE_GBT:

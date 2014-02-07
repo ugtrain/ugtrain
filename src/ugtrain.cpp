@@ -403,7 +403,7 @@ static i32 run_game (struct app_options *opt)
 	char pid_str[12] = { '\0' };
 	string cmd_str = string("");
 
-	if (!opt->pre_cmd) {
+	if (!opt->need_shell) {
 		cmd = (const char *) opt->game_path;
 
 		cmdv[0] = opt->game_path;
@@ -433,13 +433,19 @@ static i32 run_game (struct app_options *opt)
 			pid = run_cmd_bg(cmd, cmdv, false, false);
 		}
 	} else {
-		if (opt->use_glc) {
-			cmd_str += GLC_PRELOADER;
+		if (opt->pre_cmd) {
+			if (opt->use_glc) {
+				cmd_str += GLC_PRELOADER;
+				cmd_str += " ";
+			}
+			cmd_str += opt->pre_cmd;
 			cmd_str += " ";
 		}
-		cmd_str += opt->pre_cmd;
-		cmd_str += " ";
 		cmd_str += opt->game_path;
+		if (opt->game_params) {
+			cmd_str += " ";
+			cmd_str += opt->game_params;
+		}
 		cmd = cmd_str.c_str();
 
 		if (opt->run_scanmem) {
@@ -484,7 +490,7 @@ static i32 run_preloader (struct app_options *opt)
 	char pid_str[12] = { '\0' };
 	string cmd_str = string("");
 
-	if (!opt->pre_cmd) {
+	if (!opt->need_shell) {
 		cmd = (const char *) PRELOADER;
 
 		cmdv[0] = (char *) PRELOADER;
@@ -519,17 +525,27 @@ static i32 run_preloader (struct app_options *opt)
 			pid = run_cmd_bg(cmd, cmdv, false, false);
 		}
 	} else {
-		if (opt->use_glc) {
-			cmd_str += GLC_PRELOADER;
-			cmd_str += " ";
-			cmd_str += opt->pre_cmd;
-			cmd_str += " --preload=";
-			cmd_str += opt->preload_lib;
+		if (opt->pre_cmd) {
+			if (opt->use_glc) {
+				cmd_str += GLC_PRELOADER;
+				cmd_str += " ";
+				cmd_str += opt->pre_cmd;
+				cmd_str += " --preload=";
+				cmd_str += opt->preload_lib;
+			} else {
+				cmd_str += opt->pre_cmd;
+			}
 		} else {
-			cmd_str += opt->pre_cmd;
+			cmd_str += PRELOADER;
+			cmd_str += " ";
+			cmd_str += opt->preload_lib;
 		}
 		cmd_str += " ";
 		cmd_str += opt->game_path;
+		if (opt->game_params) {
+			cmd_str += " ";
+			cmd_str += opt->game_params;
+		}
 		cmd = cmd_str.c_str();
 
 		if (opt->run_scanmem &&

@@ -113,8 +113,10 @@ static void init_options (struct app_options *opt)
 	/* no direct CLI input */
 	opt->home = NULL;
 	opt->proc_name = NULL;
+	opt->need_shell = false;
 	opt->game_call = NULL;
 	opt->game_path = NULL;
+	opt->game_params = NULL;
 	opt->adp_script = NULL;
 	opt->adp_required = false;
 	opt->adp_req_line = 0;
@@ -146,9 +148,11 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 				else
 					opt->pre_cmd = optarg;
 				opt->use_glc = true;
+				opt->need_shell = true;
 			} else if (strncmp(long_options[opt_idx].name,
 			    "pre-cmd", sizeof("pre-cmd") - 1) == 0) {
 				opt->pre_cmd = optarg;
+				opt->need_shell = true;
 			}
 			break;
 		case 'h':

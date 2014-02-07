@@ -38,8 +38,10 @@ struct app_options {
 	char	*adp_script;
 	char	*home;
 	char	*proc_name;
+	bool	need_shell;
 	char	*game_call;
 	char	*game_path;
+	char	*game_params;
 	bool	use_gbt;
 	size_t	disc_offs;
 	void	*disc_addr;
