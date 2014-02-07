@@ -88,6 +88,10 @@ static size_t malloc_size = 0;
    greatest used stack address. */
 extern void *__libc_stack_end;
 
+/* ask libc for our process name as 'argv[0]' and 'getenv("_")'
+   don't work here */
+extern char *__progname;
+
 /* relevant start and end code addresses of .text segment */
 static void *bt_saddr = NULL, *bt_eaddr = NULL;
 
@@ -127,6 +131,7 @@ cfg_s ptr_cfg;
 /* prepare memory hacking on library load */
 void __attribute ((constructor)) memdisc_init (void)
 {
+	char *proc_name, *expected;
 	ssize_t rbytes;
 	i32 read_tries, ioffs = 0;
 	char *iptr;
@@ -134,8 +139,20 @@ void __attribute ((constructor)) memdisc_init (void)
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
 
+	/* only care for the game process (ignore shell and others) */
+	expected = getenv("UGT_GAME_PROC_NAME");
+	if (expected) {
+		proc_name = __progname;
+		printf("proc_name: %s, exp: %s\n", proc_name, expected);
+		if (strcmp(expected, proc_name) != 0)
+			return;
+	}
+
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
+
+	if (active)
+		return;
 
 	fprintf(stdout, PFX "Stack end:  %p\n", __libc_stack_end);
 	/*

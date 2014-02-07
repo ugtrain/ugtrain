@@ -682,6 +682,7 @@ skip_memhack:
 	/* Run the preloaded game but not as root */
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting preloaded game.." << endl;
+		setenv("UGT_GAME_PROC_NAME", opt->proc_name, 1);
 		run_preloader(opt);
 	}
 
@@ -844,6 +845,7 @@ prepare_dynmem:
 				return -1;
 #endif
 			cout << "Starting the game.." << endl;
+			setenv("UGT_GAME_PROC_NAME", opt.proc_name, 1);
 			run_game(&opt);
 			sleep_sec(1);
 			pid = proc_to_pid(opt.proc_name);

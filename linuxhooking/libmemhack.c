@@ -103,6 +103,10 @@ static bool active = false;
  */
 extern void *__libc_stack_end;
 
+/* ask libc for our process name as 'argv[0]' and 'getenv("_")'
+   don't work here */
+extern char *__progname;
+
 
 #define SET_IBUF_OFFS(count, i) \
 	for (i = 0; i < count; ibuf_offs++) { \
@@ -113,6 +117,7 @@ extern void *__libc_stack_end;
 /* prepare memory hacking upon library load */
 void __attribute ((constructor)) memhack_init (void)
 {
+	char *proc_name, *expected;
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
 	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
@@ -120,8 +125,20 @@ void __attribute ((constructor)) memhack_init (void)
 	i32 read_tries, scanned = 0;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 
+	/* only care for the game process (ignore shell and others) */
+	expected = getenv("UGT_GAME_PROC_NAME");
+	if (expected) {
+		proc_name = __progname;
+		printf("proc_name: %s, exp: %s\n", proc_name, expected);
+		if (strcmp(expected, proc_name) != 0)
+			return;
+	}
+
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
+
+	if (active)
+		return;
 
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
