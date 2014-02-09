@@ -769,6 +769,8 @@ i32 main (i32 argc, char **argv, char **env)
 		opt.game_path = get_abs_app_path(opt.game_call);
 	if (!opt.game_path)
 		return -1;
+	if (!opt.game_binpath)
+		opt.game_binpath = opt.game_path;
 
 	cout << "Config:" << endl;
 	output_config(cfg);

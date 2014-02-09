@@ -104,7 +104,7 @@ i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
 	const char *cmd = (const char *) opt->adp_script;
 	char *cmdv[] = {
 		opt->adp_script,
-		opt->game_path,
+		opt->game_binpath,
 		NULL
 	};
 

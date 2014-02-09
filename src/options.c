@@ -116,6 +116,7 @@ static void init_options (struct app_options *opt)
 	opt->need_shell = false;
 	opt->game_call = NULL;
 	opt->game_path = NULL;
+	opt->game_binpath = NULL;
 	opt->game_params = NULL;
 	opt->adp_script = NULL;
 	opt->adp_required = false;

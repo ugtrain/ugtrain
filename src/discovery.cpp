@@ -194,7 +194,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 			tmp_str = to_string(codes[i]);
 
 			cmd_str = "objdump -D ";
-			cmd_str += dpp->opt->game_path;
+			cmd_str += dpp->opt->game_binpath;
 			cmd_str += " | grep -B 1 -e \"^[ ]\\+";
 			cmd_str += tmp_str.substr(2, string::npos);  // no '0x'
 			cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
@@ -426,7 +426,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		}
 		if (ret < 5) {
 			cmd_str = "objdump -p ";
-			cmd_str += opt->game_path;
+			cmd_str += opt->game_binpath;
 			cmd_str += " | grep \"INIT\\|FINI\" "
 				   "| tr -d [:upper:] | tr -d [:blank:]";
 			cout << "$ " << cmd_str << endl;

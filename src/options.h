@@ -41,6 +41,7 @@ struct app_options {
 	bool	need_shell;
 	char	*game_call;
 	char	*game_path;
+	char	*game_binpath;
 	char	*game_params;
 	bool	use_gbt;
 	size_t	disc_offs;
