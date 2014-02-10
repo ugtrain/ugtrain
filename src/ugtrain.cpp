@@ -482,6 +482,8 @@ err:
 }
 
 #ifdef __linux__
+#define PRELOAD_VAR "LD_PRELOAD"
+
 static i32 run_preloader (struct app_options *opt)
 {
 	pid_t pid = -1;
@@ -526,12 +528,16 @@ static i32 run_preloader (struct app_options *opt)
 		}
 	} else {
 		if (opt->pre_cmd) {
+			cmd_str += PRELOAD_VAR;
+			cmd_str += "=$";
+			cmd_str += PRELOAD_VAR;
+			cmd_str += ":";
+			cmd_str += opt->preload_lib;
+			cmd_str += " ";
 			if (opt->use_glc) {
 				cmd_str += GLC_PRELOADER;
 				cmd_str += " ";
 				cmd_str += opt->pre_cmd;
-				cmd_str += " --preload=";
-				cmd_str += opt->preload_lib;
 			} else {
 				cmd_str += opt->pre_cmd;
 			}
