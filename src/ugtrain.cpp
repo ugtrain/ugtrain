@@ -724,6 +724,7 @@ i32 main (i32 argc, char **argv, char **env)
 	struct app_options opt;
 	bool emptycfg = false;
 	ssize_t rbytes;
+	bool use_wait = true;
 
 	atexit(restore_getch);
 
@@ -777,6 +778,8 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	if (!opt.game_binpath)
 		opt.game_binpath = opt.game_path;
+
+	use_wait = (opt.need_shell || opt.proc_name != opt.game_call) ? false : true;
 
 	cout << "Config:" << endl;
 	output_config(cfg);
@@ -938,7 +941,7 @@ prepare_dynmem:
 
 		// check for active config
 		if (cfg_act->empty()) {
-			if (!pid_is_running(pid, opt.proc_name, true))
+			if (!pid_is_running(pid, opt.proc_name, use_wait))
 				return 0;
 			continue;
 		}
@@ -950,7 +953,7 @@ prepare_dynmem:
 		alloc_dynmem(cfg);
 
 		if (memattach(pid) != 0) {
-			if (!pid_is_running(pid, opt.proc_name, true))
+			if (!pid_is_running(pid, opt.proc_name, use_wait))
 				return 0;
 			cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
 			continue;
