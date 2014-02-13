@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include "../src/common.h"
+#include "../common.h"
 
 /* env var to be added */
 #define PRELOAD_VAR "LD_PRELOAD"

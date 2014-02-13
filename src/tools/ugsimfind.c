@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <string.h>
-#include "../src/common.h"
+#include "../common.h"
 
 /* always match these */
 #define MAX_FILES	 100

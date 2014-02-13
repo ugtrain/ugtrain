@@ -73,7 +73,7 @@ AC_CHECK_HEADER(windows.h)
 
 AC_CONFIG_FILES([
 	Makefile
-	linuxhooking/Makefile
-	tools/Makefile
-	src/Makefile])
+	src/Makefile
+	src/linuxhooking/Makefile
+	src/tools/Makefile])
 AC_OUTPUT

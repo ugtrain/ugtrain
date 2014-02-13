@@ -31,7 +31,7 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
-#include "../src/common.h"
+#include "../common.h"
 
 #define PFX "[memhack] "
 #define HOOK_MALLOC 1

@@ -21,6 +21,5 @@ libtool
 m4
 missing
 src/ugtrain
-scanmem_extension/scanmem
-linuxhooking/ugpreload
-tools/ugsimfind
+src/linuxhooking/ugpreload
+src/tools/ugsimfind
