@@ -482,8 +482,6 @@ err:
 }
 
 #ifdef __linux__
-#define PRELOAD_VAR "LD_PRELOAD"
-
 static i32 run_preloader (struct app_options *opt)
 {
 	pid_t pid = -1;

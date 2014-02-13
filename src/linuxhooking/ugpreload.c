@@ -27,9 +27,6 @@
 #include <string.h>
 #include "../common.h"
 
-/* env var to be added */
-#define PRELOAD_VAR "LD_PRELOAD"
-
 /*
  * This function has been taken from 'glc' by nullkey aka
  * Pyry Haulos <pyry.haulos@gmail.com>
