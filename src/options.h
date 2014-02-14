@@ -17,7 +17,6 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include <getopt.h>
 #include "common.h"
 
 #define PROG_NAME  "ugtrain"
@@ -55,7 +54,7 @@ extern "C" {
 	void usage();
 	void use_libmemhack (struct app_options *opt);
 	void do_assumptions (struct app_options *opt);
-	void parse_options (i32 argc, char **argv, struct app_options *opt);
+	char *parse_options (i32 argc, char **argv, struct app_options *opt);
 #ifdef __cplusplus
 };
 #endif

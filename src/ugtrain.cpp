@@ -709,6 +709,7 @@ skip_memhack:
 
 i32 main (i32 argc, char **argv, char **env)
 {
+	char *cfg_path_cstr;
 	string input_str, *cfg_path = NULL;
 	vector<string> lines;
 	list<CfgEntry> __cfg, *cfg = &__cfg;
@@ -729,14 +730,14 @@ i32 main (i32 argc, char **argv, char **env)
 	if (argc < 2)
 		usage();
 
-	parse_options(argc, argv, &opt);
+	cfg_path_cstr = parse_options(argc, argv, &opt);
 
 	opt.home = getenv(HOME_VAR);
 	if (!opt.home)
 		opt.home = def_home;
 
-	if (strncmp(argv[optind - 1], "NONE", sizeof("NONE") - 1) != 0) {
-		cfg_path = new string(argv[optind - 1]);
+	if (strncmp(cfg_path_cstr, "NONE", sizeof("NONE") - 1) != 0) {
+		cfg_path = new string(cfg_path_cstr);
 		cfg_act = read_config(cfg_path, &opt, cfg, cfgp_map, &lines);
 		cout << "Found config for \"" << opt.proc_name << "\"." << endl;
 	} else {

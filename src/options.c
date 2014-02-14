@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <getopt.h>
 #include <string.h>
 #include "options.h"
 
@@ -127,13 +128,16 @@ static void init_options (struct app_options *opt)
 	opt->scanmem_pid = -1;
 }
 
-void parse_options (i32 argc, char **argv, struct app_options *opt)
+/*
+ * parses the command-line options
+ */
+char *parse_options (i32 argc, char **argv, struct app_options *opt)
 {
 	i32 ch = '\0', prev_ch = '\0', opt_idx = 0;
 
 	init_options(opt);
 
-	while (1) {
+	while (true) {
 		prev_ch = ch;
 		ch = getopt_long (argc, argv, short_options,
 				  long_options, &opt_idx);
@@ -187,4 +191,6 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 		}
 	}
 	do_assumptions(opt);
+
+	return argv[optind - 1];
 }
