@@ -713,7 +713,7 @@ i32 main (i32 argc, char **argv, char **env)
 	string input_str, *cfg_path = NULL;
 	vector<string> lines;
 	list<CfgEntry> __cfg, *cfg = &__cfg;
-	list<CfgEntry*> *cfg_act = NULL;
+	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
 	list<CfgEntry*> *cfgp_map[128] = { NULL };
 	pid_t pid, worker_pid;
 	char def_home[] = "~";
@@ -738,12 +738,12 @@ i32 main (i32 argc, char **argv, char **env)
 
 	if (strncmp(cfg_path_cstr, "NONE", sizeof("NONE") - 1) != 0) {
 		cfg_path = new string(cfg_path_cstr);
-		cfg_act = read_config(cfg_path, &opt, cfg, cfgp_map, &lines);
+		read_config(cfg_path, &opt, cfg, cfg_act, cfgp_map, &lines);
 		cout << "Found config for \"" << opt.proc_name << "\"." << endl;
 	} else {
 		cfg_path = new string("NONE");
-		if (!(opt.disc_str || opt.run_scanmem) ||
-		    (opt.disc_str[0] < '0' || opt.disc_str[0] > '4')) {
+		if ((!opt.disc_str && !opt.run_scanmem) || (opt.disc_str &&
+		    (opt.disc_str[0] < '0' || opt.disc_str[0] > '4'))) {
 			cerr << "Error: Config required!" << endl;
 			return -1;
 		}

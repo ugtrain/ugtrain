@@ -435,15 +435,15 @@ static void read_config_vect (string *path, string *home, vector<string> *lines)
 	cfg_file.close();
 }
 
-list<CfgEntry*> *read_config (string *path,
-			      struct app_options *opt,
-			      list<CfgEntry> *cfg,
-			      list<CfgEntry*> *cfgp_map[],
-			      vector<string> *lines)
+void read_config (string *path,
+		  struct app_options *opt,
+		  list<CfgEntry> *cfg,
+		  list<CfgEntry*> *cfg_act,
+		  list<CfgEntry*> *cfgp_map[],
+		  vector<string> *lines)
 {
 	CfgEntry cfg_en;
 	CfgEntry *cfg_enp;
-	list<CfgEntry*> *cfg_act = new list<CfgEntry*>();
 	list<CfgEntry*> *used_cfg_act = NULL;
 	CheckEntry chk_en;
 	list<CheckEntry> *chk_lp;
@@ -688,8 +688,6 @@ list<CfgEntry*> *read_config (string *path,
 			break;
 		}
 	}
-
-	return cfg_act;
 }
 
 void write_config_vect (string *path, vector<string> *lines)
