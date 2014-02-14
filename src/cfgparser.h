@@ -22,12 +22,11 @@
 #include "options.h"
 #include "cfgentry.h"
 
-void read_config (string *cfg_path,
-		  struct app_options *opt,
+void read_config (struct app_options *opt,
 		  list<CfgEntry> *cfg,
 		  list<CfgEntry*> *cfg_act,
 		  list<CfgEntry*> *cfgp_map[],
 		  vector<string> *lines);
 
-void write_config_vect (string *path, vector<string> *lines);
+void write_config_vect (char *path, vector<string> *lines);
 #endif

@@ -404,13 +404,13 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 	}
 }
 
-static void read_config_vect (string *path, string *home, vector<string> *lines)
+static void read_config_vect (string *path, char *home, vector<string> *lines)
 {
 	ifstream cfg_file;
 	string line;
 
 	if (path->rfind('~', 0) != string::npos)
-		path->replace(0, 1, *home);
+		path->replace(0, 1, home);
 
 	if (path->find(CFG_EXT, path->size() - sizeof(CFG_EXT) + 1) == string::npos)
 		*path += string(CFG_EXT);
@@ -419,7 +419,7 @@ static void read_config_vect (string *path, string *home, vector<string> *lines)
 	if (!cfg_file.is_open()) {
 		*path = string(CFG_DIR) + *path;
 		if (path->rfind('~', 0) != string::npos)
-			path->replace(0, 1, *home);
+			path->replace(0, 1, home);
 
 		cfg_file.open(path->c_str());
 		if (!cfg_file.is_open()) {
@@ -435,13 +435,13 @@ static void read_config_vect (string *path, string *home, vector<string> *lines)
 	cfg_file.close();
 }
 
-void read_config (string *path,
-		  struct app_options *opt,
+void read_config (struct app_options *opt,
 		  list<CfgEntry> *cfg,
 		  list<CfgEntry*> *cfg_act,
 		  list<CfgEntry*> *cfgp_map[],
 		  vector<string> *lines)
 {
+	string tmp_str, line;
 	CfgEntry cfg_en;
 	CfgEntry *cfg_enp;
 	list<CfgEntry*> *used_cfg_act = NULL;
@@ -452,13 +452,12 @@ void read_config (string *path,
 	u32 i, lnr, start = 0;
 	name_e name_type;
 	bool in_dynmem = false, in_ptrmem = false;
-	string line;
-	string home(opt->home);
-	string tmp_str;
 	size_t pos;
 
 	// read config into string vector
-	read_config_vect(path, &home, lines);
+	tmp_str = string(opt->cfg_path);
+	read_config_vect(&tmp_str, opt->home, lines);
+	opt->cfg_path = to_c_str(&tmp_str);
 
 	// parse config
 	opt->proc_name = parse_proc_name(&lines->at(0), &start);
@@ -544,12 +543,13 @@ void read_config (string *path,
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
-			tmp_str = string("");
-			pos = path->rfind("/");
+			tmp_str = string(opt->cfg_path);
+			pos = tmp_str.rfind("/");
 			if (pos != string::npos)
-				tmp_str.append(path->substr(0, pos + 1));
-			tmp_str.append(parse_value_name(&line,
-				       lnr, &start, NULL));
+				tmp_str.erase(pos + 1, string::npos);
+			else
+				tmp_str.clear();
+			tmp_str += parse_value_name(&line, lnr, &start, NULL);
 
 			// Copy into C string
 			opt->adp_script = to_c_str(&tmp_str);
@@ -690,16 +690,16 @@ void read_config (string *path,
 	}
 }
 
-void write_config_vect (string *path, vector<string> *lines)
+void write_config_vect (char *path, vector<string> *lines)
 {
 	ofstream cfg_file;
 	vector<string>::iterator it;
 
 	lines->pop_back();
 
-	cfg_file.open(path->c_str(), fstream::trunc);
+	cfg_file.open(path, fstream::trunc);
 	if (!cfg_file.is_open()) {
-		cerr << "File \"" << *path << "\" doesn't exist!" << endl;
+		cerr << "File \"" << path << "\" doesn't exist!" << endl;
 		exit(-1);
 	}
 	vect_for_each (lines, it)

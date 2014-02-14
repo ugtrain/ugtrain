@@ -105,6 +105,7 @@ void do_assumptions (struct app_options *opt)
 
 static void init_options (struct app_options *opt)
 {
+	opt->cfg_path = NULL;
 	opt->do_adapt = false;
 	opt->preload_lib = NULL;
 	opt->disc_str = NULL;
@@ -131,7 +132,7 @@ static void init_options (struct app_options *opt)
 /*
  * parses the command-line options
  */
-char *parse_options (i32 argc, char **argv, struct app_options *opt)
+void parse_options (i32 argc, char **argv, struct app_options *opt)
 {
 	i32 ch = '\0', prev_ch = '\0', opt_idx = 0;
 
@@ -192,5 +193,5 @@ char *parse_options (i32 argc, char **argv, struct app_options *opt)
 	}
 	do_assumptions(opt);
 
-	return argv[optind - 1];
+	opt->cfg_path = argv[optind - 1];
 }

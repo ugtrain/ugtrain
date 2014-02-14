@@ -41,7 +41,7 @@
 
 
 void take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
-		       string *cfg_path, vector<string> *lines)
+		       vector<string> *lines)
 {
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
@@ -67,7 +67,7 @@ void take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 
 	// Write back config
 	cout << "Writing back config.." << endl;
-	write_config_vect(cfg_path, lines);
+	write_config_vect(opt->cfg_path, lines);
 
 	// Run game with libmemhack
 	opt->do_adapt = false;
@@ -83,7 +83,7 @@ static void process_stage5_result (DynMemEntry *dynmem)
 }
 
 static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
-			    string *cfg_path, vector<string> *lines)
+			    vector<string> *lines)
 {
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
@@ -124,7 +124,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 
 out_wb:
 	// Take over discovery
-	take_over_config(opt, cfg, cfg_path, lines);
+	take_over_config(opt, cfg, lines);
 	return DISC_OKAY;
 }
 
@@ -274,13 +274,13 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 }
 
 i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
-			string *cfg_path, vector<string> *lines)
+			vector<string> *lines)
 {
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
 		return postproc_stage1234(opt, cfg);
 	if (opt->disc_str[0] != '5')
 		exit(0);
-	return postproc_stage5(opt, cfg, cfg_path, lines);
+	return postproc_stage5(opt, cfg, lines);
 }
 
 // mf() callback for read_dynmem_buf()

@@ -25,6 +25,7 @@
 #define SCANMEM    "scanmem"
 
 struct app_options {
+	char	*cfg_path;
 	bool	do_adapt;
 	char	*preload_lib;
 	char	*disc_str;
@@ -54,7 +55,7 @@ extern "C" {
 	void usage();
 	void use_libmemhack (struct app_options *opt);
 	void do_assumptions (struct app_options *opt);
-	char *parse_options (i32 argc, char **argv, struct app_options *opt);
+	void parse_options (i32 argc, char **argv, struct app_options *opt);
 #ifdef __cplusplus
 };
 #endif

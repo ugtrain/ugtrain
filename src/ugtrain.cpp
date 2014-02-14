@@ -709,13 +709,12 @@ skip_memhack:
 
 i32 main (i32 argc, char **argv, char **env)
 {
-	char *cfg_path_cstr;
-	string input_str, *cfg_path = NULL;
 	vector<string> __lines, *lines = &__lines;
 	struct app_options __opt, *opt = &__opt;
 	list<CfgEntry> __cfg, *cfg = &__cfg;
 	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
 	list<CfgEntry*> *cfgp_map[128] = { NULL };
+	string input_str;
 	pid_t pid, worker_pid;
 	char def_home[] = "~";
 	i32 ret, pmask = PARSE_M | PARSE_C;
@@ -730,18 +729,16 @@ i32 main (i32 argc, char **argv, char **env)
 	if (argc < 2)
 		usage();
 
-	cfg_path_cstr = parse_options(argc, argv, opt);
+	parse_options(argc, argv, opt);
 
 	opt->home = getenv(HOME_VAR);
 	if (!opt->home)
 		opt->home = def_home;
 
-	if (strncmp(cfg_path_cstr, "NONE", sizeof("NONE") - 1) != 0) {
-		cfg_path = new string(cfg_path_cstr);
-		read_config(cfg_path, opt, cfg, cfg_act, cfgp_map, lines);
+	if (strncmp(opt->cfg_path, "NONE", sizeof("NONE") - 1) != 0) {
+		read_config(opt, cfg, cfg_act, cfgp_map, lines);
 		cout << "Found config for \"" << opt->proc_name << "\"." << endl;
 	} else {
-		cfg_path = new string("NONE");
 		if ((!opt->disc_str && !opt->run_scanmem) || (opt->disc_str &&
 		    (opt->disc_str[0] < '0' || opt->disc_str[0] > '4'))) {
 			cerr << "Error: Config required!" << endl;
@@ -824,7 +821,7 @@ i32 main (i32 argc, char **argv, char **env)
 			return -1;
 		}
 		if (opt->use_gbt) {
-			take_over_config(opt, cfg, cfg_path, lines);
+			take_over_config(opt, cfg, lines);
 		} else {
 			cout << "Adapt reverse stack offset(s) (y/n)? : ";
 			fflush(stdout);
@@ -832,7 +829,7 @@ i32 main (i32 argc, char **argv, char **env)
 			ch = do_getch();
 			cout << ch << endl;
 			if (ch != 'y')
-				take_over_config(opt, cfg, cfg_path, lines);
+				take_over_config(opt, cfg, lines);
 		}
 	}
 
@@ -895,7 +892,7 @@ prepare_dynmem:
 		} else if (opt->disc_str[0] == '5') {
 			run_stage5_loop(cfg, ifd, pmask, pid);
 		}
-		ret = postproc_discovery(opt, cfg, cfg_path, lines);
+		ret = postproc_discovery(opt, cfg, lines);
 		switch (ret) {
 		case DISC_NEXT:
 			goto discover_next;
