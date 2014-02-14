@@ -4,7 +4,6 @@ There is still a lot of work to do. We appreciate any help we can get.
 
 Autotools:
 + create and include config.in and config.h
-+ make compilation of dyn. mem. support optional
 
 Config files:
 + make search paths for config files configurable
@@ -40,6 +39,7 @@ Other:
 + evaluate "Cheat Engine" (source code) for Windows stuff
 
 Roadmap:
+0.2.1: All-you-can-cheat on Linux (a lot more configs)
 0.3.0: Windows support
 0.4.0: WINE support
 0.5.0: GUI frontend support

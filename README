@@ -2,7 +2,8 @@
 ### DESCRIPTION ###
 ###################
 # The ugtrain is an advanced free and universal game trainer for the CLI under
-# GPLv2 license uploaded on GitHub and BerliOS. The dynamic memory support
+# GPLv2 license uploaded on GitHub and BerliOS. It is mostly written in C with
+# C++ parts for convenience and some shell scripts. The dynamic memory support
 # sets it apart. A preloader, a memory discovery and a memory hacking library
 # are included for this.
 # The ugtrain uses one simple config file per game which can be exchanged
@@ -30,8 +31,8 @@
 # Dynamic Memory:	* constructors-only (no growing objects/structures),
 #			* doesn't work for WINE, yet
 #
-# Compilation:		* dyn. mem. support can't be deactivated,
-#			* 32-bit and x86_64 only
+# Compilation:		* 32-bit and x86_64 only
+#			* tested with GCC g++ only
 #
 # GUI:			* can't serve as a backend, yet
 #
@@ -162,6 +163,7 @@ PATH=$PATH:/usr/local/bin
 LD_PATH=$LD_PATH:/usr/local/lib:/usr/local/lib64
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib64
 echo -e "/usr/local/lib\n/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf
+ldconfig -v  # regenerate the ld.so cache
 
 # These pathes simplify file usage. Where to set these environment
 # variables is distribution-specific. See "man ld.so".
@@ -223,6 +225,7 @@ https://github.com/OpenGameCheatingAssociation/og-cheating
 # Tester
 # Example Config Writer and Cheating Video Publisher
 # Web Designer
+# Packager
 #
 # Your help is very much appreciated!
 #
