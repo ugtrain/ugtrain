@@ -712,6 +712,7 @@ i32 main (i32 argc, char **argv, char **env)
 	char *cfg_path_cstr;
 	string input_str, *cfg_path = NULL;
 	vector<string> lines;
+	struct app_options __opt, *opt = &__opt;
 	list<CfgEntry> __cfg, *cfg = &__cfg;
 	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
 	list<CfgEntry*> *cfgp_map[128] = { NULL };
@@ -720,7 +721,6 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ret, pmask = PARSE_M | PARSE_C;
 	char ch;
 	i32 ifd = -1, ofd = -1;
-	struct app_options opt;
 	bool emptycfg = false;
 	ssize_t rbytes;
 	bool use_wait = true;
@@ -730,20 +730,20 @@ i32 main (i32 argc, char **argv, char **env)
 	if (argc < 2)
 		usage();
 
-	cfg_path_cstr = parse_options(argc, argv, &opt);
+	cfg_path_cstr = parse_options(argc, argv, opt);
 
-	opt.home = getenv(HOME_VAR);
-	if (!opt.home)
-		opt.home = def_home;
+	opt->home = getenv(HOME_VAR);
+	if (!opt->home)
+		opt->home = def_home;
 
 	if (strncmp(cfg_path_cstr, "NONE", sizeof("NONE") - 1) != 0) {
 		cfg_path = new string(cfg_path_cstr);
-		read_config(cfg_path, &opt, cfg, cfg_act, cfgp_map, &lines);
-		cout << "Found config for \"" << opt.proc_name << "\"." << endl;
+		read_config(cfg_path, opt, cfg, cfg_act, cfgp_map, &lines);
+		cout << "Found config for \"" << opt->proc_name << "\"." << endl;
 	} else {
 		cfg_path = new string("NONE");
-		if ((!opt.disc_str && !opt.run_scanmem) || (opt.disc_str &&
-		    (opt.disc_str[0] < '0' || opt.disc_str[0] > '4'))) {
+		if ((!opt->disc_str && !opt->run_scanmem) || (opt->disc_str &&
+		    (opt->disc_str[0] < '0' || opt->disc_str[0] > '4'))) {
 			cerr << "Error: Config required!" << endl;
 			return -1;
 		}
@@ -751,34 +751,34 @@ i32 main (i32 argc, char **argv, char **env)
 		cout << "Process name: ";
 		fflush(stdout);
 		cin >> input_str;
-		opt.proc_name = to_c_str(&input_str);
-		opt.game_call = opt.proc_name;
+		opt->proc_name = to_c_str(&input_str);
+		opt->game_call = opt->proc_name;
 	}
 
-	if (opt.disc_str) {
-		if (opt.disc_str[0] >= '0' && opt.disc_str[0] <= '4') {
+	if (opt->disc_str) {
+		if (opt->disc_str[0] >= '0' && opt->disc_str[0] <= '4') {
 			cout << "Clearing config for discovery!" << endl;
 			cfg->clear();
 			cfg_act->clear();
 			emptycfg = true;
 		} else {
-			opt.run_scanmem = false;
+			opt->run_scanmem = false;
 		}
-	} else if (opt.run_scanmem) {
+	} else if (opt->run_scanmem) {
 		cout << "Clearing config for scanmem!" << endl;
 		cfg->clear();
 		cfg_act->clear();
 		emptycfg = true;
 	}
 
-	if (!opt.game_path)
-		opt.game_path = get_abs_app_path(opt.game_call);
-	if (!opt.game_path)
+	if (!opt->game_path)
+		opt->game_path = get_abs_app_path(opt->game_call);
+	if (!opt->game_path)
 		return -1;
-	if (!opt.game_binpath)
-		opt.game_binpath = opt.game_path;
+	if (!opt->game_binpath)
+		opt->game_binpath = opt->game_path;
 
-	use_wait = (opt.need_shell || opt.proc_name != opt.game_call) ? false : true;
+	use_wait = (opt->need_shell || opt->proc_name != opt->game_call) ? false : true;
 
 	cout << "Config:" << endl;
 	output_config(cfg);
@@ -795,36 +795,36 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	if (opt.adp_required && !opt.do_adapt && !opt.disc_str &&
-	    !opt.run_scanmem) {
-		if (!opt.adp_script) {
+	if (opt->adp_required && !opt->do_adapt && !opt->disc_str &&
+	    !opt->run_scanmem) {
+		if (!opt->adp_script) {
 			cerr << "Error, adaption required but no adaption script!" << endl;
 			return -1;
 		}
 		cout << "Adaption to your compiler/game version is required." << endl;
-		cout << "Adaption script: " << opt.adp_script << endl;
+		cout << "Adaption script: " << opt->adp_script << endl;
 		cout << "Run the adaption script, now (y/n)? : ";
 		fflush(stdout);
 		ch = 'n';
 		ch = do_getch();
 		cout << ch << endl;
 		if (ch == 'y') {
-			opt.do_adapt = true;
-			do_assumptions(&opt);
+			opt->do_adapt = true;
+			do_assumptions(opt);
 		}
 	}
 
-	if (opt.do_adapt) {
-		if (!opt.adp_script) {
+	if (opt->do_adapt) {
+		if (!opt->adp_script) {
 			cerr << "Error, no adaption script!" << endl;
 			return -1;
 		}
-		if (adapt_config(&opt, cfg) != 0) {
+		if (adapt_config(opt, cfg) != 0) {
 			cerr << "Error while code address adaption!" << endl;
 			return -1;
 		}
-		if (opt.use_gbt) {
-			take_over_config(&opt, cfg, cfg_path, &lines);
+		if (opt->use_gbt) {
+			take_over_config(opt, cfg, cfg_path, &lines);
 		} else {
 			cout << "Adapt reverse stack offset(s) (y/n)? : ";
 			fflush(stdout);
@@ -832,33 +832,33 @@ i32 main (i32 argc, char **argv, char **env)
 			ch = do_getch();
 			cout << ch << endl;
 			if (ch != 'y')
-				take_over_config(&opt, cfg, cfg_path, &lines);
+				take_over_config(opt, cfg, cfg_path, &lines);
 		}
 	}
 
 discover_next:
-	if (prepare_discovery(&opt, cfg) != 0)
+	if (prepare_discovery(opt, cfg) != 0)
 		return -1;
 
 prepare_dynmem:
-	if (prepare_dynmem(&opt, cfg, &ifd, &ofd) != 0) {
+	if (prepare_dynmem(opt, cfg, &ifd, &ofd) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}
 
-	pid = proc_to_pid(opt.proc_name);
+	pid = proc_to_pid(opt->proc_name);
 	if (pid < 0) {
 		/* Run the game but not as root */
-		if (opt.preload_lib) {
+		if (opt->preload_lib) {
 #ifdef __linux__
 			if (getuid() == 0)
 				return -1;
 #endif
 			cout << "Starting the game.." << endl;
-			setenv("UGT_GAME_PROC_NAME", opt.proc_name, 1);
-			run_game(&opt);
+			setenv("UGT_GAME_PROC_NAME", opt->proc_name, 1);
+			run_game(opt);
 			sleep_sec(1);
-			pid = proc_to_pid(opt.proc_name);
+			pid = proc_to_pid(opt->proc_name);
 			if (pid < 0)
 				goto pid_err;
 		} else {
@@ -867,35 +867,35 @@ prepare_dynmem:
 	}
 	cout << "PID: " << pid << endl;
 
-	if (opt.disc_str) {
+	if (opt->disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
-		if (opt.disc_str[0] == 'p')
-			memcpy(opt.disc_str, opt.disc_str + opt.disc_offs, 1);
-		if (opt.disc_str[0] == '0') {
-			if (opt.scanmem_pid > 0) {
-				wait_proc(opt.scanmem_pid);
+		if (opt->disc_str[0] == 'p')
+			memcpy(opt->disc_str, opt->disc_str + opt->disc_offs, 1);
+		if (opt->disc_str[0] == '0') {
+			if (opt->scanmem_pid > 0) {
+				wait_proc(opt->scanmem_pid);
 				// Have you closed scanmem before the game?
-				wait_orphan(pid, opt.proc_name);
+				wait_orphan(pid, opt->proc_name);
 			} else {
 				wait_proc(pid);
 			}
 			return 0;
-		} else if (opt.disc_str[0] >= '1' && opt.disc_str[0] <= '4') {
+		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
 			worker_pid = fork_proc(run_stage1234_loop, &ifd);
-			if (opt.scanmem_pid > 0) {
-				wait_proc(opt.scanmem_pid);
+			if (opt->scanmem_pid > 0) {
+				wait_proc(opt->scanmem_pid);
 				// Have you closed scanmem before the game?
-				wait_orphan(pid, opt.proc_name);
+				wait_orphan(pid, opt->proc_name);
 			} else {
 				wait_proc(pid);
 			}
 			kill_proc(worker_pid);
 			if (worker_pid < 0)
 				return -1;
-		} else if (opt.disc_str[0] == '5') {
+		} else if (opt->disc_str[0] == '5') {
 			run_stage5_loop(cfg, ifd, pmask, pid);
 		}
-		ret = postproc_discovery(&opt, cfg, cfg_path, &lines);
+		ret = postproc_discovery(opt, cfg, cfg_path, &lines);
 		switch (ret) {
 		case DISC_NEXT:
 			goto discover_next;
@@ -907,14 +907,14 @@ prepare_dynmem:
 		default:
 			break;
 		}
-	} else if (opt.scanmem_pid > 0) {
-		wait_proc(opt.scanmem_pid);
+	} else if (opt->scanmem_pid > 0) {
+		wait_proc(opt->scanmem_pid);
 		// Have you closed scanmem before the game?
-		wait_orphan(pid, opt.proc_name);
+		wait_orphan(pid, opt->proc_name);
 		return 0;
 	}
 
-	if (opt.do_adapt || opt.disc_str || opt.run_scanmem)
+	if (opt->do_adapt || opt->disc_str || opt->run_scanmem)
 		return -1;
 
 	set_getch_nb(1);
@@ -940,7 +940,7 @@ prepare_dynmem:
 
 		// check for active config
 		if (cfg_act->empty()) {
-			if (!pid_is_running(pid, opt.proc_name, use_wait))
+			if (!pid_is_running(pid, opt->proc_name, use_wait))
 				return 0;
 			continue;
 		}
@@ -952,7 +952,7 @@ prepare_dynmem:
 		alloc_dynmem(cfg);
 
 		if (memattach(pid) != 0) {
-			if (!pid_is_running(pid, opt.proc_name, use_wait))
+			if (!pid_is_running(pid, opt->proc_name, use_wait))
 				return 0;
 			cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
 			continue;
