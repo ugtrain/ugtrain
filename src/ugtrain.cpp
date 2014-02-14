@@ -711,7 +711,7 @@ i32 main (i32 argc, char **argv, char **env)
 {
 	char *cfg_path_cstr;
 	string input_str, *cfg_path = NULL;
-	vector<string> lines;
+	vector<string> __lines, *lines = &__lines;
 	struct app_options __opt, *opt = &__opt;
 	list<CfgEntry> __cfg, *cfg = &__cfg;
 	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
@@ -738,7 +738,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	if (strncmp(cfg_path_cstr, "NONE", sizeof("NONE") - 1) != 0) {
 		cfg_path = new string(cfg_path_cstr);
-		read_config(cfg_path, opt, cfg, cfg_act, cfgp_map, &lines);
+		read_config(cfg_path, opt, cfg, cfg_act, cfgp_map, lines);
 		cout << "Found config for \"" << opt->proc_name << "\"." << endl;
 	} else {
 		cfg_path = new string("NONE");
@@ -824,7 +824,7 @@ i32 main (i32 argc, char **argv, char **env)
 			return -1;
 		}
 		if (opt->use_gbt) {
-			take_over_config(opt, cfg, cfg_path, &lines);
+			take_over_config(opt, cfg, cfg_path, lines);
 		} else {
 			cout << "Adapt reverse stack offset(s) (y/n)? : ";
 			fflush(stdout);
@@ -832,7 +832,7 @@ i32 main (i32 argc, char **argv, char **env)
 			ch = do_getch();
 			cout << ch << endl;
 			if (ch != 'y')
-				take_over_config(opt, cfg, cfg_path, &lines);
+				take_over_config(opt, cfg, cfg_path, lines);
 		}
 	}
 
@@ -895,7 +895,7 @@ prepare_dynmem:
 		} else if (opt->disc_str[0] == '5') {
 			run_stage5_loop(cfg, ifd, pmask, pid);
 		}
-		ret = postproc_discovery(opt, cfg, cfg_path, &lines);
+		ret = postproc_discovery(opt, cfg, cfg_path, lines);
 		switch (ret) {
 		case DISC_NEXT:
 			goto discover_next;
