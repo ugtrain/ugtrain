@@ -22,6 +22,9 @@
 #include "cfgentry.h"
 #include "options.h"
 
-i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg);
+i32 process_adaption (struct app_options *opt, list<CfgEntry> *cfg,
+		      vector<string> *lines);
+i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
+		      vector<string> *lines);
 
 #endif

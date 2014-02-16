@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
+
 #include "common.h"
 #include "commont.cpp"
 #include "getch.h"
@@ -35,45 +36,11 @@
 #include "fifoparser.h"
 #include "system.h"
 #include "discovery.h"
+#include "adaption.h"
 
 #define DYNMEM_FILE "/tmp/memhack_file"
 #define MAX_BT 11
 
-
-void take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
-		       vector<string> *lines)
-{
-	list<CfgEntry>::iterator cfg_it;
-	DynMemEntry *tmp = NULL;
-	u32 lnr;
-
-	list_for_each (cfg, cfg_it) {
-		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
-			continue;
-		tmp = cfg_it->dynmem;
-		tmp->code_addr = tmp->adp_addr;
-		if (tmp->adp_soffs)
-			tmp->stack_offs = tmp->adp_soffs;
-		lnr = tmp->cfg_line;
-		lines->at(lnr) = "dynmemstart " + tmp->name + " "
-			+ to_string(tmp->mem_size) + " "
-			+ to_string(tmp->code_addr) + " "
-			+ to_string(tmp->stack_offs);
-	}
-	// Adaption isn't required anymore
-	lnr = opt->adp_req_line;
-	if (lnr > 0)
-		lines->at(lnr) = "adapt_required 0";
-
-	// Write back config
-	cout << "Writing back config.." << endl;
-	write_config_vect(opt->cfg_path, lines);
-
-	// Run game with libmemhack
-	opt->do_adapt = false;
-	opt->disc_str = NULL;
-	use_libmemhack(opt);
-}
 
 static void process_stage5_result (DynMemEntry *dynmem)
 {
@@ -89,6 +56,7 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 	DynMemEntry *tmp = NULL;
 	bool discovered = false;
 	char ch;
+	i32 ret;
 
 	list_for_each (cfg, cfg_it) {
 		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
@@ -117,14 +85,16 @@ static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
 				}
 			}
 			cerr << "Discovery failed!" << endl;
-			exit(-1);
+			return -1;
 		}
 	}
 	cout << "Discovery successful!" << endl;
 
 out_wb:
 	// Take over discovery
-	take_over_config(opt, cfg, lines);
+	ret = take_over_config(opt, cfg, lines);
+	if (ret)
+		return ret;
 	return DISC_OKAY;
 }
 
@@ -279,7 +249,7 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
 		return postproc_stage1234(opt, cfg);
 	if (opt->disc_str[0] != '5')
-		exit(0);
+		return -1;
 	return postproc_stage5(opt, cfg, lines);
 }
 

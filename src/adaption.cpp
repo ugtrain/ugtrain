@@ -21,13 +21,74 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
+#include <fstream>
 #include <cstring>
 #include <stdio.h>
 
 // local includes
 #include "adaption.h"
 #include "system.h"
+#include "getch.h"
 
+
+static i32 write_config_vect (char *path, vector<string> *lines)
+{
+	ofstream cfg_file;
+	vector<string>::iterator it;
+
+	lines->pop_back();
+
+	cfg_file.open(path, fstream::trunc);
+	if (!cfg_file.is_open()) {
+		cerr << "File \"" << path << "\" doesn't exist!" << endl;
+		return -1;
+	}
+	vect_for_each (lines, it)
+		cfg_file << (*it) << endl;
+
+	cfg_file.close();
+	return 0;
+}
+
+i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
+		       vector<string> *lines)
+{
+	list<CfgEntry>::iterator cfg_it;
+	DynMemEntry *tmp = NULL;
+	u32 lnr;
+	i32 ret = 0;
+
+	list_for_each (cfg, cfg_it) {
+		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
+			continue;
+		tmp = cfg_it->dynmem;
+		tmp->code_addr = tmp->adp_addr;
+		if (tmp->adp_soffs)
+			tmp->stack_offs = tmp->adp_soffs;
+		lnr = tmp->cfg_line;
+		lines->at(lnr) = "dynmemstart " + tmp->name + " "
+			+ to_string(tmp->mem_size) + " "
+			+ to_string(tmp->code_addr) + " "
+			+ to_string(tmp->stack_offs);
+	}
+	// Adaption isn't required anymore
+	lnr = opt->adp_req_line;
+	if (lnr > 0)
+		lines->at(lnr) = "adapt_required 0";
+
+	// Write back config
+	cout << "Writing back config.." << endl;
+	ret = write_config_vect(opt->cfg_path, lines);
+	if (ret)
+		return ret;
+
+	// Run game with libmemhack
+	opt->do_adapt = false;
+	opt->disc_str = NULL;
+	use_libmemhack(opt);
+
+	return ret;
+}
 
 static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 			       char *buf, ssize_t buf_len)
@@ -97,7 +158,7 @@ parse_err:
 	return -1;
 }
 
-i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
+static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t read_bytes;
@@ -129,4 +190,62 @@ i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
 err:
 	cerr << "Error while running adaption script!" << endl;
 	return -1;
+}
+
+i32 process_adaption (struct app_options *opt, list<CfgEntry> *cfg,
+		      vector<string> *lines)
+{
+	char ch;
+	i32 ret = 0;
+
+	if (opt->adp_required && !opt->do_adapt && !opt->disc_str &&
+	    !opt->run_scanmem) {
+		if (!opt->adp_script) {
+			cerr << "Error, adaption required but no adaption script!" << endl;
+			ret = -1;
+			goto out;
+		}
+		cout << "Adaption to your compiler/game version is required." << endl;
+		cout << "Adaption script: " << opt->adp_script << endl;
+		cout << "Run the adaption script, now (y/n)? : ";
+		fflush(stdout);
+		ch = 'n';
+		ch = do_getch();
+		cout << ch << endl;
+		if (ch == 'y') {
+			opt->do_adapt = true;
+			do_assumptions(opt);
+		}
+	}
+
+	if (opt->do_adapt) {
+		if (!opt->adp_script) {
+			cerr << "Error, no adaption script!" << endl;
+			ret = -1;
+			goto out;
+		}
+		ret = adapt_config(opt, cfg);
+		if (ret) {
+			cerr << "Error while code address adaption!" << endl;
+			goto out;
+		}
+		if (opt->use_gbt) {
+			ret = take_over_config(opt, cfg, lines);
+			if (ret)
+				goto out;
+		} else {
+			cout << "Adapt reverse stack offset(s) (y/n)? : ";
+			fflush(stdout);
+			ch = 'n';
+			ch = do_getch();
+			cout << ch << endl;
+			if (ch != 'y') {
+				ret = take_over_config(opt, cfg, lines);
+				if (ret)
+					goto out;
+			}
+		}
+	}
+out:
+	return ret;
 }

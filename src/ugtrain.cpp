@@ -792,47 +792,9 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	if (opt->adp_required && !opt->do_adapt && !opt->disc_str &&
-	    !opt->run_scanmem) {
-		if (!opt->adp_script) {
-			cerr << "Error, adaption required but no adaption script!" << endl;
-			return -1;
-		}
-		cout << "Adaption to your compiler/game version is required." << endl;
-		cout << "Adaption script: " << opt->adp_script << endl;
-		cout << "Run the adaption script, now (y/n)? : ";
-		fflush(stdout);
-		ch = 'n';
-		ch = do_getch();
-		cout << ch << endl;
-		if (ch == 'y') {
-			opt->do_adapt = true;
-			do_assumptions(opt);
-		}
-	}
-
-	if (opt->do_adapt) {
-		if (!opt->adp_script) {
-			cerr << "Error, no adaption script!" << endl;
-			return -1;
-		}
-		if (adapt_config(opt, cfg) != 0) {
-			cerr << "Error while code address adaption!" << endl;
-			return -1;
-		}
-		if (opt->use_gbt) {
-			take_over_config(opt, cfg, lines);
-		} else {
-			cout << "Adapt reverse stack offset(s) (y/n)? : ";
-			fflush(stdout);
-			ch = 'n';
-			ch = do_getch();
-			cout << ch << endl;
-			if (ch != 'y')
-				take_over_config(opt, cfg, lines);
-		}
-	}
-
+	ret = process_adaption(opt, cfg, lines);
+	if (ret)
+		return ret;
 discover_next:
 	if (prepare_discovery(opt, cfg) != 0)
 		return -1;
@@ -901,8 +863,10 @@ prepare_dynmem:
 			pmask = PARSE_M | PARSE_C;
 			goto prepare_dynmem;
 			break;
-		default:
+		case DISC_EXIT:
 			break;
+		default:
+			return -1;
 		}
 	} else if (opt->scanmem_pid > 0) {
 		wait_proc(opt->scanmem_pid);

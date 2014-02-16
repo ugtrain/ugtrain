@@ -689,21 +689,3 @@ void read_config (struct app_options *opt,
 		}
 	}
 }
-
-void write_config_vect (char *path, vector<string> *lines)
-{
-	ofstream cfg_file;
-	vector<string>::iterator it;
-
-	lines->pop_back();
-
-	cfg_file.open(path, fstream::trunc);
-	if (!cfg_file.is_open()) {
-		cerr << "File \"" << path << "\" doesn't exist!" << endl;
-		exit(-1);
-	}
-	vect_for_each (lines, it)
-		cfg_file << (*it) << endl;
-
-	cfg_file.close();
-}
