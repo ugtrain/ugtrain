@@ -28,6 +28,7 @@
 #include <sys/wait.h>
 #include "common.h"
 #include "system.h"
+#include "preload.h"
 
 #define SHELL "/bin/sh"
 
@@ -172,7 +173,8 @@ err:
 pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   const char *ccmd, char *const ccmdv[],
 		   char *const pid_str, char *proc_name,
-		   u32 delay, bool do_wait, bool use_shell)
+		   u32 delay, bool do_wait, bool use_shell,
+		   char *preload_lib)
 {
 	pid_t ppid, cpid, game_pid = -1;
 	i32 status;
@@ -187,6 +189,8 @@ pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 			perror("fork");
 			goto child_err;
 		} else if (cpid == 0) {   /* child command (the game) */
+			if (preload_library(preload_lib))
+				goto child_err;
 			close(STDOUT_FILENO);
 			close(STDERR_FILENO);
 			if (use_shell && execlp(SHELL, SHELL, "-c",
@@ -225,14 +229,14 @@ child_err:
  * Run a command with execvp in background.
  *
  * Parameters: execvp params, wait for the process 0/1,
- *             run the command in a shell 0/1
+ *             run the command in a shell 0/1, preload_lib
  * Returns: the pid for success, -1 for failure
  *
  * Please note: If the shell is used, then execlp is
  *              used with cmd and cmdv[] is ignored.
  */
 pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
-		  bool use_shell)
+		  bool use_shell, char *preload_lib)
 {
 	pid_t pid;
 	i32 status;
@@ -242,6 +246,8 @@ pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
 		perror("fork");
 		goto err;
 	} else if (pid == 0) {
+		if (preload_library(preload_lib))
+			goto child_err;
 		if (use_shell && execlp(SHELL, SHELL, "-c", cmd, NULL) < 0) {
 			perror("execlp");
 			goto child_err;

@@ -1,6 +1,6 @@
-/* ugpreload.c:    preloader to hook a lib into a victim process
+/* preload_l.c:    preloader functions to hook a lib into the game
  *
- * Copyright (c) 2013, by:      Sebastian Riemer
+ * Copyright (c) 2013..14, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
@@ -21,17 +21,21 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
+#ifdef __linux__
+
 #include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <string.h>
-#include "../common.h"
+#include "preload.h"
+
+/* env var to be added */
+#define PRELOAD_VAR "LD_PRELOAD"
+
 
 /*
  * This function has been taken from 'glc' by nullkey aka
- * Pyry Haulos <pyry.haulos@gmail.com>
+ * Pyry Haulos <pyry.haulos@gmail.com> and improved
  */
-i32 env_append (const char *name, const char *val, char separator)
+static i32 env_append (const char *name, const char *val, char separator)
 {
 	size_t env_len;
 	const char *old_env;
@@ -42,6 +46,8 @@ i32 env_append (const char *name, const char *val, char separator)
 	if (old_env != NULL) {
 		env_len = strlen(old_env) + strlen(val) + 2;
 		new_env = malloc(env_len);
+		if (!new_env)
+			goto err;
 
 		memcpy(new_env, old_env, strlen(old_env));
 		memcpy(&new_env[strlen(old_env) + 1], val, strlen(val));
@@ -51,6 +57,8 @@ i32 env_append (const char *name, const char *val, char separator)
 	} else {
 		env_len = strlen(val) + 1;
 		new_env = malloc(env_len);
+		if (!new_env)
+			goto err;
 
 		memcpy(new_env, val, env_len - 1);
 		new_env[env_len - 1] = '\0';
@@ -60,34 +68,25 @@ i32 env_append (const char *name, const char *val, char separator)
 	free(new_env);
 
 	return 0;
+err:
+	return -1;
 }
 
-char Help[] =
-"ugpreload loads a library with LD_PRELOAD into a game process\n"
-"before all other libraries are loaded.\n"
-"\n"
-"Usage: <lib_path> <app_path> [app_opts]\n"
-;
-
-i32 main (i32 argc, char *argv[])
+void configure_libmem (struct app_options *opt)
 {
-	char *app_path = NULL;
-
-	if (argc < 3) {
-		fprintf(stderr, "%s", Help);
-		return EXIT_FAILURE;
-	}
-
-	app_path = argv[2];
-
-	/* append the library to the preload env var */
-	env_append(PRELOAD_VAR, argv[1], ':');
-
-	/* execute the victim code */
-	if (execvp(app_path, &argv[2]) < 0) {
-		perror("execvp");
-		return EXIT_FAILURE;
-	}
-
-	return EXIT_SUCCESS;
+	setenv("UGT_GAME_PROC_NAME", opt->proc_name, 1);
 }
+
+i32 preload_library (char *lib_path)
+{
+	int ret = 0;
+
+	if (!lib_path)
+		goto out;
+
+	ret = env_append(PRELOAD_VAR, lib_path, ':');
+out:
+	return ret;
+}
+
+#endif

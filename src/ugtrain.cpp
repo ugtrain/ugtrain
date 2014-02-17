@@ -43,6 +43,7 @@
 #include "fifoparser.h"
 // processing
 #include "system.h"
+#include "preload.h"
 #include "control.h"
 #include "memmgmt.h"
 #include "memattach.h"
@@ -395,7 +396,7 @@ static void wait_orphan (pid_t pid, char *proc_name)
 	}
 }
 
-static i32 run_game (struct app_options *opt)
+static i32 run_game (struct app_options *opt, char *preload_lib)
 {
 	pid_t pid = -1;
 	const char *cmd, *pcmd;
@@ -424,13 +425,13 @@ static i32 run_game (struct app_options *opt)
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
 					  pid_str, opt->game_call, 3,
-					  false, false);
+					  false, false, preload_lib);
 			if (pid > 0)
 				opt->scanmem_pid = pid;
 		} else {
 			cout << "$ " << cmdv[0] << " &" << endl;
 
-			pid = run_cmd_bg(cmd, cmdv, false, false);
+			pid = run_cmd_bg(cmd, cmdv, false, false, preload_lib);
 		}
 	} else {
 		if (opt->pre_cmd) {
@@ -463,13 +464,13 @@ static i32 run_game (struct app_options *opt)
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
 					  pid_str, opt->game_call, 3,
-					  false, true);
+					  false, true, preload_lib);
 			if (pid > 0)
 				opt->scanmem_pid = pid;
 		} else {
 			cout << "$ " << cmd << " &" << endl;
 
-			pid = run_cmd_bg(cmd, cmdv, false, true);
+			pid = run_cmd_bg(cmd, cmdv, false, true, preload_lib);
 		}
 	}
 	if (pid < 0)
@@ -484,106 +485,12 @@ err:
 #ifdef __linux__
 static i32 run_preloader (struct app_options *opt)
 {
-	pid_t pid = -1;
-	const char *cmd, *pcmd;
-	char *cmdv[4], *pcmdv[4];
-	char pid_str[12] = { '\0' };
-	string cmd_str = string("");
+	int ret;
 
-	if (!opt->need_shell) {
-		cmd = (const char *) PRELOADER;
+	configure_libmem(opt);
 
-		cmdv[0] = (char *) PRELOADER;
-		cmdv[1] = opt->preload_lib;
-		cmdv[2] = opt->game_path;
-		cmdv[3] = NULL;
-
-		if (opt->run_scanmem &&
-		    (!opt->disc_str || opt->disc_str[0] != '5')) {
-			restore_getch();
-
-			pcmd = (const char *) SCANMEM;
-			pcmdv[0] = (char *) SCANMEM;
-			pcmdv[1] = (char *) "-p";
-			pcmdv[2] = pid_str;
-			pcmdv[3] = NULL;
-
-			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
-			     << " `pidof -s " << opt->proc_name << "` & --> "
-			     << "$ " << cmdv[0] << " " << cmdv[1]
-			     << " " << cmdv[2] <<" &" << endl;
-
-			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->game_call, 3,
-					  false, false);
-			if (pid > 0)
-				opt->scanmem_pid = pid;
-		} else {
-			cout << "$ " << cmdv[0] << " " << cmdv[1]
-			     << " " << cmdv[2] << " &" << endl;
-
-			pid = run_cmd_bg(cmd, cmdv, false, false);
-		}
-	} else {
-		if (opt->pre_cmd) {
-			cmd_str += PRELOAD_VAR;
-			cmd_str += "=$";
-			cmd_str += PRELOAD_VAR;
-			cmd_str += ":";
-			cmd_str += opt->preload_lib;
-			cmd_str += " ";
-			if (opt->use_glc) {
-				cmd_str += GLC_PRELOADER;
-				cmd_str += " ";
-				cmd_str += opt->pre_cmd;
-			} else {
-				cmd_str += opt->pre_cmd;
-			}
-		} else {
-			cmd_str += PRELOADER;
-			cmd_str += " ";
-			cmd_str += opt->preload_lib;
-		}
-		cmd_str += " ";
-		cmd_str += opt->game_path;
-		if (opt->game_params) {
-			cmd_str += " ";
-			cmd_str += opt->game_params;
-		}
-		cmd = cmd_str.c_str();
-
-		if (opt->run_scanmem &&
-		    (!opt->disc_str || opt->disc_str[0] != '5')) {
-			restore_getch();
-
-			pcmd = (const char *) SCANMEM;
-			pcmdv[0] = (char *) SCANMEM;
-			pcmdv[1] = (char *) "-p";
-			pcmdv[2] = pid_str;
-			pcmdv[3] = NULL;
-
-			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
-			     << " `pidof -s " << opt->proc_name << "` & --> "
-			     << "$ " << cmd << " &" << endl;
-
-			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->game_call, 3,
-					  false, true);
-			if (pid > 0)
-				opt->scanmem_pid = pid;
-		} else {
-			cout << "$ " << cmd << " &" << endl;
-
-			pid = run_cmd_bg(cmd, cmdv, false, true);
-		}
-	}
-	if (pid < 0)
-		goto err;
-
-	return 0;
-err:
-	cerr << "Error while running preloader!" << endl;
-	return -1;
+	ret = run_game(opt, opt->preload_lib);
+	return ret;
 }
 #endif
 
@@ -685,12 +592,12 @@ skip_memhack:
 
 	/* Run the preloaded game but not as root */
 	if (opt->preload_lib && getuid() != 0) {
-		cout << "Starting preloaded game.." << endl;
-		setenv("UGT_GAME_PROC_NAME", opt->proc_name, 1);
+		cout << "Starting game with " << opt->preload_lib
+		     << " preloaded.." << endl;
 		run_preloader(opt);
 	}
 
-	cout << "Waiting for preloaded game.." << endl;
+	cout << "Waiting for preloaded library.." << endl;
 	*ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (*ofd < 0) {
 		perror("open ofd");
@@ -814,8 +721,7 @@ prepare_dynmem:
 				return -1;
 #endif
 			cout << "Starting the game.." << endl;
-			setenv("UGT_GAME_PROC_NAME", opt->proc_name, 1);
-			run_game(opt);
+			run_game(opt, NULL);
 			sleep_sec(1);
 			pid = proc_to_pid(opt->proc_name);
 			if (pid < 0)

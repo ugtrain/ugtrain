@@ -35,12 +35,4 @@ libmemdisc64_la_LDFLAGS = -ldl
 libmemhack64_la_LDFLAGS = -ldl
 endif
 
-bin_PROGRAMS = ugpreload
-
-ugpreload_SOURCES = ugpreload.c
-
-ugpreload_LDADD = $(DEPS_LIBS)
-
-AM_CFLAGS = -Wall
-
 endif

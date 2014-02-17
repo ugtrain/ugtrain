@@ -52,7 +52,8 @@ bool pid_is_running (pid_t pid, char *proc_name, bool use_wait)
 pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   const char *ccmd, char *const ccmdv[],
 		   char *const pid_str, char *proc_name,
-		   u32 delay, bool do_wait, bool use_shell)
+		   u32 delay, bool do_wait, bool use_shell,
+		   char *preload_lib)
 {
 	return -1;
 }
@@ -60,11 +61,12 @@ pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 /*
  * Run a command in background.
  *
- * Parameters: execvp params, wait for the process 0/1
+ * Parameters: execvp params, wait for the process 0/1,
+ *             use shell 0/1, preload_lib
  * Returns: pid for success, -1 for failure
  */
 pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
-		  bool use_shell)
+		  bool use_shell, char *preload_lib)
 {
 	return -1;
 }

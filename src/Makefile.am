@@ -3,6 +3,7 @@ ugtrain_SOURCES = common.h \
                   options.h \
                   cfgentry.h \
                   getch.h \
+                  preload.h \
                   system.h \
                   cfgparser.h \
                   cfgoutput.h \
@@ -21,6 +22,7 @@ ugtrain_SOURCES = common.h \
                   cfgoutput.cpp \
                   getch_l.c \
                   getch_w.c \
+                  preload_l.c \
                   system_l.c \
                   system_w.c \
                   memattach_l.c \
