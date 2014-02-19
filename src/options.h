@@ -20,7 +20,6 @@
 #include "common.h"
 
 #define PROG_NAME  "ugtrain"
-#define PRELOADER  "ugpreload"
 #define GLC_PRELOADER "glc-capture"
 #define SCANMEM    "scanmem"
 

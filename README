@@ -94,7 +94,7 @@
 # remains constant is the code jump-back address of the malloc call and its
 # (reverse) offset on the stack.
 #
-# With ugpreload, libmemdisc and static memory search in parallel you can
+# With libmemdisc preloaded and static memory search in parallel you can
 # easily discover the code address and register with libmemhack as well as
 # ugtrain on it to freeze the memory values within the allocated object. The
 # preloaded game communicates via FIFOs with ugtrain and tells it exactly when
@@ -152,7 +152,7 @@
 # Build the ugtrain binaries with:
 make
 
-# install ugtrain, ugpreload, tools and the libs to /usr/local
+# install ugtrain, tools and the libs to /usr/local
 sudo make install
 
 # (optional:) ensure $PATH includes /usr/local/bin

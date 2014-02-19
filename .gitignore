@@ -21,5 +21,4 @@ libtool
 m4
 missing
 src/ugtrain
-src/linuxhooking/ugpreload
 src/tools/ugsimfind

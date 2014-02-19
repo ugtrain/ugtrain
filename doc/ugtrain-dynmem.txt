@@ -1,7 +1,7 @@
 === Dynamic Memory Cheating ===
 
 Cheating dynamic memory always requires a preloader which loads a memory
-hacking library into the game process. The ugtrain uses "ugpreload" and
+hacking library into the game process. The ugtrain has a preloader feature and
 "libmemhack" for that. The library gets the unique code addresses of unique
 "malloc()" calls and their reverse stack offsets as a config through a FIFO.
 The lib reports back through another FIFO which objects have been allocated
@@ -12,11 +12,14 @@ You can call this "dynamic memory spying" if you will.
 
 == Details ==
 
-The preloader ugpreload only appends libmemhack to the environment variable
+The preloader feature only appends libmemhack to the environment variable
 "LD_PRELOAD" and runs the game. The dynamic loader "ld.so" does the rest. You
-can choose another preloader if you want like "glc-capture" for recording a
-game cheating video. But please ensure that libmemhack is loaded first into
-the game process. See the "--pre-cmd" and "--glc" ugtrain options.
+can choose further preloaders if you want like "glc-capture" for recording a
+game cheating video. It is only important that this preloader also appends to
+"LD_PRELOAD". The ugtrain sets an environment variable with the game process
+name. This way libmemhack/disc knows when to activate itself (not in another
+preloader, not in a shell, etc.).
+See the "--pre-cmd" and "--glc" ugtrain options.
 
 The lib has a constructor function, a malloc() and a free() hook. It wraps
 these functions. In the constructor the lib opens the input and the output
@@ -51,11 +54,13 @@ preloaded or not.
 
 == ugtrain Specialties ==
 
-The CLI option '-P' is recommended for dynamic memory cheating. With that
-libmemhack is preloaded and the game is started automatically. The advantage
-is that root permissions (for ptrace) aren't required - same process group!
+The command-line option '-P' is recommended for dynamic memory cheating. With
+that libmemhack is preloaded, the libraries are configured with the game
+process name and the game is started automatically. The advantage compared to
+manually preloading is that root permissions aren't required (for ptrace) -
+same process group!
 
-Required config options: "dynmemstart", "dynmemend", >= one value inside
+Required config options: "dynmemstart", "dynmemend", >= 1 value inside
 Related config options: "checko"
 FIFOs: /tmp/memhack_in, /tmp/memhack_out
 
@@ -86,8 +91,7 @@ The rest works the same way as with static memory.
 === Dynamic Memory Discovery ===
 
 For discovery another library is required ("libmemdisc"). This one takes a
-stage number and the stage parameters as config and is preloaded with ugpreload
-as well.
+stage number and the stage parameters as config and is preloaded as well.
 
 Discovery is done in the following stages:
 
@@ -136,7 +140,8 @@ for the matching malloc calls. It is very likely that interesting objects
 are kept until game end. So they should be at the end of that list. But as in
 stages 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
 that list and the interesting malloc is at the top. This way you can interrupt
-the symbol lookup earlier.
+the symbol lookup earlier. It is really important to end the game directly and
+not to return to the game main menu as further allocations could occur there.
 
 Discovery preparation:
 
