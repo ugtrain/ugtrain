@@ -5,11 +5,30 @@
 #    The game process name must always be located in the first line.
 #    The PID is searched by name with "pidof -s".
 #
-# game_path AbsGamePath
+# [ game_call GameProcessCall ]
 #
-#    The absolute game path is optional and must end with the GameProcessName.
-#    It is used to run the game and for discovery as well as adaption.
-#    Without this, it is determined automatically from the GameProcessName.
+#    Sometimes a game is called from a shell script and the call doesn't match
+#    with the GameProcessName. For this case this optional config entry is
+#    important (example: "sauerbraten" as it calls "sauer_client"). Without
+#    this the GameProcessName is assumed.
+#
+# [ game_path AbsGamePath ]
+#
+#    The absolute game path is optional and must end with the GameProcessCall.
+#    It is used to run the game. Without this it is determined with "which"
+#    from the GameProcessCall.
+#
+# [ game_binpath GameBinaryPath ]
+#
+#    The absolute game binary path is used for discovery as well as adaption.
+#    It is optional and must end with the GameProcessName. Without this the
+#    AbsGamePath is assumed. This is only important if the GameProcessCall is
+#    configured.
+#
+# [ game_params CommandLineOptions ]
+#
+#    Sometimes it is necessary to add some game command line parameters/options
+#    and this is the optional config entry to set them.
 #
 ###############################################################################
 #
