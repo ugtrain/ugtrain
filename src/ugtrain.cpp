@@ -59,6 +59,28 @@
 #define DYNMEM_OUT "/tmp/memhack_in"
 
 
+static inline i32 read_memory (pid_t pid, void *mem_addr, u8 *buf, const char *pfx)
+{
+	int ret;
+
+	ret = memread(pid, mem_addr, buf, sizeof(i64));
+	if (ret)
+		cerr << pfx << " READ ERROR PID[" << pid << "] ("
+		     << hex << mem_addr << dec << ")!" << endl;
+	return ret;
+}
+
+static inline i32 write_memory (pid_t pid, void *mem_addr, u8 *buf, const char *pfx)
+{
+	int ret;
+
+	ret = memwrite(pid, mem_addr, buf, sizeof(i64));
+	if (ret)
+		cerr << pfx << " WRITE ERROR PID[" << pid << "] ("
+		     << hex << mem_addr << dec << ")!" << endl;
+	return ret;
+}
+
 /* returns:  0: check passed,  1: not passed */
 template <typename T>
 static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
@@ -182,12 +204,9 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem, list<CheckEntry> *chk
 		} else {
 			mem_addr = PTR_ADD(void *, mem_offs, chk_en->addr);
 
-			ret = memread(pid, mem_addr, chk_buf, sizeof(i64));
-			if (ret) {
-				cerr << "MEMORY READ ERROR PID[" << pid << "] ("
-				     << hex << mem_addr << dec << ")!" << endl;
+			ret = read_memory(pid, mem_addr, chk_buf, "MEMORY");
+			if (ret)
 				goto out;
-			}
 		}
 		ret = check_all_memory(chk_en, chk_buf);
 		if (ret) {
@@ -209,27 +228,26 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void 
 	i32 ret;
 
 	if (cfg_en->dynval == DYN_VAL_WATCH)
-		return;
+		goto out;
 
 	if (chk_lp) {
 		ret = process_checks(pid, cfg_en->dynmem, chk_lp, mem_offs);
 		if (ret)
-			return;
+			goto out;
 	}
 
 	ret = check_mem_val(value, buf, cfg_en->check);
 	if (ret)
-		return;
+		goto out;
 
 	memcpy(buf, &value, sizeof(T));
 	mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
 
-	ret = memwrite(pid, mem_addr, buf, sizeof(i64));
-	if (ret) {
-		cerr << "MEMORY WRITE ERROR PID[" << pid << "] ("
-		     << hex << mem_addr << dec << ")!" << endl;
-		return;
-	}
+	ret = write_memory(pid, mem_addr, buf, "MEMORY");
+	if (ret)
+		goto out;
+out:
+	return;
 }
 
 template <typename T>
@@ -240,13 +258,16 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 	u8 *bufp = buf;  // cheat compiler
 	void *mem_addr = NULL;
 
-	if (cfg_en->dynval == DYN_VAL_MAX &&
-	    read_val > *value) {
-		*value = read_val;
-	} else if (cfg_en->dynval == DYN_VAL_MIN &&
-	    read_val < *value) {
-		*value = read_val;
-	} else if (cfg_en->dynval == DYN_VAL_ADDR) {
+	switch (cfg_en->dynval) {
+	case DYN_VAL_MAX:
+		if (read_val > *value)
+			*value = read_val;
+		break;
+	case DYN_VAL_MIN:
+		if (read_val < *value)
+			*value = read_val;
+		break;
+	case DYN_VAL_ADDR:
 		if (cfg_en->cfg_ref) {
 			if (handle_cfg_ref(cfg_en->cfg_ref, bufp) != 0)
 				*value = 0;
@@ -254,14 +275,16 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 				*value = *(T *) bufp;
 		} else {
 			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->val_addr);
-			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-				cerr << "DYNVAL MEMORY READ ERROR PID[" << pid << "] ("
-				     << hex << mem_addr << dec << ")!" << endl;
-				return;
-			}
+			if (read_memory(pid, mem_addr, buf, "DYNVAL MEMORY"))
+				goto out;
 			*value = *(T *) bufp;
 		}
+		break;
+	default:
+		break;
 	}
+out:
+	return;
 }
 
 static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
@@ -358,11 +381,8 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 		list_for_each (cfg_act, it) {
 			cfg_en = *it;
 			mem_addr = PTR_ADD(void *, cfg_en->ptrmem->v_offs[mem_idx], cfg_en->addr);
-			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-				cerr << "PTR MEMORY READ ERROR PID[" << pid << "] ("
-				     << hex << mem_addr << dec << ")!" << endl;
+			if (read_memory(pid, mem_addr, buf, "PTR MEMORY"))
 				continue;
-			}
 			change_memory(pid, cfg_en, buf, cfg_en->ptrmem->v_offs[mem_idx],
 				      &cfg_en->v_oldval[mem_idx]);
 		}
@@ -393,11 +413,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 				cfg_en->dynmem->obj_idx = mem_idx;
 
 				mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
-				if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-					cerr << "MEMORY READ ERROR PID[" << pid << "] ("
-					     << hex << mem_addr << dec << ")!" << endl;
+				if (read_memory(pid, mem_addr, buf, "MEMORY"))
 					continue;
-				}
 				if (cfg_en->ptrtgt)
 					process_ptrmem(pid, cfg_en, buf, mem_idx);
 				else
@@ -408,11 +425,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 			mem_offs = NULL;
 
 			mem_addr = cfg_en->addr;
-			if (memread(pid, mem_addr, buf, sizeof(i64)) != 0) {
-				cerr << "MEMORY READ ERROR PID[" << pid << "] ("
-				     << hex << mem_addr << dec << ")!" << endl;
+			if (read_memory(pid, mem_addr, buf, "MEMORY"))
 				continue;
-			}
 			change_memory(pid, cfg_en, buf, mem_offs, &cfg_en->old_val);
 		}
 	}
