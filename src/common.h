@@ -56,7 +56,7 @@ typedef ulong ptr_t;
 #define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
 
 #define list_for_each(list, it) \
-	for (it = list->begin(); it != list->end(); it++)
+	for (it = list->begin(); it != list->end(); ++it)
 #define vect_for_each(list, it) \
 	list_for_each(list, it)
 
