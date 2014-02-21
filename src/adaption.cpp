@@ -100,7 +100,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 	void *code_addr = NULL;
 	list<CfgEntry>::iterator it;
 	DynMemEntry *tmp = NULL;
-	int found;
+	bool found;
 
 	part_end = strchr(buf, ';');
 	if (part_end == NULL)
@@ -122,7 +122,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 			goto parse_err;
 
 		// find object and set adp_addr
-		found = 0;
+		found = false;
 		list_for_each (cfg, it) {
 			tmp = it->dynmem;
 			if (tmp && !tmp->adp_addr &&
@@ -132,7 +132,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 				     << ", old_code: " << hex << tmp->code_addr
 				     << ", new_code: " << tmp->adp_addr
 				     << dec << endl;
-				found = 1;
+				found = true;
 				break;
 			}
 		}

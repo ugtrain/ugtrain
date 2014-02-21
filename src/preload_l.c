@@ -79,7 +79,7 @@ void configure_libmem (struct app_options *opt)
 
 i32 preload_library (char *lib_path)
 {
-	int ret = 0;
+	i32 ret = 0;
 
 	if (!lib_path)
 		goto out;

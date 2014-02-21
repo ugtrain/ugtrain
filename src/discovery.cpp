@@ -118,7 +118,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 	void *codes[MAX_BT] = { NULL };
 	void *soffs[MAX_BT] = { NULL };
 	char *sep_pos;
-	int i, ret, num_codes = 0, num_soffs = 0;
+	i32 i, ret, num_codes = 0, num_soffs = 0;
 	bool is_stage4 = false;
 	string cmd_str, tmp_str;
 	char pbuf[PIPE_BUF] = { 0 };

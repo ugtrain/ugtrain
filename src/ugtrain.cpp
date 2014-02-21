@@ -61,7 +61,7 @@
 
 static inline i32 read_memory (pid_t pid, void *mem_addr, u8 *buf, const char *pfx)
 {
-	int ret;
+	i32 ret;
 
 	ret = memread(pid, mem_addr, buf, sizeof(i64));
 	if (ret)
@@ -72,7 +72,7 @@ static inline i32 read_memory (pid_t pid, void *mem_addr, u8 *buf, const char *p
 
 static inline i32 write_memory (pid_t pid, void *mem_addr, u8 *buf, const char *pfx)
 {
-	int ret;
+	i32 ret;
 
 	ret = memwrite(pid, mem_addr, buf, sizeof(i64));
 	if (ret)
@@ -537,7 +537,7 @@ err:
 #ifdef __linux__
 static i32 run_preloader (struct app_options *opt)
 {
-	int ret;
+	i32 ret;
 
 	configure_libmem(opt);
 
