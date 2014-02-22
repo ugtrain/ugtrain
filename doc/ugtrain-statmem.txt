@@ -9,8 +9,17 @@ value, key bindings, the initial activation state and optional checks. The
 checks are used for stability as in game main menu these could be on invalid
 value or with a new game binary the location could have changed.
 
-The value is set to the wish value every second. The syscall "ptrace" is used
-for that.
+With a pure static memory config ugtrain attaches to the first running instance
+of the game. So make sure it is running when calling "ugtrain <config>".
+Otherwise, use the '-P' option to allow ugtrain to run it (recommended).
+Looks like this: "ugtrain -P <config>"
+
+The value is set to its wish value every second. Ugtrain uses the syscall
+"ptrace" for that.
+
+PLEASE NOTE: ptrace likely requires root permission if not called in the same
+process group as the game. It even must be called in the parent. So letting
+ugtrain run the game with -P makes much sense!
 
 
 === Static Memory Discovery ===
@@ -25,9 +34,108 @@ false and 1 for true. It may take quite some cycles to reduce the number of
 matches. C++ and standard C likely use the u8 datatype for bool but there is no
 guarantee for that. If you only see a bar, then try the commands "snapshot",
 "<", ">" and "=". If the bar decreases but you can't find it with "<", try the
-inverse logic. Please note that scanmem requires root permission if not run in
-the same process group as the game.
+inverse logic.
 
+Please note that also scanmem likely requires root permission if not run in the
+same process group as the game. This is why ugtrain supports running a process
+group in the background consisting of scanmem and the game (-S option). As
+scanmem must be the parent, this is some kind of chicken and egg problem.
+
+And this is how it works:
+fork() -> [fork() -> exec() game] -> sleep(3) -> exec() scanmem
+
+It is possible that 3 seconds aren't long enough. So enter the "reset" command
+on the scanmem command line as soon as you see the value you want to modify.
+Scanmem reloads the known memory regions then.
+
+Let's do an example with the "Power" in Warzone 2100 64-bit! In the versions
+2.3.8 .. 3.1.1 it can be found as i32 as it is displayed at static location.
+
+Discovery preparation:
+
+Write the process name of the game into a config file. The PID is determined
+from that and it must be located in the first line.
+
+$ echo "warzone2100" > test.conf
+
+Optional:
+
+If the game is not in the PATH env. var., then we can add an absolute path but
+it has to end with the process name.
+
+$ echo "game_path /usr/games/bin/warzone2100" >> test.conf
+
+Run the game and scanmem:
+
+$ ugtrain -P -S test.conf
+
+Start a new single-player campaign, look at the power bar!
+Switch to scanmem and enter "reset"
+
+0> reset
+
+Enter the value of the power bar:
+
+0> 1300
+
+Now, in this case 784 matches are found. Build the HQ and
+enter the new power value!
+
+784> 1200
+
+A single match? Man, we are lucky! List the matches,
+set it to 5000 and build another building to verify that
+we haven't just changed the display value!
+
+1> list
+[ 0]            0x10fb180, 1200, [I64 I32 I16 ]
+1> set 0=5000
+info: setting *0x10fb180 to 0x1388...
+
+After building the research facility the value is at 4900. So we've
+found the correct memory location.
+
+With the scanmem "lregions" command we can see in which memory region
+we are.
+
+1> lregions
+[ 0]   0x833000,  110592 bytes, rw-, /usr/games/warzone2100
+[ 1]   0x84e000, 11223040 bytes, rw-, unassociated
+[ 2]  0x1a0e000, 24252416 bytes, rw-, [heap]
+...
+
+We see that this address is too low to be on the heap or the stack. It is
+marked as "unassociated".
+Congratulations, we've found a static memory value! Close the game and type
+"exit" on the scanmem command line!
+
+We start watching it. Scanmem showed that i64, i32 and i16 are possible. In
+general use the lowest possible data type! But when setting it to > 65535,
+you'll see that i32 is possible.
+Our new config looks like this:
+
+warzone2100
+Power 0x10fb180 i32 watch
+
+We run it without -S:
+
+$ ugtrain -P test.conf
+
+Now, we see that it is 0 in main menu and 1300 upon campaign start. Now, we
+would see the latest if it wouldn't be static.
+
+It is okay to modify it and we only want to set it if it is lower than the
+wish value and greater than 0 or a bit greater. Let's say 10. We want to
+toggle it with the key '1' or '0' and it should be activated upon game start.
+
+The new config looks like this:
+
+warzone2100
+Power 0x10fb180 i32 l 5000 1,0 a
+check 0x10fb180 i32 g 10
+
+This is all we need!
+See examples/README for the complete config syntax.
 
 === Static Memory Adaption ===
 
@@ -36,8 +144,8 @@ without a library call. We need to set a memory breakpoint with a debugger like
 "gdb" upon write to the found memory address. The moment the debugger halts the
 game process, we dump the related assembly code. The difficulty is then to find
 an unique similar code part in another binary of the game like different
-compiler options, distribution or other game version. There we have to set a
-code breakpoint with the debugger to see which memory address it accesses. This
-address has to be set into the config afterwards.
+compiler options, distribution or other game version. There we have to extract
+the memory address it accesses. This address has to be set into the config
+afterwards.
 
 In most cases it is easier to do the discovery with scanmem again.
