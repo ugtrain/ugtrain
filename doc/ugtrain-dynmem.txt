@@ -1,5 +1,7 @@
 === Dynamic Memory Cheating ===
 
+Before we start: You should read the static memory doc.
+
 Cheating dynamic memory always requires a preloader which loads a memory
 hacking library into the game process. The ugtrain has a preloader feature and
 "libmemhack" for that. The library gets the unique code addresses of unique
@@ -8,17 +10,19 @@ The lib reports back through another FIFO which objects have been allocated
 to which memory addresses. It also keeps track of these memory addresses and
 sends the information about the freeing of these memory objects through the
 output FIFO. This is required for stability.
-You can call this "dynamic memory spying" if you will.
+You can call this "dynamic memory spying" if you will. This is completely
+different from the method of Cheat Engine. They follow access pointers to
+an access pointer on static memory.
 
 == Details ==
 
-The preloader feature only appends libmemhack to the environment variable
+The preloader feature (-P) only appends libmemhack to the environment variable
 "LD_PRELOAD" and runs the game. The dynamic loader "ld.so" does the rest. You
 can choose further preloaders if you want like "glc-capture" for recording a
 game cheating video. It is only important that this preloader also appends to
 "LD_PRELOAD". The ugtrain sets an environment variable with the game process
 name. This way libmemhack/disc knows when to activate itself (not in another
-preloader, not in a shell, etc.).
+preloader, not in a shell, etc.). This also works for pure static memory.
 See the "--pre-cmd" and "--glc" ugtrain options.
 
 The lib has a constructor function, a malloc() and a free() hook. It wraps
@@ -40,11 +44,12 @@ e.g. four memory pages (4 * 4096 bytes). In this memory area libmemhack stores
 all important data like config pointers, config entries and the memory
 addresses of the currently allocated objects. These are filled with an invalid
 pointer value in the constructor and the last value is always that invalid
-pointer. This way free() only iterates until it hits an invalid pointer. The
-found memory address is set to NULL and malloc() can re-use it. This way the
-first invalid pointer represents the number of objects which had to be kept
-track of at once. The more objects there are, the slower it gets. All this is
-quite hacky but it's the most flexible way with performance in mind.
+pointer. This way free() only iterates until it hits an invalid pointer. Upon
+a free() the found memory address is set to NULL and malloc() can re-use it.
+This way the first invalid pointer represents the number of objects which had
+to be kept track of at once. The more objects there are, the slower it gets.
+All this is quite hacky but it's the most flexible way with performance in
+mind.
 
 Note: The constructor tells the user of how many memory objects per memory
 class libmemhack can keep track of. The more classes you cheat, the less it
@@ -57,8 +62,8 @@ preloaded or not.
 The command-line option '-P' is recommended for dynamic memory cheating. With
 that libmemhack is preloaded, the libraries are configured with the game
 process name and the game is started automatically. The advantage compared to
-manually preloading is that root permissions aren't required (for ptrace) -
-same process group!
+manually preloading and separate starting is that root permissions aren't
+required (for ptrace) - same process group!
 
 Required config options: "dynmemstart", "dynmemend", >= 1 value inside
 Related config options: "checko"
@@ -142,6 +147,7 @@ stages 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
 that list and the interesting malloc is at the top. This way you can interrupt
 the symbol lookup earlier. It is really important to end the game directly and
 not to return to the game main menu as further allocations could occur there.
+Like in static memory search the -S option is important here.
 
 Discovery preparation:
 
@@ -160,7 +166,7 @@ $ echo "game_path /usr/games/bin/chromium-bsu" >> test.conf
 
 Example stage 2:
 
-$ ugtrain -D "2" test.conf
+$ ugtrain -S -D "2" test.conf
 ...
 Memory address (e.g. 0xdeadbeef): 0x87ad8c
 Searching reverse for 0x87ad8c in discovery output..
@@ -175,7 +181,7 @@ We also get to know the heap offset.
 
 Example stage 4:
 
-$ ugtrain -D "4;0x0;0x0;288" test.conf
+$ ugtrain -S -D "4;0x0;0x0;288" test.conf
 ...
 Memory address (e.g. 0xdeadbeef): 0x8a605c
 Searching reverse for 0x8a605c in discovery output..
@@ -186,7 +192,7 @@ c0x404be6;o0x78
 ...
 
 Only <*@plt> direct library calls are displayed and "_Znwm" on the first
-position is exactly what we are looking for. It is a C++ internal function
+position is exactly what we are looking for. It is a GNU C++ internal function
 which calls "malloc" internally. On 32-bit systems it is called "_Znwj".
 We can see the reverse stack offset is 0x28. It would be lower if "malloc"
 would have been called directly from the game binary (e.g. 0x8). We also
@@ -212,14 +218,14 @@ When being sure, you can add the checks and the wish value, assign one or
 more comma-separated activation keys and set the initial activation state.
 
 ...
-Lives 0xbc i32 l 9 1,9 a
+Lives 0xbc i32 l 9 1,0 a
 check 0xbc i32 g 0
 ...
 
 Here, we want the lives to be updated to 9 only if they are less than 9 and
 also greater than 0. Otherwise, unexpected behaviour could happen. We also
 want to be sure that we are on the correct memory address in case of adaption.
-With the keys '1' and '9' we can toggle the activation of this value. The
+With the keys '1' and '0' we can toggle the activation of this value. The
 ugtrain uses non-blocking getchar just like the Linux command "top". In the
 last column the 'a' means that this is activated at trainer start.
 
