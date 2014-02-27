@@ -24,7 +24,7 @@
 #define LHACK_PRE "libmemhack"
 #define LIB_END   ".so"
 
-const char Help[] =
+static const char Help[] =
 PROG_NAME " is the universal elite game trainer for the CLI\n"
 "\n"
 "Usage: " PROG_NAME " [opts] <config_path>\n"
@@ -53,7 +53,7 @@ PROG_NAME " is the universal elite game trainer for the CLI\n"
 "			video recording while cheating\n"
 ;
 
-void usage()
+static void usage()
 {
 	fprintf(stderr, "%s", Help);
 	exit(-1);
@@ -134,6 +134,9 @@ static void init_options (struct app_options *opt)
 void parse_options (i32 argc, char **argv, struct app_options *opt)
 {
 	i32 ch = '\0', prev_ch = '\0', opt_idx = 0;
+
+	if (argc < 2)
+		usage();
 
 	init_options(opt);
 

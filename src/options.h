@@ -51,7 +51,6 @@ struct app_options {
 #ifdef __cplusplus
 extern "C" {
 #endif
-	void usage();
 	void use_libmemhack (struct app_options *opt);
 	void do_assumptions (struct app_options *opt);
 	void parse_options (i32 argc, char **argv, struct app_options *opt);

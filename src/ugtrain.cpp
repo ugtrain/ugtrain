@@ -685,9 +685,6 @@ i32 main (i32 argc, char **argv, char **env)
 
 	atexit(restore_getch);
 
-	if (argc < 2)
-		usage();
-
 	parse_options(argc, argv, opt);
 
 	opt->home = getenv(HOME_VAR);
