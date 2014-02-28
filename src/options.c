@@ -99,6 +99,9 @@ void do_assumptions (struct app_options *opt)
 			opt->preload_lib = (char *) LDISC_PRE "64" LIB_END;
 		else if (sizeof(long) == 4)
 			opt->preload_lib = (char *) LDISC_PRE "32" LIB_END;
+	} else if (opt->run_scanmem && !opt->preload_lib) {
+		/* '-S' --> '-S -P' */
+		use_libmemhack(opt);
 	}
 }
 
