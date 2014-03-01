@@ -1,6 +1,6 @@
 /* options.h:     functions and structs for option handling and help
  *
- * Copyright (c) 2013, by:      Sebastian Riemer
+ * Copyright (c) 2013..14, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
@@ -22,6 +22,10 @@
 #define PROG_NAME  "ugtrain"
 #define GLC_PRELOADER "glc-capture"
 #define SCANMEM    "scanmem"
+
+#define LDISC_PRE "libmemdisc"
+#define LHACK_PRE "libmemhack"
+#define LIB_END   ".so"
 
 struct app_options {
 	char	*cfg_path;
@@ -51,9 +55,25 @@ struct app_options {
 #ifdef __cplusplus
 extern "C" {
 #endif
-	void use_libmemhack (struct app_options *opt);
 	void do_assumptions (struct app_options *opt);
 	void parse_options (i32 argc, char **argv, struct app_options *opt);
+
+	/* inline functions */
+	static inline void use_libmemdisc (struct app_options *opt)
+	{
+		if (sizeof(long) == 8)
+			opt->preload_lib = (char *) LDISC_PRE "64" LIB_END;
+		else if (sizeof(long) == 4)
+			opt->preload_lib = (char *) LDISC_PRE "32" LIB_END;
+	}
+
+	static inline void use_libmemhack (struct app_options *opt)
+	{
+		if (sizeof(long) == 8)
+			opt->preload_lib = (char *) LHACK_PRE "64" LIB_END;
+		else if (sizeof(long) == 4)
+			opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
+	}
 #ifdef __cplusplus
 };
 #endif

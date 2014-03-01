@@ -1,6 +1,6 @@
 /* options.c:    option parsing, help, usage, etc.
  *
- * Copyright (c) 2013, by:      Sebastian Riemer
+ * Copyright (c) 2013..14, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
@@ -19,10 +19,6 @@
 #include <getopt.h>
 #include <string.h>
 #include "options.h"
-
-#define LDISC_PRE "libmemdisc"
-#define LHACK_PRE "libmemhack"
-#define LIB_END   ".so"
 
 static const char Help[] =
 PROG_NAME " is the universal elite game trainer for the CLI\n"
@@ -71,21 +67,15 @@ static struct option long_options[] = {
 	{0, 0, 0, 0}
 };
 
-void use_libmemhack (struct app_options *opt)
-{
-	if (sizeof(long) == 8)
-		opt->preload_lib = (char *) LHACK_PRE "64" LIB_END;
-	else if (sizeof(long) == 4)
-		opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
-}
-
 void do_assumptions (struct app_options *opt)
 {
-	/* '-D 1 -A' --> '-D 1', '-S -A' --> '-S'  */
+	/* Adaption handling */
+	/* '-D 1 -A' --> '-D 1', '-S -A' --> '-S' */
 	if ((opt->disc_str && opt->disc_str[0] != '5') || opt->run_scanmem)
 		opt->do_adapt = false;
-	/* '-A' --> '-A -D 5' */
+
 	if (opt->do_adapt) {
+		/* '-A' --> '-A -D 5' */
 		if (!opt->disc_str)
 			opt->disc_str = (char *) "5";
 		/* '-P libmemhack*' -> '' */
@@ -93,15 +83,17 @@ void do_assumptions (struct app_options *opt)
 		    sizeof(LHACK_PRE) - 1) == 0)
 			opt->preload_lib = NULL;
 	}
-	/* '-D <str>' --> '-D <str> -P libmemdisc32/64.so' */
-	if (opt->disc_str && !opt->preload_lib) {
-		if (sizeof(long) == 8)
-			opt->preload_lib = (char *) LDISC_PRE "64" LIB_END;
-		else if (sizeof(long) == 4)
-			opt->preload_lib = (char *) LDISC_PRE "32" LIB_END;
-	} else if (opt->run_scanmem && !opt->preload_lib) {
-		/* '-S' --> '-S -P' */
-		use_libmemhack(opt);
+
+	/* Preloading/Starting handling */
+	if (!opt->preload_lib) {
+		/* '-D <str>' --> '-D <str> -P libmemdisc32/64.so' */
+		if (opt->disc_str) {
+			use_libmemdisc(opt);
+		/* '-S' --> '-S -P libmemhack32/64.so',
+		 * '--glc' --> '--glc -P libmemhack32/64.so' */
+		} else if (opt->run_scanmem || opt->pre_cmd) {
+			use_libmemhack(opt);
+		}
 	}
 }
 
