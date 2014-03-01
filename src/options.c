@@ -103,27 +103,9 @@ void do_assumptions (struct app_options *opt)
 
 static void init_options (struct app_options *opt)
 {
-	opt->cfg_path = NULL;
-	opt->do_adapt = false;
-	opt->preload_lib = NULL;
-	opt->disc_str = NULL;
-	opt->run_scanmem = false;
-	opt->pre_cmd = NULL;
-	opt->use_glc = false;
+	memset(opt, 0, sizeof(struct app_options));
+
 	/* no direct CLI input */
-	opt->home = NULL;
-	opt->proc_name = NULL;
-	opt->need_shell = false;
-	opt->game_call = NULL;
-	opt->game_path = NULL;
-	opt->game_binpath = NULL;
-	opt->game_params = NULL;
-	opt->adp_script = NULL;
-	opt->adp_required = false;
-	opt->adp_req_line = 0;
-	opt->use_gbt = false;
-	opt->disc_offs = 0;
-	opt->disc_addr = NULL;
 	opt->scanmem_pid = -1;
 }
 
