@@ -20,6 +20,37 @@
 #include <string.h>
 #include "options.h"
 
+
+void do_assumptions (struct app_options *opt)
+{
+	/* Adaption handling */
+	/* '-D 1 -A' --> '-D 1', '-S -A' --> '-S' */
+	if ((opt->disc_str && opt->disc_str[0] != '5') || opt->run_scanmem)
+		opt->do_adapt = false;
+
+	if (opt->do_adapt) {
+		/* '-A' --> '-A -D 5' */
+		if (!opt->disc_str)
+			opt->disc_str = (char *) "5";
+		/* '-P libmemhack*' -> '' */
+		if (opt->preload_lib && strncmp(opt->preload_lib, LHACK_PRE,
+		    sizeof(LHACK_PRE) - 1) == 0)
+			opt->preload_lib = NULL;
+	}
+
+	/* Preloading/Starting handling */
+	if (!opt->preload_lib) {
+		/* '-D <str>' --> '-D <str> -P libmemdisc32/64.so' */
+		if (opt->disc_str) {
+			use_libmemdisc(opt);
+		/* '-S' --> '-S -P libmemhack32/64.so',
+		 * '--glc' --> '--glc -P libmemhack32/64.so' */
+		} else if (opt->run_scanmem || opt->pre_cmd) {
+			use_libmemhack(opt);
+		}
+	}
+}
+
 static const char Help[] =
 PROG_NAME " is the universal elite game trainer for the CLI\n"
 "\n"
@@ -59,6 +90,12 @@ static void usage()
 	exit(-1);
 }
 
+/* use non-printable but 1 is reservered */
+enum {
+	PRE_CMD_CHAR = 2,
+	GLC_CHAR,
+};
+
 static const char short_options[] = "-hAD:P::S";
 static struct option long_options[] = {
 	{"help",           0, 0, 'h'},
@@ -66,40 +103,10 @@ static struct option long_options[] = {
 	{"discover",       1, 0, 'D'},
 	{"preload",        2, 0, 'P'},
 	{"scanmem",        0, 0, 'S'},
-	{"pre-cmd",        1, 0,  0 },
-	{"glc",            2, 0,  0 },
+	{"pre-cmd",        1, 0, PRE_CMD_CHAR },
+	{"glc",            2, 0, GLC_CHAR },
 	{0, 0, 0, 0}
 };
-
-void do_assumptions (struct app_options *opt)
-{
-	/* Adaption handling */
-	/* '-D 1 -A' --> '-D 1', '-S -A' --> '-S' */
-	if ((opt->disc_str && opt->disc_str[0] != '5') || opt->run_scanmem)
-		opt->do_adapt = false;
-
-	if (opt->do_adapt) {
-		/* '-A' --> '-A -D 5' */
-		if (!opt->disc_str)
-			opt->disc_str = (char *) "5";
-		/* '-P libmemhack*' -> '' */
-		if (opt->preload_lib && strncmp(opt->preload_lib, LHACK_PRE,
-		    sizeof(LHACK_PRE) - 1) == 0)
-			opt->preload_lib = NULL;
-	}
-
-	/* Preloading/Starting handling */
-	if (!opt->preload_lib) {
-		/* '-D <str>' --> '-D <str> -P libmemdisc32/64.so' */
-		if (opt->disc_str) {
-			use_libmemdisc(opt);
-		/* '-S' --> '-S -P libmemhack32/64.so',
-		 * '--glc' --> '--glc -P libmemhack32/64.so' */
-		} else if (opt->run_scanmem || opt->pre_cmd) {
-			use_libmemhack(opt);
-		}
-	}
-}
 
 static void init_options (struct app_options *opt)
 {
@@ -114,7 +121,7 @@ static void init_options (struct app_options *opt)
  */
 void parse_options (i32 argc, char **argv, struct app_options *opt)
 {
-	i32 ch = '\0', prev_ch = '\0', opt_idx = 0;
+	i32 ch = -1, prev_ch = -1, opt_idx = 0;
 
 	if (argc < 2)
 		usage();
@@ -129,21 +136,6 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			break;
 
 		switch (ch) {
-		case 0:
-			if (strncmp(long_options[opt_idx].name,
-			    "glc", 3) == 0) {
-				if (optind == argc || !optarg)
-					opt->pre_cmd = "";
-				else
-					opt->pre_cmd = optarg;
-				opt->use_glc = true;
-				opt->need_shell = true;
-			} else if (strncmp(long_options[opt_idx].name,
-			    "pre-cmd", sizeof("pre-cmd") - 1) == 0) {
-				opt->pre_cmd = optarg;
-				opt->need_shell = true;
-			}
-			break;
 		case 'h':
 			usage();
 			break;
@@ -164,17 +156,40 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 		case 'S':
 			opt->run_scanmem = true;
 			break;
-		default:
+		case PRE_CMD_CHAR:
+			opt->pre_cmd = optarg;
+			opt->need_shell = true;
+			break;
+		case GLC_CHAR:
+			if (optind == argc || !optarg)
+				opt->pre_cmd = "";
+			else
+				opt->pre_cmd = optarg;
+			opt->use_glc = true;
+			opt->need_shell = true;
+			break;
+		default:  /* unknown option */
 			if (optind != argc) {
-				if (prev_ch == 'P')
-					opt->preload_lib = optarg;
-				else
+				/* optional argument handling */
+				switch (prev_ch) {
+				case 'P':
+					opt->preload_lib = argv[optind - 1];
+					break;
+				case GLC_CHAR:
+					opt->pre_cmd = argv[optind - 1];
+					break;
+				default:
 					usage();
+					break;
+				}
+			} else {
+				opt->cfg_path = argv[optind - 1];
 			}
 			break;
 		}
 	}
-	do_assumptions(opt);
+	if (!opt->cfg_path)
+	       usage();
 
-	opt->cfg_path = argv[optind - 1];
+	do_assumptions(opt);
 }
