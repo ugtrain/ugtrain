@@ -158,7 +158,6 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			break;
 		case PRE_CMD_CHAR:
 			opt->pre_cmd = optarg;
-			opt->need_shell = true;
 			break;
 		case GLC_CHAR:
 			if (optind == argc || !optarg)
@@ -166,7 +165,6 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			else
 				opt->pre_cmd = optarg;
 			opt->use_glc = true;
-			opt->need_shell = true;
 			break;
 		default:  /* unknown option */
 			if (optind != argc) {

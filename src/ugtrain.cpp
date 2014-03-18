@@ -448,32 +448,75 @@ static void wait_orphan (pid_t pid, char *proc_name)
 	}
 }
 
+static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
+{
+	u32 start, pos;
+	char ch, prev_ch = ' ';
+
+	for (start = 0, pos = 0; pos < cmd_str->size(); pos++) {
+		ch = cmd_str->at(pos);
+		if (ch == ' ' || ch == '\t') {
+			if (prev_ch == ' ')
+				continue;
+			cmd_vec->push_back(cmd_str->substr(start, pos));
+			prev_ch = ' ';
+		} else {
+			if (prev_ch == ' ')
+				start = pos;
+			prev_ch = ch;
+		}
+	}
+	if (prev_ch != ' ')
+		cmd_vec->push_back(cmd_str->substr(start, pos));
+}
+
 static i32 run_game (struct app_options *opt, char *preload_lib)
 {
 	pid_t pid = -1;
-	const char *cmd, *pcmd;
-	char *cmdv[2], *pcmdv[4];
-	char pid_str[12] = { '\0' };
-	string cmd_str = string("");
+	string cmd_str;
+	vector<string> cmd_vec;
 
-	if (!opt->need_shell) {
-		cmd = (const char *) opt->game_path;
+	if (opt->pre_cmd) {
+		if (opt->use_glc) {
+			cmd_str += GLC_PRELOADER;
+			cmd_str += " ";
+		}
+		cmd_str += opt->pre_cmd;
+		cmd_str += " ";
+	}
+	cmd_str += opt->game_path;
+	if (opt->game_params) {
+		cmd_str += " ";
+		cmd_str += opt->game_params;
+	}
 
-		cmdv[0] = opt->game_path;
-		cmdv[1] = NULL;
+	cmd_str_to_cmd_vec(&cmd_str, &cmd_vec);
+	if (!cmd_vec.size()) {
+		goto err;
+	} else {
+		const char *cmd = cmd_vec[0].c_str();
+		char *cmdv[cmd_vec.size() + 1];
+		u32 i;
+
+		for (i = 0; i < cmd_vec.size(); i++)
+			cmdv[i] = to_c_str(&cmd_vec[i]);
+		cmdv[i] = NULL;
 
 		if (opt->run_scanmem) {
-			restore_getch();
+			char pid_str[12] = { '\0' };
+			const char *pcmd = (const char *) SCANMEM;
+			char *pcmdv[] = {
+				(char *) SCANMEM,
+				(char *) "-p",
+				pid_str,
+				NULL
+			};
 
-			pcmd = (const char *) SCANMEM;
-			pcmdv[0] = (char *) SCANMEM;
-			pcmdv[1] = (char *) "-p";
-			pcmdv[2] = pid_str;
-			pcmdv[3] = NULL;
+			restore_getch();
 
 			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
 			     << " `pidof -s " << opt->proc_name << "` & --> "
-			     << "$ " << cmdv[0] << " &" << endl;
+			     << "$ " << cmd_str << " &" << endl;
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
 					  pid_str, opt->game_call, 3,
@@ -481,48 +524,9 @@ static i32 run_game (struct app_options *opt, char *preload_lib)
 			if (pid > 0)
 				opt->scanmem_pid = pid;
 		} else {
-			cout << "$ " << cmdv[0] << " &" << endl;
+			cout << "$ " << cmd_str << " &" << endl;
 
 			pid = run_cmd_bg(cmd, cmdv, false, false, preload_lib);
-		}
-	} else {
-		if (opt->pre_cmd) {
-			if (opt->use_glc) {
-				cmd_str += GLC_PRELOADER;
-				cmd_str += " ";
-			}
-			cmd_str += opt->pre_cmd;
-			cmd_str += " ";
-		}
-		cmd_str += opt->game_path;
-		if (opt->game_params) {
-			cmd_str += " ";
-			cmd_str += opt->game_params;
-		}
-		cmd = cmd_str.c_str();
-
-		if (opt->run_scanmem) {
-			restore_getch();
-
-			pcmd = (const char *) SCANMEM;
-			pcmdv[0] = (char *) SCANMEM;
-			pcmdv[1] = (char *) "-p";
-			pcmdv[2] = pid_str;
-			pcmdv[3] = NULL;
-
-			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
-			     << " `pidof -s " << opt->proc_name << "` & --> "
-			     << "$ " << cmd << " &" << endl;
-
-			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->game_call, 3,
-					  false, true, preload_lib);
-			if (pid > 0)
-				opt->scanmem_pid = pid;
-		} else {
-			cout << "$ " << cmd << " &" << endl;
-
-			pid = run_cmd_bg(cmd, cmdv, false, true, preload_lib);
 		}
 	}
 	if (pid < 0)
@@ -731,7 +735,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (!opt->game_binpath)
 		opt->game_binpath = opt->game_path;
 
-	use_wait = (opt->need_shell || opt->proc_name != opt->game_call) ? false : true;
+	use_wait = (opt->proc_name != opt->game_call) ? false : true;
 
 	cout << "Config:" << endl;
 	output_config(cfg);

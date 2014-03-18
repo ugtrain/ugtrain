@@ -618,7 +618,6 @@ void read_config (struct app_options *opt,
 
 			// Copy into C string
 			opt->game_params = to_c_str(&tmp_str);
-			opt->need_shell = true;
 			break;
 
 		case NAME_USE_GBT:

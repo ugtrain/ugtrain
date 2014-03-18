@@ -57,8 +57,8 @@ typedef ulong ptr_t;
 
 #define list_for_each(list, it) \
 	for (it = list->begin(); it != list->end(); ++it)
-#define vect_for_each(list, it) \
-	list_for_each(list, it)
+#define vect_for_each(vect, it) \
+	list_for_each(vect, it)
 
 // Common functions
 #ifdef __cplusplus
