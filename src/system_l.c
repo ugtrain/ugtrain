@@ -81,7 +81,7 @@ err:
  *
  * Assumption: (pid > 0)  --> Please check your PID before!
  */
-bool pid_is_running (pid_t pid, char *proc_name, bool use_wait)
+bool pid_is_running (pid_t call_pid, pid_t pid, char *proc_name, bool use_wait)
 {
 	char pbuf[PIPE_BUF] = { 0 };
 	i32 status;
@@ -92,7 +92,8 @@ bool pid_is_running (pid_t pid, char *proc_name, bool use_wait)
 	i32 pr_len, cmd_len = sizeof("/proc/") - 1;
 
 	if (use_wait) {
-		if (waitpid(pid, &status, WNOHANG|WUNTRACED|WCONTINUED) != pid)
+		if (waitpid(call_pid, &status, WNOHANG|WUNTRACED|WCONTINUED) !=
+		    call_pid)
 			return true;
 		return !(WIFEXITED(status) || WIFSIGNALED(status));
 	}

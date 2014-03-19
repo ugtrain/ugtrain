@@ -292,7 +292,7 @@ void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 		sleep_sec(1);
 		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, process_disc5_output,
 				NULL);
-		if (!pid_is_running(pid, NULL, true))
+		if (!pid_is_running(pid, pid, NULL, true))
 			break;
 	}
 }

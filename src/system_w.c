@@ -44,7 +44,7 @@ pid_t fork_proc (void (*task) (void *), void *argp)
 	return -1;
 }
 
-bool pid_is_running (pid_t pid, char *proc_name, bool use_wait)
+bool pid_is_running (pid_t call_pid, pid_t pid, char *proc_name, bool use_wait)
 {
 	return true;
 }

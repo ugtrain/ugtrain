@@ -442,7 +442,7 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 static void wait_orphan (pid_t pid, char *proc_name)
 {
 	while (true) {
-		if (!pid_is_running(pid, proc_name, false))
+		if (!pid_is_running(pid, pid, proc_name, false))
 			return;
 		sleep_sec(1);
 	}
@@ -470,7 +470,7 @@ static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
 		cmd_vec->push_back(cmd_str->substr(start, pos));
 }
 
-static i32 run_game (struct app_options *opt, char *preload_lib)
+static pid_t run_game (struct app_options *opt, char *preload_lib)
 {
 	pid_t pid = -1;
 	string cmd_str;
@@ -532,26 +532,30 @@ static i32 run_game (struct app_options *opt, char *preload_lib)
 	if (pid < 0)
 		goto err;
 
-	return 0;
+	sleep_sec(1);
+	if (!pid_is_running(pid, pid, NULL, true))
+		goto err;
+
+	return pid;
 err:
 	cerr << "Error while running the game!" << endl;
 	return -1;
 }
 
 #ifdef __linux__
-static i32 run_preloader (struct app_options *opt)
+static pid_t run_preloader (struct app_options *opt)
 {
-	i32 ret;
+	pid_t pid;
 
 	configure_libmem(opt);
 
-	ret = run_game(opt, opt->preload_lib);
-	return ret;
+	pid = run_game(opt, opt->preload_lib);
+	return pid;
 }
 #endif
 
 static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
-			   i32 *ifd, i32 *ofd)
+			   i32 *ifd, i32 *ofd, pid_t *pid)
 {
 	char obuf[PIPE_BUF] = { 0 };
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
@@ -650,7 +654,9 @@ skip_memhack:
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting game with " << opt->preload_lib
 		     << " preloaded.." << endl;
-		run_preloader(opt);
+		*pid = run_preloader(opt);
+		if (*pid < 0)
+			return 1;
 	}
 
 	cout << "Waiting for preloaded library.." << endl;
@@ -678,7 +684,7 @@ i32 main (i32 argc, char **argv, char **env)
 	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
 	list<CfgEntry*> *cfgp_map[128] = { NULL };
 	string input_str;
-	pid_t pid, worker_pid;
+	pid_t pid, call_pid = -1, worker_pid;
 	char def_home[] = "~";
 	i32 ret, pmask = PARSE_M | PARSE_C;
 	char ch;
@@ -735,8 +741,6 @@ i32 main (i32 argc, char **argv, char **env)
 	if (!opt->game_binpath)
 		opt->game_binpath = opt->game_path;
 
-	use_wait = (opt->proc_name != opt->game_call) ? false : true;
-
 	cout << "Config:" << endl;
 	output_config(cfg);
 	cout << endl;
@@ -760,7 +764,7 @@ discover_next:
 		return -1;
 
 prepare_dynmem:
-	if (prepare_dynmem(opt, cfg, &ifd, &ofd) != 0) {
+	if (prepare_dynmem(opt, cfg, &ifd, &ofd, &call_pid) != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}
@@ -774,8 +778,9 @@ prepare_dynmem:
 				return -1;
 #endif
 			cout << "Starting the game.." << endl;
-			run_game(opt, NULL);
-			sleep_sec(1);
+			call_pid = run_game(opt, NULL);
+			if (call_pid < 0)
+				goto pid_err;
 			pid = proc_to_pid(opt->proc_name);
 			if (pid < 0)
 				goto pid_err;
@@ -783,6 +788,8 @@ prepare_dynmem:
 			goto pid_err;
 		}
 	}
+	if (call_pid < 0)
+		use_wait = false;
 	cout << "PID: " << pid << endl;
 
 	if (opt->disc_str) {
@@ -795,7 +802,7 @@ prepare_dynmem:
 				// Have you closed scanmem before the game?
 				wait_orphan(pid, opt->proc_name);
 			} else {
-				wait_proc(pid);
+				wait_proc(call_pid);
 			}
 			return 0;
 		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
@@ -805,13 +812,13 @@ prepare_dynmem:
 				// Have you closed scanmem before the game?
 				wait_orphan(pid, opt->proc_name);
 			} else {
-				wait_proc(pid);
+				wait_proc(call_pid);
 			}
 			kill_proc(worker_pid);
 			if (worker_pid < 0)
 				return -1;
 		} else if (opt->disc_str[0] == '5') {
-			run_stage5_loop(cfg, ifd, pmask, pid);
+			run_stage5_loop(cfg, ifd, pmask, call_pid);
 		}
 		ret = postproc_discovery(opt, cfg, lines);
 		switch (ret) {
@@ -860,7 +867,7 @@ prepare_dynmem:
 
 		// check for active config
 		if (cfg_act->empty()) {
-			if (!pid_is_running(pid, opt->proc_name, use_wait))
+			if (!pid_is_running(call_pid, pid, opt->proc_name, use_wait))
 				return 0;
 			continue;
 		}
@@ -872,7 +879,7 @@ prepare_dynmem:
 		alloc_dynmem(cfg);
 
 		if (memattach(pid) != 0) {
-			if (!pid_is_running(pid, opt->proc_name, use_wait))
+			if (!pid_is_running(call_pid, pid, opt->proc_name, use_wait))
 				return 0;
 			cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
 			continue;

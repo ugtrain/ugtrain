@@ -38,7 +38,8 @@ extern "C" {
 			     char *const pid_cmd, char *proc_name,
 			     u32 delay, bool do_wait, bool use_shell,
 			     char *preload_lib);
-	bool    pid_is_running (pid_t pid, char *proc_name, bool use_wait);
+	bool    pid_is_running (pid_t call_pid, pid_t pid,
+				char *proc_name, bool use_wait);
 	pid_t   fork_proc (void (*task) (void *), void *argp);
 	void    kill_proc (pid_t pid);
 	void    wait_proc (pid_t pid);
