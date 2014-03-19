@@ -458,7 +458,7 @@ static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
 		if (ch == ' ' || ch == '\t') {
 			if (prev_ch == ' ')
 				continue;
-			cmd_vec->push_back(cmd_str->substr(start, pos));
+			cmd_vec->push_back(cmd_str->substr(start, pos - start));
 			prev_ch = ' ';
 		} else {
 			if (prev_ch == ' ')
@@ -467,7 +467,7 @@ static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
 		}
 	}
 	if (prev_ch != ' ')
-		cmd_vec->push_back(cmd_str->substr(start, pos));
+		cmd_vec->push_back(cmd_str->substr(start, pos - start));
 }
 
 static pid_t run_game (struct app_options *opt, char *preload_lib)
