@@ -771,6 +771,8 @@ prepare_dynmem:
 
 	pid = proc_to_pid(opt->proc_name);
 	if (pid < 0) {
+		if (call_pid >= 0)
+			goto pid_err;
 		/* Run the game but not as root */
 		if (opt->preload_lib) {
 #ifdef __linux__
