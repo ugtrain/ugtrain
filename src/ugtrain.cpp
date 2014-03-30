@@ -1,6 +1,6 @@
 /* ugtrain.cpp:    freeze values in process memory (game trainer)
  *
- * Copyright (c) 2012..13, by:  Sebastian Riemer
+ * Copyright (c) 2012..14, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
@@ -152,7 +152,7 @@ static i32 check_memory (CheckEntry *chk_en, u8 *chk_buf, u32 i)
 }
 
 /* returns:  0: one check passed,  1: all not passed */
-static inline i32 check_all_memory(CheckEntry *chk_en, u8 *chk_buf)
+static inline i32 or_check_memory (CheckEntry *chk_en, u8 *chk_buf)
 {
 	i32 ret;
 	u32 i = 0;
@@ -186,7 +186,8 @@ err:
 	return -1;
 }
 
-static i32 process_checks (pid_t pid, DynMemEntry *dynmem, list<CheckEntry> *chk_lp,
+static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
+			   list<CheckEntry> *chk_lp,
 			   void *mem_offs)
 {
 	list<CheckEntry>::iterator it;
@@ -208,7 +209,7 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem, list<CheckEntry> *chk
 			if (ret)
 				goto out;
 		}
-		ret = check_all_memory(chk_en, chk_buf);
+		ret = or_check_memory(chk_en, chk_buf);
 		if (ret) {
 			// Parser must ensure (dynmem != NULL)
 			if (chk_en->is_objcheck)
@@ -221,7 +222,8 @@ out:
 }
 
 template <typename T>
-static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf, void *mem_offs)
+static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf,
+			    void *mem_offs)
 {
 	list<CheckEntry> *chk_lp = cfg_en->checks;
 	void *mem_addr;
@@ -565,7 +567,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 	size_t written;
 #endif
 
-	// check for discovery first
+	// Check for discovery first
 	if (opt->disc_str) {
 		pos += snprintf(obuf + pos, sizeof(obuf) - pos, "%s",
 				opt->disc_str);
@@ -583,7 +585,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 			";%s", GBT_CMD);
 	}
 
-	// fill the output buffer with the dynmem cfg
+	// Fill the output buffer with the dynmem cfg
 	list_for_each (cfg, it) {
 		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
 			num_cfg++;
@@ -595,7 +597,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 			old_code_addr = it->dynmem->code_addr;
 		}
 	}
-	// put the number of cfgs to the end
+	// Put the number of cfgs to the end
 	num_cfg_len = snprintf(obuf + pos, sizeof(obuf) - pos, "%d", num_cfg);
 	pos += num_cfg_len;
 	if (pos + num_cfg_len + 2 > sizeof(obuf)) {
@@ -612,20 +614,20 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 
 skip_memhack:
 #ifdef __linux__
-	// remove FIFOs first for empty FIFOs
+	// Remove FIFOs first for empty FIFOs
 	if ((unlink(DYNMEM_IN) && errno != ENOENT) ||
 	    (unlink(DYNMEM_OUT) && errno != ENOENT)) {
 		perror("unlink FIFO");
 		return 1;
 	}
 
-	// set up and open FIFOs
+	// Set up and open FIFOs
 	if (mkfifo(DYNMEM_IN, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
 		perror("input mkfifo");
 		return 1;
 	}
-	/* Bug in Ubuntu: mkfifo ignores mode */
+	// security in Ubuntu: mkfifo ignores mode
 	if (chmod(DYNMEM_IN, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
 		perror("input chmod");
@@ -637,7 +639,7 @@ skip_memhack:
 		perror("output mkfifo");
 		return 1;
 	}
-	/* Bug in Ubuntu: mkfifo ignores mode */
+	// security in Ubuntu: mkfifo ignores mode
 	if (chmod(DYNMEM_OUT, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
 		perror("output chmod");
@@ -650,7 +652,7 @@ skip_memhack:
 		return 1;
 	}
 
-	/* Run the preloaded game but not as root */
+	// Run the preloaded game but not as root
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting game with " << opt->preload_lib
 		     << " preloaded.." << endl;
@@ -666,7 +668,7 @@ skip_memhack:
 		return 1;
 	}
 
-	// write dynmem cfg to output FIFO
+	// Write dynmem cfg to output FIFO
 	written = write(*ofd, obuf, pos);
 	if (written < pos) {
 		perror("FIFO write");
@@ -689,7 +691,7 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ret, pmask = PARSE_M | PARSE_C;
 	char ch;
 	i32 ifd = -1, ofd = -1;
-	bool emptycfg = false;
+	bool allow_empty_cfg = false;
 	ssize_t rbytes;
 	bool use_wait = true;
 
@@ -701,29 +703,15 @@ i32 main (i32 argc, char **argv, char **env)
 	if (!opt->home)
 		opt->home = def_home;
 
-	if (strncmp(opt->cfg_path, "NONE", sizeof("NONE") - 1) != 0) {
-		read_config(opt, cfg, cfg_act, cfgp_map, lines);
-		cout << "Found config for \"" << opt->proc_name << "\"." << endl;
-	} else {
-		if ((!opt->disc_str && !opt->run_scanmem) || (opt->disc_str &&
-		    (opt->disc_str[0] < '0' || opt->disc_str[0] > '4'))) {
-			cerr << "Error: Config required!" << endl;
-			return -1;
-		}
-
-		cout << "Process name: ";
-		fflush(stdout);
-		cin >> input_str;
-		opt->proc_name = to_c_str(&input_str);
-		opt->game_call = opt->proc_name;
-	}
+	read_config(opt, cfg, cfg_act, cfgp_map, lines);
+	cout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
 	if (opt->disc_str) {
 		if (opt->disc_str[0] >= '0' && opt->disc_str[0] <= '4') {
 			cout << "Clearing config for discovery!" << endl;
 			cfg->clear();
 			cfg_act->clear();
-			emptycfg = true;
+			allow_empty_cfg = true;
 		} else {
 			opt->run_scanmem = false;
 		}
@@ -731,7 +719,7 @@ i32 main (i32 argc, char **argv, char **env)
 		cout << "Clearing config for scanmem!" << endl;
 		cfg->clear();
 		cfg_act->clear();
-		emptycfg = true;
+		allow_empty_cfg = true;
 	}
 
 	if (!opt->game_path)
@@ -748,7 +736,7 @@ i32 main (i32 argc, char **argv, char **env)
 	output_configp(cfg_act);
 	cout << endl;
 
-	if (cfg->empty() && !emptycfg)
+	if (cfg->empty() && !allow_empty_cfg)
 		return -1;
 
 	if (prepare_getch() != 0) {
@@ -903,7 +891,6 @@ prepare_dynmem:
 	}
 
 	return 0;
-
 pid_err:
 	cerr << "PID not found or invalid!" << endl;
 	return -1;
