@@ -56,9 +56,10 @@ function get_malloc_code()
     CODE_CALL=`echo -e "$CODE_PART" | cut -d '
 ' -f $alines | grep call`
     if [ "$CODE_CALL" == "" ]; then RC=1; return; fi
+    if [ $DEBUG -eq 1 ]; then echo -e "CODE_CALL:\n$CODE_CALL"; fi
 
-    CODE_ADDR=`echo -e "$CODE_PART" | cut -d '
-' -f $reslines | cut -d ':' -f 1 | tr -d [:blank:]`
+    CODE_ADDR=`echo -e "$CODE_PART" | tail -n 1 | cut -d ':' -f 1 | tr -d [:blank:]`
     if [ "$CODE_ADDR" == "" ]; then RC=1; return; fi
+    if [ $DEBUG -eq 1 ]; then echo -e "CODE_ADDR:\n$CODE_ADDR"; fi
     IFS=''
 }
