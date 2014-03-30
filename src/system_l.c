@@ -25,25 +25,12 @@
 #include <dirent.h>
 #include <libgen.h>
 #include <errno.h>
-#include <sys/wait.h>
 #include "common.h"
 #include "system.h"
 #include "preload.h"
 
 #define SHELL "/bin/sh"
 
-
-inline void wait_proc (pid_t pid)
-{
-	i32 status;
-
-	waitpid(pid, &status, 0);
-}
-
-inline void kill_proc (pid_t pid)
-{
-	kill(pid, SIGINT);
-}
 
 /*
  * Run a task in background.

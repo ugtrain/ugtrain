@@ -20,14 +20,6 @@
 #include "system.h"
 
 
-inline void wait_proc (pid_t pid)
-{
-}
-
-inline void kill_proc (pid_t pid)
-{
-}
-
 /*
  * Run a task in background.
  *

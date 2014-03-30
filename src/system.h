@@ -19,7 +19,10 @@
 
 #include <unistd.h>
 #include "common.h"
-#ifndef __linux__
+#ifdef __linux__
+#include <sys/wait.h>
+#include <sys/select.h>
+#else
 #include <windows.h>
 #endif
 
@@ -41,23 +44,62 @@ extern "C" {
 	bool    pid_is_running (pid_t call_pid, pid_t pid,
 				char *proc_name, bool use_wait);
 	pid_t   fork_proc (void (*task) (void *), void *argp);
-	void    kill_proc (pid_t pid);
-	void    wait_proc (pid_t pid);
 #ifdef __cplusplus
 };
 #endif
 
 /* Inline functions */
 #ifdef __linux__
-static inline u32 sleep_sec (u32 sec)
+static inline void sleep_sec (u32 sec)
 {
-	return sleep(sec);
+	sleep(sec);
 }
+
+static inline void sleep_sec_unless_input (u32 sec)
+{
+	fd_set fs;
+	struct timeval tv;
+
+	FD_ZERO(&fs);
+	FD_SET(STDIN_FILENO, &fs);
+	tv.tv_sec = sec;
+	tv.tv_usec = 0;
+
+	select(1, &fs, NULL, NULL, &tv);
+}
+
+static inline void wait_proc (pid_t pid)
+{
+	i32 status;
+
+	waitpid(pid, &status, 0);
+}
+
+static inline void kill_proc (pid_t pid)
+{
+	kill(pid, SIGINT);
+}
+
 #else
+
 static inline void sleep_sec (u32 sec)
 {
 	Sleep(sec * 1000);
 }
+
+static inline void sleep_sec_unless_input (u32 sec)
+{
+	sleep_sec(sec);
+}
+
+static inline void wait_proc (pid_t pid)
+{
+}
+
+static inline void kill_proc (pid_t pid)
+{
+}
+
 #endif
 
 #endif

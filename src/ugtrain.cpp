@@ -842,7 +842,7 @@ prepare_dynmem:
 	}
 
 	while (true) {
-		sleep_sec(1);
+		sleep_sec_unless_input(1);
 		ch = do_getch();
 		handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
 
