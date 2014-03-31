@@ -40,6 +40,7 @@
 
 #define DYNMEM_FILE "/tmp/memhack_file"
 #define MAX_BT 11
+#define DISC_DEBUG 0
 
 
 static void process_stage5_result (DynMemEntry *dynmem)
@@ -169,7 +170,9 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 			cmd_str += tmp_str.substr(2, string::npos);  // no '0x'
 			cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
 				   "| grep -o -e \"<.*@plt>\"";
-			//cout << "$ " << cmd_str << endl;
+#if (DISC_DEBUG)
+			cout << "$ " << cmd_str << endl;
+#endif
 			rbytes = run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
 					      sizeof(pbuf), true);
 			if (rbytes > 0) {
@@ -182,24 +185,13 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 			cout << "c" << codes[i];
 			if (is_stage4)
 				cout << ";o" << soffs[i];
-			cout << " " << pbuf;
-			cout << endl;
+			cout << " " << pbuf << endl;
 
 			// cleanup pipe buffer
 			if (rbytes > 0)
 				memset(pbuf, 0, rbytes);
 		}
 	}
-	//else
-		//cout << "m" << mem_addr << ";" << "s" << mem_size << endl;
-}
-
-// ff() callback for read_dynmem_buf()
-static void process_disc1_free (list<CfgEntry> *cfg,
-				void *argp,
-				void *mem_addr)
-{
-	//cout << "f" << mem_addr << endl;
 }
 
 static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
@@ -231,7 +223,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 
 	while (true) {
 		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
-		    process_disc1234_malloc, process_disc1_free) < 0)
+		    process_disc1234_malloc, NULL) < 0)
 			break;
 	}
 
