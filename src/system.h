@@ -49,7 +49,18 @@ extern "C" {
 #endif
 
 /* Inline functions */
+static inline pid_t run_cmd (const char *cmd, char *const cmdv[],
+			     bool use_shell)
+{
+	return run_cmd_bg(cmd, cmdv, true, use_shell, NULL);
+}
+
 #ifdef __linux__
+static inline i32 rm_file (const char *path)
+{
+	return unlink(path);
+}
+
 static inline void sleep_sec (u32 sec)
 {
 	sleep(sec);
@@ -81,6 +92,10 @@ static inline void kill_proc (pid_t pid)
 }
 
 #else
+
+static inline i32 rm_file (const char *path)
+{
+}
 
 static inline void sleep_sec (u32 sec)
 {

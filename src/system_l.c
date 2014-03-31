@@ -205,6 +205,9 @@ pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		}
 	} else if (do_wait) {
 		waitpid(ppid, &status, 0);
+		if ((WIFEXITED(status) && WEXITSTATUS(status)) ||
+		    WIFSIGNALED(status))
+			goto err;
 	}
 	return ppid;
 err:
@@ -245,6 +248,9 @@ pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
 		}
 	} else if (do_wait) {
 		waitpid(pid, &status, 0);
+		if ((WIFEXITED(status) && WEXITSTATUS(status)) ||
+		    WIFSIGNALED(status))
+			goto err;
 	}
 	return pid;
 err:

@@ -39,6 +39,7 @@
 #include "adaption.h"
 
 #define DYNMEM_FILE "/tmp/memhack_file"
+#define DISASM_FILE "/tmp/memhack_disasm"
 #define MAX_BT 11
 #define DISC_DEBUG 0
 
@@ -121,6 +122,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 	char *sep_pos;
 	i32 i, ret, num_codes = 0, num_soffs = 0;
 	bool is_stage4 = false;
+	static bool do_disasm = true;
 	string cmd_str, tmp_str;
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t rbytes = 0;
@@ -160,13 +162,24 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 		}
 
 		/* stage 3 and 4 post-processing */
+		// get disassembly only once
+		if (do_disasm && num_codes) {
+			cmd_str = "objdump -D ";
+			cmd_str += dpp->opt->game_binpath;
+			cmd_str += " > " DISASM_FILE;
+#if (DISC_DEBUG)
+			cout << "$ " << cmd_str << endl;
+#endif
+			ret = run_cmd(cmd_str.c_str(), NULL, true);
+			if (ret < 0)
+				return;
+			do_disasm = false;
+		}
 		for (i = 0; i < num_codes; i++) {
 			// get the function call from disassembly
 			tmp_str = to_string(codes[i]);
 
-			cmd_str = "objdump -D ";
-			cmd_str += dpp->opt->game_binpath;
-			cmd_str += " | grep -B 1 -e \"^[ ]\\+";
+			cmd_str = "cat " DISASM_FILE " | grep -B 1 -e \"^[ ]\\+";
 			cmd_str += tmp_str.substr(2, string::npos);  // no '0x'
 			cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
 				   "| grep -o -e \"<.*@plt>\"";
@@ -226,6 +239,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 		    process_disc1234_malloc, NULL) < 0)
 			break;
 	}
+	rm_file(DISASM_FILE);
 
 	if (prepare_getch() != 0) {
 		cerr << "Error while terminal preparation!" << endl;
