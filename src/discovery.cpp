@@ -104,6 +104,7 @@ out_wb:
 struct disc_pp {
 	void *in_addr;
 	struct app_options *opt;
+	bool do_disasm;
 };
 
 // mf() callback for read_dynmem_buf()
@@ -117,12 +118,12 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 {
 	struct disc_pp *dpp = (struct disc_pp *) pp->argp;
 	void *in_addr = dpp->in_addr;
+	char stage = dpp->opt->disc_str[0];
+	bool *do_disasm = &dpp->do_disasm;
 	void *codes[MAX_BT] = { NULL };
 	void *soffs[MAX_BT] = { NULL };
 	char *sep_pos;
-	i32 i, ret, num_codes = 0, num_soffs = 0;
-	bool is_stage4 = false;
-	static bool do_disasm = true;
+	i32 i, ret, num_codes = 0;
 	string cmd_str, tmp_str;
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t rbytes = 0;
@@ -134,36 +135,43 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 		     << PTR_SUB(void *, in_addr, mem_addr) << ", heap offs: "
 		     << PTR_SUB(void *, mem_addr, heap_start) << endl;
 
-		/* stage 3 and 4 parsing */
-		for (i = 0; i < MAX_BT; i++) {
+		switch (stage) {
+		case '3':
+		case '4':
 			sep_pos = strchr(pp->ibuf + pp->ppos, ';');
 			if (!sep_pos)
-				break;
+				return;
 			pp->ppos = sep_pos + 1 - pp->ibuf;
-			if (is_stage4) {
+			break;
+		default:
+			return;
+		}
+
+		/* stage 3 and 4 parsing */
+		for (i = 0; i < MAX_BT; i++) {
+			ret = sscanf(pp->ibuf + pp->ppos, "c%p;o%p",
+				     &codes[i], &soffs[i]);
+			if (ret >= 1) {
+				num_codes++;
+
+				sep_pos = strchr(pp->ibuf + pp->ppos, ';');
+				if (!sep_pos)
+					break;
+				pp->ppos = sep_pos + 1 - pp->ibuf;
+			} else {
+				break;
+			}
+			if (ret == 2) {
 				sep_pos = strchr(pp->ibuf + pp->ppos, ';');
 				if (!sep_pos)
 					break;
 				pp->ppos = sep_pos + 1 - pp->ibuf;
 			}
-			ret = sscanf(pp->ibuf + pp->ppos, "c%p;o%p",
-				     &codes[i], &soffs[i]);
-			if (ret == 2) {
-				is_stage4 = true;
-				num_codes++;
-				num_soffs++;
-			} else if (ret == 1) {
-				if (is_stage4)
-					break;
-				num_codes++;
-			} else {
-				break;
-			}
 		}
 
 		/* stage 3 and 4 post-processing */
 		// get disassembly only once
-		if (do_disasm && num_codes) {
+		if (*do_disasm) {
 			cmd_str = "objdump -D ";
 			cmd_str += dpp->opt->game_binpath;
 			cmd_str += " > " DISASM_FILE;
@@ -173,7 +181,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 			ret = run_cmd(cmd_str.c_str(), NULL, true);
 			if (ret < 0)
 				return;
-			do_disasm = false;
+			*do_disasm = false;
 		}
 		for (i = 0; i < num_codes; i++) {
 			// get the function call from disassembly
@@ -196,7 +204,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 
 			// output one call from backtrace
 			cout << "c" << codes[i];
-			if (is_stage4)
+			if (stage == '4')
 				cout << ";o" << soffs[i];
 			cout << " " << pbuf << endl;
 
@@ -233,6 +241,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 
 	dpp.in_addr = mem_addr;
 	dpp.opt = opt;
+	dpp.do_disasm = true;
 
 	while (true) {
 		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
