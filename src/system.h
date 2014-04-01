@@ -33,14 +33,13 @@ extern "C" {
 	char    *get_abs_app_path (char *app_name);
 	pid_t   proc_to_pid (char *proc_name);
 	ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
-			      char *pbuf, size_t pbuf_size, bool use_shell);
+			      char *pbuf, size_t pbuf_size);
 	pid_t   run_cmd_bg (const char *cmd, char *const cmdv[],
-			    bool do_wait, bool use_shell, char *preload_lib);
+			    bool do_wait, char *preload_lib);
 	pid_t   run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 			     const char *ccmd, char *const ccmdv[],
 			     char *const pid_cmd, char *proc_name,
-			     u32 delay, bool do_wait, bool use_shell,
-			     char *preload_lib);
+			     u32 delay, bool do_wait, char *preload_lib);
 	bool    pid_is_running (pid_t call_pid, pid_t pid,
 				char *proc_name, bool use_wait);
 	pid_t   fork_proc (void (*task) (void *), void *argp);
@@ -49,10 +48,9 @@ extern "C" {
 #endif
 
 /* Inline functions */
-static inline pid_t run_cmd (const char *cmd, char *const cmdv[],
-			     bool use_shell)
+static inline pid_t run_cmd (const char *cmd, char *const cmdv[])
 {
-	return run_cmd_bg(cmd, cmdv, true, use_shell, NULL);
+	return run_cmd_bg(cmd, cmdv, true, NULL);
 }
 
 #ifdef __linux__

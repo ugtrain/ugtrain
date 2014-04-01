@@ -125,7 +125,7 @@ skip_exe_check:
 
 	/* reset pipe buffer and run the shell cmd */
 	memset(pbuf, 0, sizeof(pbuf));
-	if (run_cmd_pipe(cmd, NULL, pbuf, sizeof(pbuf), true) <= 0)
+	if (run_cmd_pipe(cmd, NULL, pbuf, sizeof(pbuf)) <= 0)
 		goto err;
 
 	/* zombies are not running - parent doesn't wait */
@@ -161,11 +161,14 @@ err:
 pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   const char *ccmd, char *const ccmdv[],
 		   char *const pid_str, char *proc_name,
-		   u32 delay, bool do_wait, bool use_shell,
-		   char *preload_lib)
+		   u32 delay, bool do_wait, char *preload_lib)
 {
 	pid_t ppid, cpid, game_pid = -1;
 	i32 status;
+	bool use_shell = (ccmdv == NULL);
+
+	if (!pid_str || !proc_name)
+		goto err;
 
 	ppid = fork();
 	if (ppid < 0) {
@@ -192,11 +195,8 @@ pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		} else {   /* parent command (likely uses ptrace()) */
 			if (delay > 0)
 				sleep_sec(delay);
-			if (use_shell && proc_name)
-				game_pid = proc_to_pid(proc_name);
-			else
-				game_pid = cpid;
-			if (pid_str && game_pid > 0)
+			game_pid = proc_to_pid(proc_name);
+			if (game_pid > 0)
 				sprintf(pid_str, "%d", game_pid);
 			if (execvp(pcmd, pcmdv) < 0) {
 				perror("execvp");
@@ -227,10 +227,11 @@ child_err:
  *              used with cmd and cmdv[] is ignored.
  */
 pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
-		  bool use_shell, char *preload_lib)
+		  char *preload_lib)
 {
 	pid_t pid;
 	i32 status;
+	bool use_shell = (cmdv == NULL);
 
 	pid = fork();
 	if (pid < 0) {
@@ -271,11 +272,12 @@ child_err:
  *              used with cmd and cmdv[] is ignored.
  */
 ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
-		      size_t pbuf_size, bool use_shell)
+		      size_t pbuf_size)
 {
 	pid_t pid;
 	i32 status, fds[2];
 	ssize_t bytes_read = 0;
+	bool use_shell = (cmdv == NULL);
 
 	if (pipe(fds) < 0) {
 		perror("pipe");
@@ -347,7 +349,7 @@ pid_t proc_to_pid (char *proc_name)
 	cmdv[2] = proc_name;
 	cmdv[3] = NULL;
 
-	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), false) <= 0)
+	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
 		goto err;
 
 	if (!isdigit(pbuf[0]))
@@ -380,7 +382,7 @@ char *get_abs_app_path (char *app_name)
 	cmdv[1] = app_name;
 	cmdv[2] = NULL;
 
-	rbytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), false);
+	rbytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf));
 	if (rbytes <= 0)
 		goto err;
 

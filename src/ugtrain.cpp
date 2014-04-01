@@ -521,14 +521,14 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 			     << "$ " << cmd_str << " &" << endl;
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->game_call, 3,
-					  false, false, preload_lib);
+					  pid_str, opt->proc_name, 3,
+					  false, preload_lib);
 			if (pid > 0)
 				opt->scanmem_pid = pid;
 		} else {
 			cout << "$ " << cmd_str << " &" << endl;
 
-			pid = run_cmd_bg(cmd, cmdv, false, false, preload_lib);
+			pid = run_cmd_bg(cmd, cmdv, false, preload_lib);
 		}
 	}
 	if (pid < 0)

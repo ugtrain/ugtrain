@@ -44,8 +44,7 @@ bool pid_is_running (pid_t call_pid, pid_t pid, char *proc_name, bool use_wait)
 pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   const char *ccmd, char *const ccmdv[],
 		   char *const pid_str, char *proc_name,
-		   u32 delay, bool do_wait, bool use_shell,
-		   char *preload_lib)
+		   u32 delay, bool do_wait, char *preload_lib)
 {
 	return -1;
 }
@@ -58,7 +57,7 @@ pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
  * Returns: pid for success, -1 for failure
  */
 pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
-		  bool use_shell, char *preload_lib)
+		  char *preload_lib)
 {
 	return -1;
 }
@@ -75,7 +74,7 @@ pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
  *              used with cmd and cmdv[] is ignored.
  */
 ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
-		      size_t pbuf_size, bool use_shell)
+		      size_t pbuf_size)
 {
 	return -1;
 }

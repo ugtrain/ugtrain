@@ -174,7 +174,7 @@ static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
 		goto err;
 #endif
 
-	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf), false);
+	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf));
 	if (read_bytes <= 0)
 		goto err;
 	cout << "Adaption return:" << endl;

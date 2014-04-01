@@ -178,7 +178,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 #if (DISC_DEBUG)
 			cout << "$ " << cmd_str << endl;
 #endif
-			ret = run_cmd(cmd_str.c_str(), NULL, true);
+			ret = run_cmd(cmd_str.c_str(), NULL);
 			if (ret < 0)
 				return;
 			*do_disasm = false;
@@ -195,7 +195,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 			cout << "$ " << cmd_str << endl;
 #endif
 			rbytes = run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
-					      sizeof(pbuf), true);
+					      sizeof(pbuf));
 			if (rbytes > 0) {
 				// remove trailing new line
 				if (pbuf[rbytes - 1] == '\n')
@@ -416,7 +416,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 				   "| tr -d [:upper:] | tr -d [:blank:]";
 			cout << "$ " << cmd_str << endl;
 			if (run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
-			    sizeof(pbuf), true) <= 0)
+			    sizeof(pbuf)) <= 0)
 				goto err;
 			if (sscanf(pbuf, "%p\n%p", &bt_saddr, &bt_eaddr) != 2) {
 				goto err;
