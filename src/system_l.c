@@ -22,6 +22,7 @@
 #include <string.h>
 #include <limits.h>
 #include <signal.h>
+#include <fcntl.h>
 #include <dirent.h>
 #include <libgen.h>
 #include <errno.h>
@@ -164,7 +165,7 @@ pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   u32 delay, bool do_wait, char *preload_lib)
 {
 	pid_t ppid, cpid, game_pid = -1;
-	i32 status;
+	i32 status, fd = -1;
 	bool use_shell = (ccmdv == NULL);
 
 	if (!pid_str || !proc_name)
@@ -182,8 +183,14 @@ pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		} else if (cpid == 0) {   /* child command (the game) */
 			if (preload_library(preload_lib))
 				goto child_err;
-			close(STDOUT_FILENO);
-			close(STDERR_FILENO);
+			/* >/dev/null 2>&1 */
+			fd = open("/dev/null", O_WRONLY);
+			if (fd >= 0) {
+				close(STDOUT_FILENO);
+				close(STDERR_FILENO);
+				dup2(fd, STDOUT_FILENO);
+				dup2(fd, STDERR_FILENO);
+			}
 			if (use_shell && execlp(SHELL, SHELL, "-c",
 			    ccmd, NULL) < 0) {
 				perror("execlp");
