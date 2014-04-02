@@ -16,6 +16,7 @@
 * added logo, drawings, tools and more doc
 * added pointer following support
 * added 'or' and 'equals' checks support
+* faster reaction to user input (sleep_sec_unless_input())
 
 0.1.0 (basic release)
 * implemented compilation by autotools

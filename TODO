@@ -10,7 +10,7 @@ Config files:
 + support vector and list pointers to take over a dynamic structure in memory
 
 Options:
-+ support common linux options (-V, -v, ...)
++ support common linux options (-V, -v, -q, ...)
 + support option to enable external control
 
 External control (using ugtrain as backend):
@@ -19,7 +19,7 @@ External control (using ugtrain as backend):
 Multi-platform support:
 + support Windows as well
 + write getch functions for Windows
-+ add Windows support for memory changing (KeStackAttachProcess)
++ add Windows support for memory changing (OpenProcess, Read/WriteProcessMemory)
 + support mingw compilation
 + implement arbitrary command execution helpers for Windows
 + check boost libraries for help with that
@@ -29,7 +29,6 @@ Multi-platform support:
 Trainer:
 + support list and vector processing (hook 'memmove' as well)
 + support external control (start/stop freezing)
-+ simplify dyn. mem. discovery and adaption
 
 Documentation:
 + create man pages
