@@ -14,6 +14,7 @@
  * GNU General Public License for more details.
  */
 
+#include <unistd.h>
 #include <fcntl.h>
 
 // local includes
