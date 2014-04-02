@@ -90,10 +90,10 @@ static void usage()
 	exit(-1);
 }
 
-/* use non-printable but 1 is reservered */
+/* use non-printable starting at > 8-bit char table */
 enum {
-	PRE_CMD_CHAR = 2,
-	GLC_CHAR,
+	PreCmd = 300,
+	Glc,
 };
 
 static const char short_options[] = "-hAD:P::S";
@@ -103,8 +103,8 @@ static struct option long_options[] = {
 	{"discover",       1, 0, 'D'},
 	{"preload",        2, 0, 'P'},
 	{"scanmem",        0, 0, 'S'},
-	{"pre-cmd",        1, 0, PRE_CMD_CHAR },
-	{"glc",            2, 0, GLC_CHAR },
+	{"pre-cmd",        1, 0, PreCmd },
+	{"glc",            2, 0, Glc },
 	{0, 0, 0, 0}
 };
 
@@ -156,10 +156,10 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 		case 'S':
 			opt->run_scanmem = true;
 			break;
-		case PRE_CMD_CHAR:
+		case PreCmd:
 			opt->pre_cmd = optarg;
 			break;
-		case GLC_CHAR:
+		case Glc:
 			if (optind == argc || !optarg)
 				opt->pre_cmd = "";
 			else
@@ -173,7 +173,7 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 				case 'P':
 					opt->preload_lib = argv[optind - 1];
 					break;
-				case GLC_CHAR:
+				case Glc:
 					opt->pre_cmd = argv[optind - 1];
 					break;
 				default:
