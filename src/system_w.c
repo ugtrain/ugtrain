@@ -20,6 +20,11 @@
 #include "system.h"
 
 
+void *get_code_offs (pid_t pid, char *proc_name)
+{
+	return NULL;
+}
+
 /*
  * Run a task in background.
  *

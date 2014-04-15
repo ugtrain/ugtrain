@@ -42,8 +42,10 @@ typedef unsigned long ulong;
 typedef ulong ptr_t;
 
 // Common defines
-#define GBT_CMD   "gbt"  /* GNU backtrace() activation cmd */
-#define MAX_GNUBT 3      /* for GNU backtrace() */
+#define GBT_CMD     "gbt"  /* GNU backtrace() activation cmd */
+#define MAX_GNUBT   3      /* for GNU backtrace() */
+#define PRELOAD_VAR "LD_PRELOAD"
+#define UGT_GAME_PROC_NAME     "UGT_GAME_PROC_NAME"
 
 // for Windows as not in limits.h
 #ifndef PIPE_BUF

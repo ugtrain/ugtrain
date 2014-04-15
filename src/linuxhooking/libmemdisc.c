@@ -1,6 +1,6 @@
 /* libmemdisc.c:    discovery of an unique malloc call
  *
- * Copyright (c) 2013, by:      Sebastian Riemer
+ * Copyright (c) 2013..14, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
@@ -31,6 +31,7 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
+#include "libcommon.h"
 #include "../common.h"
 
 #define PFX "[memdisc] "
@@ -41,11 +42,6 @@
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 #define MAX_BT 11   /* for reverse stack search only */
-
-#define DEBUG 0
-#if !DEBUG
-	#define printf(...) do { } while (0);
-#endif
 
 /*
  * Ask gcc for the current stack frame pointer.
@@ -92,6 +88,10 @@ extern void *__libc_stack_end;
    don't work here */
 extern char *__progname;
 
+/* For PIE (position independent executable) we have to determine
+   the code start in memory and use it as an offset. */
+static void *code_offs = NULL;
+
 /* relevant start and end code addresses of .text segment */
 static void *bt_saddr = NULL, *bt_eaddr = NULL;
 
@@ -117,21 +117,21 @@ struct cfg {
 };
 typedef struct cfg cfg_s;
 
-cfg_s ptr_cfg;
+static cfg_s ptr_cfg;
 
 
 #define READ_STAGE_CFG()  \
 	rbytes = read(ifd, ibuf + ioffs, sizeof(ibuf) - ioffs); \
 	if (rbytes <= 0) { \
-		fprintf(stderr, PFX "Can't read config for stage %c, " \
+		pr_err("Can't read config for stage %c, " \
 			"disabling output.\n", ibuf[0]); \
 		return; \
 	}
 
-/* prepare memory hacking on library load */
+/* prepare memory discovery upon library load */
 void __attribute ((constructor)) memdisc_init (void)
 {
-	char *proc_name, *expected;
+	char *proc_name = NULL, *expected = NULL;
 	ssize_t rbytes;
 	i32 read_tries, ioffs = 0;
 	char *iptr;
@@ -140,13 +140,17 @@ void __attribute ((constructor)) memdisc_init (void)
 	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
 
 	/* only care for the game process (ignore shell and others) */
-	expected = getenv("UGT_GAME_PROC_NAME");
+	expected = getenv(UGT_GAME_PROC_NAME);
 	if (expected) {
 		proc_name = __progname;
-		printf("proc_name: %s, exp: %s\n", proc_name, expected);
+		pr_dbg("proc_name: %s, exp: %s\n", proc_name, expected);
 		if (strcmp(expected, proc_name) != 0)
 			return;
 	}
+
+	/* We are preloaded into the right process - stop preloading us!
+	   This also hides our presence from the game. ;-) */
+	rm_from_env(PRELOAD_VAR, "libmemdisc", ':');
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
@@ -154,14 +158,14 @@ void __attribute ((constructor)) memdisc_init (void)
 	if (active)
 		return;
 
-	fprintf(stdout, PFX "Stack end:  %p\n", __libc_stack_end);
+	pr_out("Stack end:  %p\n", __libc_stack_end);
 	/*
 	 * Don't you dare call malloc for another purpose in this lib!
 	 * We can only do this safely as (active == false).
 	 */
 	heap_start = malloc(1);
 	if (heap_start) {
-		fprintf(stdout, PFX "Heap start: %p\n", heap_start);
+		pr_out("Heap start: %p\n", heap_start);
 		heap_saddr = heap_eaddr = heap_start;
 		free(heap_start);
 	}
@@ -171,15 +175,15 @@ void __attribute ((constructor)) memdisc_init (void)
 		perror(PFX "open input");
 		exit(1);
 	}
-	printf(PFX "ifd: %d\n", ifd);
+	pr_dbg("ifd: %d\n", ifd);
 
-	printf(PFX "Waiting for output FIFO opener..\n");
+	pr_out("Waiting for output FIFO opener..\n");
 	ofile = fopen(DYNMEM_OUT, "w");
 	if (!ofile) {
 		perror(PFX "fopen output");
 		exit(1);
 	}
-	printf(PFX "ofile: %p\n", ofile);
+	pr_dbg("ofile: %p\n", ofile);
 
 	for (read_tries = 5; ; --read_tries) {
 		rbytes = read(ifd, ibuf, 2);
@@ -193,6 +197,7 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	fprintf(ofile, "h%p\n", heap_start);
 
+	memset(&ptr_cfg, 0, sizeof(ptr_cfg));
 	if (ibuf[0] == 'p') {
 		READ_STAGE_CFG();
 		if (sscanf(ibuf + ioffs, "%zd;%p;%p;%p", &ptr_cfg.mem_size,
@@ -206,11 +211,11 @@ void __attribute ((constructor)) memdisc_init (void)
 		ioffs = (ptr_t) iptr + 2;
 		discover_ptr = true;
 
-		printf(PFX "ibuf: %s\n", ibuf);
-		printf(PFX "ioffs; %d\n", ioffs);
-		printf(PFX "ptr_cfg: %zd;%p;%p;%p\n", ptr_cfg.mem_size,
-		       ptr_cfg.code_addr, ptr_cfg.stack_offs,
-		       ptr_cfg.ptr_offs);
+		pr_dbg("ibuf: %s\n", ibuf);
+		pr_dbg("ioffs; %d\n", ioffs);
+		pr_dbg("ptr_cfg: %zd;%p;%p;%p\n", ptr_cfg.mem_size,
+			ptr_cfg.code_addr, ptr_cfg.stack_offs,
+			ptr_cfg.ptr_offs);
 	} else if (ibuf[0] >= '1' && ibuf[0] <= '5') {
 		READ_STAGE_CFG();
 		ioffs = 0;
@@ -231,9 +236,8 @@ void __attribute ((constructor)) memdisc_init (void)
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 1;
-			active = true;
-			printf(PFX "stage 1 cfg: %p;%p\n", heap_soffs,
-			       heap_eoffs);
+			pr_dbg("stage 1 cfg: %p;%p\n", heap_soffs,
+				heap_eoffs);
 		} else {
 			goto parse_err;
 		}
@@ -255,9 +259,8 @@ void __attribute ((constructor)) memdisc_init (void)
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 2;
-			active = true;
-			printf(PFX "stage 2 cfg: %p;%p;%zd\n", heap_soffs,
-			       heap_eoffs, malloc_size);
+			pr_dbg("stage 2 cfg: %p;%p;%zd\n", heap_soffs,
+				heap_eoffs, malloc_size);
 		} else {
 			goto parse_err;
 		}
@@ -292,13 +295,12 @@ void __attribute ((constructor)) memdisc_init (void)
 			if (malloc_size < 1)
 				use_gbt = false;
 			if (use_gbt)
-				fprintf(stdout, PFX "Using GNU backtrace(). "
+				pr_out("Using GNU backtrace(). "
 					"This might crash with SIGSEGV!\n");
 			stage = 3;
-			active = true;
-			printf(PFX "stage 3 cfg: %p;%p;%zd;%p;%p\n",
-			       heap_soffs, heap_eoffs, malloc_size,
-			       bt_saddr, bt_eaddr);
+			pr_dbg("stage 3 cfg: %p;%p;%zd;%p;%p\n",
+				heap_soffs, heap_eoffs, malloc_size,
+				bt_saddr, bt_eaddr);
 		} else {
 			goto parse_err;
 		}
@@ -328,10 +330,9 @@ void __attribute ((constructor)) memdisc_init (void)
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
 			stage = 4;
-			active = true;
-			printf(PFX "stage 4 cfg: %p;%p;%zd;%p;%p;%p\n",
-			       heap_soffs, heap_eoffs, malloc_size,
-			       bt_saddr, bt_eaddr, code_addr);
+			pr_dbg("stage 4 cfg: %p;%p;%zd;%p;%p;%p\n",
+				heap_soffs, heap_eoffs, malloc_size,
+				bt_saddr, bt_eaddr, code_addr);
 		} else {
 			goto parse_err;
 		}
@@ -344,13 +345,37 @@ void __attribute ((constructor)) memdisc_init (void)
 	if (heap_eaddr <= heap_saddr)
 		heap_eaddr = (void *) -1UL;
 
+	/* PIE: handle code address offset */
+	if (proc_name)
+		code_offs = get_code_offs(-1, proc_name);
+	if (code_offs) {
+		pr_dbg("PIE (position independent executable) "
+			"detected!\n");
+		bt_saddr = PTR_ADD(void *, code_offs, bt_saddr);
+		bt_eaddr = PTR_ADD(void *, code_offs, bt_eaddr);
+		if (code_addr)
+			code_addr = PTR_ADD(void *, code_offs, code_addr);
+	}
+	pr_out("Code offset: %p\n", code_offs);
+
+	if (stage > 0 && stage <= 5)
+		active = true;
 	return;
 read_err:
-	fprintf(stderr, PFX "Can't read config, disabling output.\n");
+	pr_err("Can't read config, disabling output.\n");
 	return;
 parse_err:
-	fprintf(stderr, PFX "Error while discovery input parsing! Ignored.\n");
+	pr_err("Error while discovery input parsing! Ignored.\n");
 	return;
+}
+
+/* clean up upon library unload */
+void __attribute ((destructor)) memdisc_exit (void)
+{
+	if (ofile) {
+		fflush(ofile);
+		fclose(ofile);
+	}
 }
 
 /*
@@ -387,7 +412,7 @@ static void get_ptr_to_heap (size_t size, void *mem_addr, void *ffp,
 	}
 }
 
-#if DEBUG && 0
+#if DEBUG_MEM && 0
 /* debugging for stack backtracing */
 static void dump_stack_raw (void *ffp)
 {
@@ -444,12 +469,14 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
 			    (code_addr == NULL ||
 			     code_ptr == code_addr)) {
 				*obuf_offs += sprintf(obuf + *obuf_offs,
-					";c%p;o%p", code_ptr,
+					";c%p;o%p",
+					PTR_SUB(void *, code_ptr, code_offs),
 					(void *) (offs - ffp));
 				found = true;
 			} else if (stage == 3) {
 				*obuf_offs += sprintf(obuf + *obuf_offs,
-					";c%p", code_ptr);
+					";c%p",
+					PTR_SUB(void *, code_ptr, code_offs));
 				found = true;
 			}
 			i++;
@@ -473,7 +500,8 @@ static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 		for (i = 1; i < num_taddr; i++) {
 			if (trace[i] >= bt_saddr && trace[i] <= bt_eaddr) {
 				*obuf_offs += sprintf(obuf + *obuf_offs,
-					";c%p", trace[i]);
+					";c%p",
+					PTR_SUB(void *, trace[i], code_offs));
 				found = true;
 			}
 		}
@@ -494,8 +522,8 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 	bool found;
 
 	if (active && mem_addr > heap_saddr && mem_addr < heap_eaddr) {
-		if (malloc_size > 0 && size != malloc_size &&
-		    size != ptr_cfg.mem_size)
+		if (size == 0 || (malloc_size > 0 && size != malloc_size &&
+		    size != ptr_cfg.mem_size))
 			goto out;
 		obuf_offs = sprintf(obuf, "m%p;s%zd", mem_addr, size);
 
@@ -513,7 +541,9 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 
 		if (discover_ptr)
 			get_ptr_to_heap(size, mem_addr, ffp, obuf, &obuf_offs);
-
+#if DEBUG_MEM
+		pr_out("%s", obuf);
+#endif
 		wbytes = fprintf(ofile, "%s", obuf);
 		if (wbytes < 0) {
 			//perror(PFX "fprintf");
@@ -627,7 +657,9 @@ void free (void *ptr)
 		if (stage > 1)
 			goto out;
 		sprintf(obuf, "f%p\n", ptr);
-
+#if DEBUG_MEM
+		pr_out("f%p\n", ptr);
+#endif
 		wbytes = fprintf(ofile, "%s", obuf);
 		if (wbytes < 0) {
 			//perror(PFX "fprintf");

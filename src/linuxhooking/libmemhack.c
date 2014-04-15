@@ -1,6 +1,6 @@
 /* libmemhack.c:    hacking of unique malloc calls (used by ugtrain)
  *
- * Copyright (c) 2013, by:      Sebastian Riemer
+ * Copyright (c) 2013..14, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
@@ -31,6 +31,7 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
+#include "libcommon.h"
 #include "../common.h"
 
 #define PFX "[memhack] "
@@ -43,11 +44,6 @@
 
 #define PTR_INVAL (void *) 1
 #define NUM_CFG_PAGES sizeof(long) * 1
-
-#define DEBUG 0
-#if !DEBUG
-	#define printf(...) do { } while (0);
-#endif
 
 /*
  * Ask gcc for the current stack frame pointer.
@@ -66,8 +62,30 @@
  */
 static __thread bool no_hook = false;
 
+/* File descriptors and output buffer */
+static i32 ofd = -1, ifd = -1;
+static char obuf[BUF_SIZE];
+
+/* Output control */
+static bool active = false;
+
+/* Stack check */
+/* This is a global variable set at program start time. It marks the
+   greatest used stack address. */
+extern void *__libc_stack_end;
+
+/* ask libc for our process name as 'argv[0]' and 'getenv("_")'
+   don't work here */
+extern char *__progname;
+
+/* For PIE (position independent executable) we have to determine
+   the code start in memory and use it as an offset. */
+static void *code_offs = NULL;
+
 /*
  * ATTENTION: GNU backtrace() might crash with SIGSEGV!
+ *
+ * So use it if explicitly requested only.
  */
 static bool use_gbt = false;
 
@@ -89,24 +107,6 @@ typedef struct cfg cfg_s;
  */
 cfg_s *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(cfg_s *)] = { NULL };
 
-/* File descriptors and output buffer */
-static i32 ofd = -1, ifd = -1;
-static char obuf[BUF_SIZE];
-
-/* Output control */
-static bool active = false;
-
-/* Stack check */
-/*
- * This is a global variable set at program start time. It marks the
- * highest used stack address.
- */
-extern void *__libc_stack_end;
-
-/* ask libc for our process name as 'argv[0]' and 'getenv("_")'
-   don't work here */
-extern char *__progname;
-
 
 #define SET_IBUF_OFFS(count, i) \
 	for (i = 0; i < count; ibuf_offs++) { \
@@ -117,7 +117,7 @@ extern char *__progname;
 /* prepare memory hacking upon library load */
 void __attribute ((constructor)) memhack_init (void)
 {
-	char *proc_name, *expected;
+	char *proc_name = NULL, *expected = NULL;
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
 	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
@@ -126,13 +126,17 @@ void __attribute ((constructor)) memhack_init (void)
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 
 	/* only care for the game process (ignore shell and others) */
-	expected = getenv("UGT_GAME_PROC_NAME");
+	expected = getenv(UGT_GAME_PROC_NAME);
 	if (expected) {
 		proc_name = __progname;
-		printf("proc_name: %s, exp: %s\n", proc_name, expected);
+		pr_dbg("proc_name: %s, exp: %s\n", proc_name, expected);
 		if (strcmp(expected, proc_name) != 0)
 			return;
 	}
+
+	/* We are preloaded into the right process - stop preloading us!
+	   This also hides our presence from the game. ;-) */
+	rm_from_env(PRELOAD_VAR, "libmemhack", ':');
 
 	sigignore(SIGPIPE);
 	sigignore(SIGCHLD);
@@ -145,15 +149,15 @@ void __attribute ((constructor)) memhack_init (void)
 		perror(PFX "open input");
 		exit(1);
 	}
-	printf(PFX "ifd: %d\n", ifd);
+	pr_dbg("ifd: %d\n", ifd);
 
-	fprintf(stdout, PFX "Waiting for output FIFO opener..\n");
+	pr_out("Waiting for output FIFO opener..\n");
 	ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (ofd < 0) {
 		perror(PFX "open output");
 		exit(1);
 	}
-	printf(PFX "ofd: %d\n", ofd);
+	pr_dbg("ofd: %d\n", ofd);
 
 	for (read_tries = 5; ; --read_tries) {
 		rbytes = read(ifd, ibuf, sizeof(ibuf));
@@ -172,7 +176,7 @@ void __attribute ((constructor)) memhack_init (void)
 	    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
 		use_gbt = true;
 		SET_IBUF_OFFS(1, j);
-		fprintf(stdout, PFX "Using GNU backtrace(). "
+		pr_out("Using GNU backtrace(). "
 			"This might crash with SIGSEGV!\n");
 	}
 	cfg_offs = (num_cfg + 1) * sizeof(cfg_s *);  /* NULL for cfg_s* end */
@@ -184,33 +188,33 @@ void __attribute ((constructor)) memhack_init (void)
 		max_obj /= sizeof(void *) * num_cfg;
 	}
 	if (max_obj <= 1) {
-		fprintf(stderr, PFX "Error: No space for memory addresses!\n");
+		pr_err("Error: No space for memory addresses!\n");
 		goto err;
 	} else {
-		fprintf(stdout, PFX "Using max. %u objects per class.\n",
+		pr_out("Using max. %u objects per class.\n",
 			max_obj - 1);
 	}
 
-	printf(PFX "sizeof(config) = %lu\n", (ulong) sizeof(config));
-	printf(PFX "sizeof(cfg_s) = %lu\n", (ulong) sizeof(cfg_s));
+	pr_dbg("sizeof(config) = %lu\n", (ulong) sizeof(config));
+	pr_dbg("sizeof(cfg_s) = %lu\n", (ulong) sizeof(cfg_s));
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
 		config[i] = PTR_ADD2(cfg_s *, config, cfg_offs,
 			i * sizeof(cfg_s));
 
-		printf(PFX "&config[%u] pos = %lu\n", i,
+		pr_dbg("&config[%u] pos = %lu\n", i,
 			(ulong) PTR_SUB(void *, &config[i], config));
-		printf(PFX "config[%u] pos = %lu\n", i,
+		pr_dbg("config[%u] pos = %lu\n", i,
 			(ulong) PTR_SUB(void *, config[i], config));
-		printf(PFX "config[%u] end pos = %lu\n", i,
+		pr_dbg("config[%u] end pos = %lu\n", i,
 			(ulong)((ptr_t) config[i] + sizeof(cfg_s) -
 				(ptr_t) config));
 
 		if ((ptr_t) config[i] + sizeof(cfg_s) - (ptr_t) config
 		    > sizeof(config) || ibuf_offs >= BUF_SIZE) {
 			/* config doesn't fit */
-			fprintf(stderr, PFX "Config buffer too small!\n");
+			pr_err("Config buffer too small!\n");
 			goto err;
 		}
 		scanned = sscanf(ibuf + ibuf_offs, "%zd;%p",
@@ -232,9 +236,9 @@ void __attribute ((constructor)) memhack_init (void)
 			i * max_obj * sizeof(void *));
 
 		/* debug mem_addrs pointer */
-		printf(PFX "config[%u]->mem_addrs pos = %lu\n", i,
+		pr_dbg("config[%u]->mem_addrs pos = %lu\n", i,
 			(ulong) PTR_SUB(void *, config[i]->mem_addrs, config));
-		printf(PFX "config[%u]->mem_addrs end pos = %lu\n", i,
+		pr_dbg("config[%u]->mem_addrs end pos = %lu\n", i,
 			(ulong) PTR_SUB(void *, config[i]->mem_addrs, config) +
 			(ulong) (max_obj * sizeof(void *)));
 
@@ -250,23 +254,35 @@ void __attribute ((constructor)) memhack_init (void)
 		goto err;
 
 	/* debug config */
-	printf(PFX "num_cfg: %u, cfg_offs: %u\n", num_cfg, cfg_offs);
+	pr_dbg("num_cfg: %u, cfg_offs: %u\n", num_cfg, cfg_offs);
 	for (i = 0; config[i] != NULL; i++) {
-		fprintf(stdout, PFX "config[%u]: mem_size: %zd; "
+		pr_out("config[%u]: mem_size: %zd; "
 			"code_addr: %p; stack_offs: %p\n", i,
 			config[i]->mem_size, config[i]->code_addr,
 			config[i]->stack_offs);
 	}
+
+	/* PIE: handle code address offset */
+	if (proc_name)
+		code_offs = get_code_offs(-1, proc_name);
+	if (code_offs) {
+		pr_dbg("PIE (position independent executable) "
+			"detected!\n");
+		for (i = 0; i < num_cfg; i++)
+			config[i]->code_addr = PTR_ADD(void *,
+				code_offs, config[i]->code_addr);
+	}
+	pr_out("Code offset: %p\n", code_offs);
 
 	if (num_cfg > 0)
 		active = true;
 	return;
 
 read_err:
-	fprintf(stderr, PFX "Can't read config, disabling output.\n");
+	pr_err("Can't read config, disabling output.\n");
 	return;
 err:
-	fprintf(stderr, PFX "Error while reading config!\n");
+	pr_err("Error while reading config!\n");
 	return;
 }
 
@@ -307,10 +323,12 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 			    (ptr_t) config[i]->code_addr)
 				continue;
 found:
-			printf(PFX "malloc: mem_addr: %p, code_addr: %p\n",
-				mem_addr, config[i]->code_addr);
+			pr_dbg("malloc: mem_addr: %p, code_addr: %p\n",
+				mem_addr, PTR_SUB(void *, config[i]->code_addr,
+				code_offs));
 			wbytes = sprintf(obuf, "m%p;c%p\n",
-				mem_addr, config[i]->code_addr);
+				mem_addr, PTR_SUB(void *, config[i]->code_addr,
+				code_offs));
 
 			wbytes = write(ofd, obuf, wbytes);
 			if (wbytes < 0) {
@@ -436,7 +454,7 @@ void free (void *ptr)
 			}
 			continue;
 found:
-			printf(PFX "free: mem_addr: %p\n", ptr);
+			pr_dbg("free: mem_addr: %p\n", ptr);
 			wbytes = sprintf(obuf, "f%p\n", ptr);
 
 			wbytes = write(ofd, obuf, wbytes);

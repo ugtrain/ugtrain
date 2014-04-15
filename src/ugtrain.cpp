@@ -434,6 +434,31 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	}
 }
 
+static void handle_pie (pid_t pid, char *proc_name, list<CfgEntry> *cfg)
+{
+	void *code_offs = NULL;
+	list<CfgEntry>::iterator it;
+	list<CheckEntry> *chk_lp;
+	list<CheckEntry>::iterator chk_it;
+
+	code_offs = get_code_offs(pid, proc_name);
+	if (!code_offs)
+		return;
+	cout << "PIE (position independent executable) "
+		"detected!" << endl;
+	cout << "PIE: code offset: " << code_offs << endl;
+	list_for_each (cfg, it) {
+		if (it->dynmem || it->ptrmem)
+			continue;
+		it->addr = PTR_ADD(void *, code_offs, it->addr);
+		if (!it->checks)
+			continue;
+		chk_lp = it->checks;
+		list_for_each (chk_lp, chk_it)
+			chk_it->addr = PTR_ADD(void *, code_offs, chk_it->addr);
+	}
+}
+
 /*
  * The function run_pgrp_bg() is so hacky OS security
  * bypassing so that it is not possible to wait for the
@@ -840,6 +865,8 @@ prepare_dynmem:
 		cerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;
 		return -1;
 	}
+
+	handle_pie(pid, opt->proc_name, cfg);
 
 	while (true) {
 		sleep_sec_unless_input(1);

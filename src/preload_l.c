@@ -27,9 +27,6 @@
 #include <string.h>
 #include "preload.h"
 
-/* env var to be added */
-#define PRELOAD_VAR "LD_PRELOAD"
-
 
 /*
  * This function has been taken from 'glc' by nullkey aka
@@ -74,7 +71,7 @@ err:
 
 void configure_libmem (struct app_options *opt)
 {
-	setenv("UGT_GAME_PROC_NAME", opt->proc_name, 1);
+	setenv(UGT_GAME_PROC_NAME, opt->proc_name, 1);
 }
 
 i32 preload_library (char *lib_path)

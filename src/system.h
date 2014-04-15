@@ -43,6 +43,7 @@ extern "C" {
 	bool    pid_is_running (pid_t call_pid, pid_t pid,
 				char *proc_name, bool use_wait);
 	pid_t   fork_proc (void (*task) (void *), void *argp);
+	void    *get_code_offs (pid_t pid, char *proc_name);
 #ifdef __cplusplus
 };
 #endif
