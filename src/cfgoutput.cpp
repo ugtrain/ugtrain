@@ -20,6 +20,50 @@
 #include "cfgoutput.h"
 
 
+static void output_val (struct type *type, value_t value, const char *suffix)
+{
+	if (type->is_float) {
+		if (type->size == 32)
+			cout << value.f32 << suffix;
+		else
+			cout << value.f64 << suffix;
+		goto out;
+	}
+	if (type->is_signed) {
+		switch (type->size) {
+		case 64:
+			cout << value.i64 << suffix;
+			break;
+		case 32:
+			cout << value.i32 << suffix;
+			break;
+		case 16:
+			cout << (i32) value.i16 << suffix;
+			break;
+		default:
+			cout << (i32) value.i8 << suffix;
+			break;
+		}
+	} else {
+		switch (type->size) {
+		case 64:
+			cout << value.u64 << suffix;
+			break;
+		case 32:
+			cout << value.u32 << suffix;
+			break;
+		case 16:
+			cout << (u32) value.u16 << suffix;
+			break;
+		default:
+			cout << (u32) value.u8 << suffix;
+			break;
+		}
+	}
+out:
+	return;
+}
+
 static void output_config_val (CfgEntry *cfg_en)
 {
 	switch (cfg_en->dynval) {
@@ -27,41 +71,37 @@ static void output_config_val (CfgEntry *cfg_en)
 		cout << "(watch)" << endl;
 		break;
 	case DYN_VAL_MIN:
-		cout << cfg_en->value << " (min)" << endl;
+		output_val(&cfg_en->type, cfg_en->value, " (min)");
+		cout << endl;
 		break;
 	case DYN_VAL_MAX:
-		cout << cfg_en->value << " (max)" << endl;
+		output_val(&cfg_en->type, cfg_en->value, " (max)");
+		cout << endl;
 		break;
 	case DYN_VAL_ADDR:
 		if (cfg_en->cfg_ref)
 			cout << cfg_en->cfg_ref->name << endl;
 		else
-			cout << "0x" << hex << cfg_en->value
+			cout << "0x" << hex << cfg_en->value.i64
 				<< " (from addr)" << dec << endl;
 		break;
 	default:
-		cout << cfg_en->value << endl;
+		output_val(&cfg_en->type, cfg_en->value, "");
+		cout << endl;
 		break;
 	}
 }
 
 static void output_config_en (CfgEntry *cfg_en)
 {
-	double tmp_dval;
-
 	if (cfg_en->ptrtgt) {
 		cout << "  " << cfg_en->name << " 0x" << hex << (long) cfg_en->addr << dec
 			<< " " << 8 * sizeof(void *) << "-bit -> "
 			<< cfg_en->ptrtgt->name << endl;
 	} else {
 		cout << "  " << cfg_en->name << " 0x" << hex << (long) cfg_en->addr << dec
-			<< " " << cfg_en->size << "-bit ";
-		if (cfg_en->is_float) {
-			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
-			cout << tmp_dval << endl;
-		} else {
-			output_config_val(cfg_en);
-		}
+			<< " " << cfg_en->type.size << "-bit ";
+		output_config_val(cfg_en);
 	}
 }
 
@@ -79,7 +119,7 @@ static void output_ptrmem (CfgEntry *cfg_en)
 
 static char *get_objcheck_str (CheckEntry *chk_en)
 {
-	return (char *) ((chk_en->is_objcheck) ?" (objcheck)" : "");
+	return (char *) ((chk_en->is_objcheck) ? " (objcheck)" : "");
 }
 
 static char *get_check_op (check_e check)
@@ -108,18 +148,12 @@ static void output_checks (CfgEntry *cfg_en)
 	list<CheckEntry> *chk_lp = cfg_en->checks;
 	list<CheckEntry>::iterator it;
 	u32 i;
-	double tmp_dval;
 	char *check_op = get_check_op(cfg_en->check);
 
 	if (check_op) {
 		cout << "    check 0x" << hex << (long) cfg_en->addr << dec << check_op;
-
-		if (cfg_en->is_float) {
-			memcpy(&tmp_dval, &cfg_en->value, sizeof(i64));
-			cout << tmp_dval << endl;
-		} else {
-			output_config_val(cfg_en);
-		}
+		output_val(&cfg_en->type, cfg_en->value, "");
+		cout << endl;
 	}
 	if (!chk_lp)
 		return;
@@ -134,13 +168,7 @@ static void output_checks (CfgEntry *cfg_en)
 				cout << " ||";
 			check_op = get_check_op(it->check[i]);
 			cout << check_op;
-
-			if (it->is_float) {
-				memcpy(&tmp_dval, &it->value[i], sizeof(i64));
-				cout << tmp_dval << get_objcheck_str(&(*it));
-			} else {
-				cout << it->value[i] << get_objcheck_str(&(*it));
-			}
+			output_val(&it->type, it->value[i], get_objcheck_str(&(*it)));
 		}
 		cout << endl;
 	}

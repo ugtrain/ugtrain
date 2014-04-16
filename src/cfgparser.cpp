@@ -219,32 +219,33 @@ out:
 	return ret;
 }
 
-static i32 parse_data_type (string *line, u32 lnr, u32 *start,
-			    bool *is_signed, bool *is_float)
+static void parse_data_type (string *line, u32 lnr, u32 *start,
+			     struct type *type)
 {
 	u32 lidx;
-	i32 ret = 32;
 
+	type->size = 32;
 	lidx = *start;
 	if (lidx + 2 > line->length())
 		cfg_parse_err(line, lnr, --lidx);
 	switch (line->at(lidx)) {
 	case 'u':
-		*is_signed = false;
-		*is_float = false;
+		type->is_signed = false;
+		type->is_float = false;
 		break;
 	case 'i':
-		*is_signed = true;
-		*is_float = false;
+		type->is_signed = true;
+		type->is_float = false;
 		break;
 	case 'f':
-		*is_signed = true;
-		*is_float = true;
+		type->is_signed = true;
+		type->is_float = true;
 		break;
 	case 'p':
 		lidx += 2;
 		*start = lidx;
-		return 0;
+		type->size = 0;
+		return;
 	default:
 		cfg_parse_err(line, lnr, --lidx);
 		break;
@@ -253,9 +254,10 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
 	*start = ++lidx;
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ' ') {
-			ret = atoi(string(*line,
+			type->size = atoi(string(*line,
 			  *start, lidx - *start).c_str());
-			if (*is_float && (ret != 32 && ret != 64))
+			if (type->is_float &&
+			    (type->size != 32 && type->size != 64))
 				cfg_parse_err(line, lnr, lidx);
 			break;
 		} else if (!isdigit(line->at(lidx))) {
@@ -263,36 +265,35 @@ static i32 parse_data_type (string *line, u32 lnr, u32 *start,
 		}
 	}
 	*start = ++lidx;
-	return ret;
 }
 
 /*
  * This function parses a signed/unsigned integer or a float/double value
  * from the config and also determines if a check is wanted. Dynamic wish
  * values are also possible.
- *
- * Attention: Hacky floats. A float has 4 bytes, a double has 8 bytes
- *            and i64 has 8 bytes. Why not copy the float/double into the i64?!
- *            We always parse floats as doubles here.
  */
-static i64 parse_value (string *line, u32 lnr, u32 *start,
-			list<CfgEntry> *cfg, CfgEntry *cfg_en, CheckEntry *chk_en,
-			dynval_e *dynval, check_e *check, u32 i)
+static value_t parse_value (string *line, u32 lnr, u32 *start,
+			    list<CfgEntry> *cfg, CfgEntry *cfg_en, CheckEntry *chk_en,
+			    dynval_e *dynval, check_e *check, u32 i)
 {
 	u32 lidx;
-	i64 ret = 0;
-	double tmp_dval;
-	bool is_signed = false, is_float = false;
+	value_t ret;
+	i64 tmp_i64;
+	u64 tmp_u64;
 	bool dynval_detected = false;
 	string tmp_str;
+	struct type __type, *type = &__type;
 
-	if (cfg_en) {
-		is_signed = cfg_en->is_signed;
-		is_float = cfg_en->is_float;
-	} else if (chk_en) {
-		is_signed = chk_en->is_signed;
-		is_float = chk_en->is_float;
-	}
+	/* init */
+	__type.is_float = false;
+	__type.is_signed = false;
+	__type.size = 32;
+	ret.i64 = 0;
+
+	if (cfg_en)
+		type = &cfg_en->type;
+	else if (chk_en)
+		type = &chk_en->type;
 
 	lidx = *start;
 	if (!check)
@@ -303,7 +304,7 @@ static i64 parse_value (string *line, u32 lnr, u32 *start,
 		if (i == 0)
 			cfg_parse_err(line, lnr, --lidx);
 		*check = CHECK_END;
-		return 0;
+		return ret;
 	}
 	if (line->at(lidx) == 'l' && line->at(lidx + 1) == ' ') {
 		*check = CHECK_LT;
@@ -325,7 +326,7 @@ skip_check:
 		if (line->at(lidx) == ' ') {
 			break;
 		} else if (!isdigit(line->at(lidx)) && line->at(*start) != '-' &&
-		    !(is_float && line->at(lidx) == '.')) {
+		    !(type->is_float && line->at(lidx) == '.')) {
 			if (!dynval || !isalpha(line->at(lidx)))
 				cfg_parse_err(line, lnr, lidx);
 			else
@@ -340,7 +341,7 @@ skip_check:
 			*dynval = DYN_VAL_MIN;
 		} else if (tmp_str.substr(0, 2) == "0x") {
 			*dynval = DYN_VAL_ADDR;
-			if (sscanf(tmp_str.c_str(), "%p", (void **) &ret) != 1)
+			if (sscanf(tmp_str.c_str(), "%p", &ret.ptr) != 1)
 				cfg_parse_err(line, lnr, lidx);
 		} else if (tmp_str == "watch") {
 			*dynval = DYN_VAL_WATCH;
@@ -360,20 +361,58 @@ skip_check:
 		goto out;
 
 	}
-	if (is_float) {
-		tmp_dval = strtod(string(*line, *start,
-			lidx - *start).c_str(), NULL);
-		memcpy(&ret, &tmp_dval, sizeof(i64));  // hacky double to hex
-	} else if (is_signed) {
-		ret = strtoll(string(*line,
+	if (type->is_float) {
+		if (type->size == 32)
+			ret.f32 = strtof(string(*line, *start,
+				lidx - *start).c_str(), NULL);
+		else
+			ret.f64 = strtod(string(*line, *start,
+				lidx - *start).c_str(), NULL);
+	} else if (type->is_signed) {
+		tmp_i64 = strtoll(string(*line,
 			*start, lidx - *start).c_str(), NULL, 10);
+		switch (type->size) {
+		case 64:
+			ret.i64 = tmp_i64;
+			break;
+		case 32:
+			ret.i32 = (i32) tmp_i64;
+			break;
+		case 16:
+			ret.i16 = (i16) tmp_i64;
+			break;
+		default:
+			ret.i8 = (i8) tmp_i64;
+			break;
+		}
 	} else {
-		ret = strtoull(string(*line,
+		tmp_u64 = strtoull(string(*line,
 			*start, lidx - *start).c_str(), NULL, 10);
+		switch (type->size) {
+		case 64:
+			ret.u64 = tmp_u64;
+			break;
+		case 32:
+			ret.u32 = (u32) tmp_u64;
+			break;
+		case 16:
+			ret.u16 = (u16) tmp_u64;
+			break;
+		default:
+			ret.u8 = (u8) tmp_u64;
+			break;
+		}
 	}
 out:
 	*start = ++lidx;
 	return ret;
+}
+
+static u32 parse_u32_value (string *line, u32 lnr, u32 *start)
+{
+	value_t value = parse_value(line, lnr, start, NULL, NULL, NULL, NULL, NULL, 0);
+
+	return value.u32;
 }
 
 static void parse_key_bindings (string *line, u32 lnr, u32 *start,
@@ -486,8 +525,7 @@ void read_config (struct app_options *opt,
 			chk_lp = cfg_enp->checks;
 			chk_en.cfg_ref = NULL;
 			chk_en.addr = parse_address(cfg, &chk_en, &line, lnr, &start);
-			chk_en.size = parse_data_type(&line, lnr, &start,
-				&chk_en.is_signed, &chk_en.is_float);
+			parse_data_type(&line, lnr, &start, &chk_en.type);
 			for (i = 0; i < MAX_CHK_VALS; i++)
 				chk_en.value[i] = parse_value(&line, lnr, &start, cfg,
 					NULL, &chk_en, NULL, &chk_en.check[i], i);
@@ -502,8 +540,7 @@ void read_config (struct app_options *opt,
 			dynmem_enp = new DynMemEntry();
 			dynmem_enp->name = parse_value_name(&line, lnr,
 				&start, NULL);
-			dynmem_enp->mem_size = parse_value(&line, lnr,
-				&start, NULL, NULL, NULL, NULL, NULL, 0);
+			dynmem_enp->mem_size = parse_u32_value(&line, lnr, &start);
 			dynmem_enp->code_addr = parse_address(cfg, NULL, &line, lnr, &start);
 			dynmem_enp->stack_offs = parse_address(cfg, NULL, &line, lnr, &start);
 			dynmem_enp->v_maddr.clear();
@@ -526,8 +563,8 @@ void read_config (struct app_options *opt,
 			ptrmem_enp = new PtrMemEntry();
 			ptrmem_enp->name = parse_value_name(&line, lnr,
 				&start, NULL);
-			ptrmem_enp->mem_size = parse_value(&line, lnr,
-				&start, NULL, NULL, NULL, NULL, NULL, 0);
+			ptrmem_enp->mem_size = parse_u32_value(&line, lnr,
+				&start);
 			break;
 
 		case NAME_PTRMEM_END:
@@ -559,8 +596,7 @@ void read_config (struct app_options *opt,
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
-			if (parse_value(&line, lnr, &start,
-					NULL, NULL, NULL, NULL, NULL, 0))
+			if (parse_u32_value(&line, lnr, &start))
 				opt->adp_required = true;
 			opt->adp_req_line = lnr;
 			break;
@@ -632,9 +668,8 @@ void read_config (struct app_options *opt,
 			cfg_en.dynval = DYN_VAL_OFF;
 			cfg_en.cfg_ref = NULL;
 			cfg_en.addr = parse_address(cfg, NULL, &line, lnr, &start);
-			cfg_en.size = parse_data_type(&line, lnr, &start,
-				&cfg_en.is_signed, &cfg_en.is_float);
-			if (!cfg_en.size) {
+			parse_data_type(&line, lnr, &start, &cfg_en.type);
+			if (!cfg_en.type.size) {
 				tmp_str = parse_value_name(&line, lnr, &start, NULL);
 				cfg_en.ptrtgt = find_ptr_mem(cfg, &tmp_str);
 				if (!cfg_en.ptrtgt)
@@ -650,7 +685,7 @@ void read_config (struct app_options *opt,
 			cfg_en.value = parse_value(&line, lnr, &start, cfg, &cfg_en,
 				NULL, &cfg_en.dynval, &cfg_en.check, 0);
 			if (cfg_en.dynval == DYN_VAL_ADDR)
-				cfg_en.val_addr = (void *) cfg_en.value;
+				cfg_en.val_addr = cfg_en.value.ptr;
 			if (in_dynmem)
 				cfg_en.dynmem = dynmem_enp;
 			else

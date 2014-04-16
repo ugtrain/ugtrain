@@ -22,13 +22,16 @@ static void alloc_ptrmem (CfgEntry *cfg_en)
 {
 	list<CfgEntry*> *cfg = &cfg_en->ptrtgt->cfg;
 	list<CfgEntry*>::iterator it;
+	value_t def_val;
+
+	def_val.i64 = 0;
 
 	cfg_en->ptrtgt->v_state.push_back(PTR_INIT);
 	cfg_en->ptrtgt->v_offs.push_back(0);
 
 	list_for_each (cfg, it) {
 		cfg_en = *it;
-		cfg_en->v_oldval.push_back(0);
+		cfg_en->v_oldval.push_back(def_val);
 	}
 }
 
@@ -37,6 +40,9 @@ void alloc_dynmem (list<CfgEntry> *cfg)
 	list<CfgEntry>::iterator it;
 	CfgEntry *cfg_en;
 	u32 mem_idx;
+	value_t def_val;
+
+	def_val.i64 = 0;
 
 	list_for_each (cfg, it) {
 		cfg_en = &(*it);
@@ -46,7 +52,7 @@ void alloc_dynmem (list<CfgEntry> *cfg)
 		     mem_idx < cfg_en->dynmem->v_maddr.size();
 		     mem_idx++) {
 			if (mem_idx >= cfg_en->v_oldval.size()) {
-				cfg_en->v_oldval.push_back(0);
+				cfg_en->v_oldval.push_back(def_val);
 				if (cfg_en->ptrtgt)
 					alloc_ptrmem(cfg_en);
 			}

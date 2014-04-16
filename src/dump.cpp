@@ -125,10 +125,10 @@ void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 		if (it->dynmem && it->ptrtgt) {
 			obj_id = 0;
 			for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
-				if ((u64)it->v_oldval[obj_id] > 0 &&
+				if (it->v_oldval[obj_id].u64 > 0 &&
 				    it->ptrtgt->v_state[obj_id] >= PTR_SETTLED)
 					dump_ptr_mem(pid, obj_id, ptr_id,
-						     (void *) it->v_oldval[obj_id],
+						     it->v_oldval[obj_id].ptr,
 						     it->ptrtgt->mem_size);
 				obj_id++;
 			}

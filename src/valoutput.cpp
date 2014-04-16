@@ -24,9 +24,7 @@
 static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
 {
 	DynMemEntry *dynmem;
-	double tmp_dval;
-	float  tmp_fval;
-	i32 hexfloat;
+	struct type *type = &cfg_en->type;
 
 	if (cfg_en->ptrmem) {
 		dynmem = cfg_en->ptrmem->dynmem;
@@ -48,26 +46,51 @@ static void output_mem_val (CfgEntry *cfg_en, void *mem_offs, bool is_dynmem)
 		     << ", Data: 0x";
 	}
 
-	if (cfg_en->is_float) {
-		memcpy(&tmp_dval, &cfg_en->old_val, sizeof(i64));
-		if (cfg_en->size == 32) {
-			tmp_fval = (float) tmp_dval;
-			memcpy(&hexfloat, &tmp_fval, sizeof(i32));
-			cout << hex << hexfloat;
+	if (type->is_float) {
+		if (type->size == 32) {
+			cout << hex << cfg_en->old_val.i32 << dec
+			     << " (" << cfg_en->old_val.f32 << ")" << endl;
 		} else {
-			cout << hex << (i64) cfg_en->old_val;
+			cout << hex << cfg_en->old_val.i64 << dec
+			     << " (" << cfg_en->old_val.f64 << ")" << endl;
 		}
-		cout << " (" << dec << tmp_dval << ")" << endl;
 	} else {
-		if (cfg_en->size == 64)
-			cout << hex << (i64) cfg_en->old_val;
+		if (type->size == 64)
+			cout << hex << cfg_en->old_val.i64 << dec;
 		else
-			cout << hex << (i32) cfg_en->old_val;
+			cout << hex << cfg_en->old_val.i32 << dec;
 
-		if (cfg_en->is_signed)
-			cout << " (" << dec << cfg_en->old_val << ")" << endl;
-		else
-			cout << " (" << dec << (u64) cfg_en->old_val << ")" << endl;
+		if (type->is_signed) {
+			switch (type->size) {
+			case 64:
+				cout << " (" << cfg_en->old_val.i64 << ")" << endl;
+				break;
+			case 32:
+				cout << " (" << cfg_en->old_val.i32 << ")" << endl;
+				break;
+			case 16:
+				cout << " (" << (i32) cfg_en->old_val.i16 << ")" << endl;
+				break;
+			default:
+				cout << " (" << (i32) cfg_en->old_val.i8 << ")" << endl;
+				break;
+			}
+		} else {
+			switch (type->size) {
+			case 64:
+				cout << " (" << cfg_en->old_val.u64 << ")" << endl;
+				break;
+			case 32:
+				cout << " (" << cfg_en->old_val.u32 << ")" << endl;
+				break;
+			case 16:
+				cout << " (" << (u32) cfg_en->old_val.u16 << ")" << endl;
+				break;
+			default:
+				cout << " (" << (u32) cfg_en->old_val.u8 << ")" << endl;
+				break;
+			}
+		}
 	}
 }
 

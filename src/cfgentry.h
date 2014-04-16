@@ -1,6 +1,6 @@
 /* cfgentry.h:     classes for config read from a file
  *
- * Copyright (c) 2012..13, by:  Sebastian Riemer
+ * Copyright (c) 2012..14, by:  Sebastian Riemer
  *    All rights reserved.     <sebastian.riemer@gmx.de>
  *
  * powered by the Open Game Cheating Association
@@ -82,6 +82,26 @@ typedef enum {
 	CHECK_END,
 } check_e;
 
+struct type {
+	bool is_signed;
+	bool is_float;
+	i32 size;
+};
+
+typedef union {
+	char		i8;
+	unsigned char	u8;
+	short		i16;
+	unsigned short	u16;
+	int		i32;
+	unsigned int	u32;
+	long long	i64;
+	unsigned long long u64;
+	float		f32;
+	double		f64;
+	void		*ptr;
+} value_t;
+
 #define MAX_CHK_VALS 4  // for "or" checks
 
 class CheckEntry {
@@ -89,25 +109,21 @@ public:
 	void *addr;
 	CfgEntry *cfg_ref;
 	bool is_objcheck;
-	bool is_signed;
-	bool is_float;
-	i32 size;
+	struct type type;
 	check_e check[MAX_CHK_VALS + 1];
-	i64 value[MAX_CHK_VALS + 1];
+	value_t value[MAX_CHK_VALS + 1];
 };
 
 class CfgEntry {
 public:
 	string name;
 	void *addr;
-	bool is_signed;
-	bool is_float;
-	i32 size;
+	struct type type;
 	check_e check;
 	dynval_e dynval;
 	void *val_addr;   // for DYN_VAL_ADDR only
-	i64 value;
-	i64 old_val;      // for static memory only
+	value_t value;
+	value_t old_val;      // for static memory only
 
 	// get value from other cfg entry (DYN_VAL_ADDR)
 	CfgEntry *cfg_ref;
@@ -115,7 +131,7 @@ public:
 	list<CheckEntry> *checks;
 	// dynamic memory
 	DynMemEntry *dynmem;
-	vector<i64> v_oldval;   // old value per object
+	vector<value_t> v_oldval;   // old value per object
 	// pointer memory
 	PtrMemEntry *ptrmem;
 	PtrMemEntry *ptrtgt;
