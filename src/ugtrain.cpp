@@ -59,22 +59,22 @@
 #define DYNMEM_OUT "/tmp/memhack_in"
 
 
-static inline i32 read_memory (pid_t pid, void *mem_addr, u8 *buf, const char *pfx)
+static inline i32 read_memory (pid_t pid, void *mem_addr, value_t *buf, const char *pfx)
 {
 	i32 ret;
 
-	ret = memread(pid, mem_addr, buf, sizeof(i64));
+	ret = memread(pid, mem_addr, buf, sizeof(value_t));
 	if (ret)
 		cerr << pfx << " READ ERROR PID[" << pid << "] ("
 		     << hex << mem_addr << dec << ")!" << endl;
 	return ret;
 }
 
-static inline i32 write_memory (pid_t pid, void *mem_addr, u8 *buf, const char *pfx)
+static inline i32 write_memory (pid_t pid, void *mem_addr, value_t *buf, const char *pfx)
 {
 	i32 ret;
 
-	ret = memwrite(pid, mem_addr, buf, sizeof(i64));
+	ret = memwrite(pid, mem_addr, buf, sizeof(value_t));
 	if (ret)
 		cerr << pfx << " WRITE ERROR PID[" << pid << "] ("
 		     << hex << mem_addr << dec << ")!" << endl;
@@ -83,19 +83,19 @@ static inline i32 write_memory (pid_t pid, void *mem_addr, u8 *buf, const char *
 
 /* returns:  0: check passed,  1: not passed */
 template <typename T>
-static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
+static inline i32 check_mem_val (T read_val, T value, check_e check)
 {
 	i32 ret;
 
 	switch (check) {
 	case CHECK_LT:
-		ret = !(*(T *) chk_buf < value);
+		ret = !(read_val < value);
 		break;
 	case CHECK_GT:
-		ret = !(*(T *) chk_buf > value);
+		ret = !(read_val > value);
 		break;
 	case CHECK_EQ:
-		ret = !(*(T *) chk_buf == value);
+		ret = !(read_val == value);
 		break;
 	default:
 		ret = 0;
@@ -105,42 +105,42 @@ static inline i32 check_mem_val (T value, u8 *chk_buf, check_e check)
 }
 
 /* returns:  0: check passed,  1: not passed */
-static i32 check_memory (CheckEntry *chk_en, u8 *chk_buf, u32 i)
+static i32 check_memory (CheckEntry *chk_en, value_t *chk_buf, u32 i)
 {
 	struct type *type = &chk_en->type;
 
 	if (type->is_float) {
 		switch (type->size) {
 		case 64:
-			return check_mem_val(chk_en->value[i].f64, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->f64, chk_en->value[i].f64, chk_en->check[i]);
 		case 32:
-			return check_mem_val(chk_en->value[i].f32, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->f32, chk_en->value[i].f32, chk_en->check[i]);
 		default:
 			break;
 		}
 	} else if (type->is_signed) {
 		switch (type->size) {
 		case 64:
-			return check_mem_val(chk_en->value[i].i64, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->i64, chk_en->value[i].i64, chk_en->check[i]);
 		case 32:
-			return check_mem_val(chk_en->value[i].i32, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->i32, chk_en->value[i].i32, chk_en->check[i]);
 		case 16:
-			return check_mem_val(chk_en->value[i].i16, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->i16, chk_en->value[i].i16, chk_en->check[i]);
 		case 8:
-			return check_mem_val(chk_en->value[i].i8, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->i8, chk_en->value[i].i8, chk_en->check[i]);
 		default:
 			break;
 		}
 	} else {
 		switch (type->size) {
 		case 64:
-			return check_mem_val(chk_en->value[i].u64, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->u64, chk_en->value[i].u64, chk_en->check[i]);
 		case 32:
-			return check_mem_val(chk_en->value[i].u32, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->u32, chk_en->value[i].u32, chk_en->check[i]);
 		case 16:
-			return check_mem_val(chk_en->value[i].u16, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->u16, chk_en->value[i].u16, chk_en->check[i]);
 		case 8:
-			return check_mem_val(chk_en->value[i].u8, chk_buf, chk_en->check[i]);
+			return check_mem_val(chk_buf->u8, chk_en->value[i].u8, chk_en->check[i]);
 		default:
 			break;
 		}
@@ -149,7 +149,7 @@ static i32 check_memory (CheckEntry *chk_en, u8 *chk_buf, u32 i)
 }
 
 /* returns:  0: one check passed,  1: all not passed */
-static inline i32 or_check_memory (CheckEntry *chk_en, u8 *chk_buf)
+static inline i32 or_check_memory (CheckEntry *chk_en, value_t *chk_buf)
 {
 	i32 ret;
 	u32 i = 0;
@@ -161,7 +161,7 @@ static inline i32 or_check_memory (CheckEntry *chk_en, u8 *chk_buf)
 	return ret;
 }
 
-static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, u8 *buf)
+static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, value_t *buf)
 {
 	DynMemEntry *dynmem;
 
@@ -169,14 +169,14 @@ static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, u8 *buf)
 		dynmem = cfg_ref->dynmem;
 		if (cfg_ref->v_oldval.size() <= 0)
 			goto err;
-		memcpy(buf, &cfg_ref->v_oldval[dynmem->obj_idx], sizeof(i64));
+		*buf = cfg_ref->v_oldval[dynmem->obj_idx];
 	} else if (cfg_ref->ptrmem && cfg_ref->ptrmem->dynmem) {
 		dynmem = cfg_ref->ptrmem->dynmem;
 		if (cfg_ref->v_oldval.size() <= 0)
 			goto err;
-		memcpy(buf, &cfg_ref->v_oldval[dynmem->obj_idx], sizeof(i64));
+		*buf = cfg_ref->v_oldval[dynmem->obj_idx];
 	} else {
-		memcpy(buf, &cfg_ref->old_val, sizeof(i64));
+		*buf = cfg_ref->old_val;
 	}
 	return 0;
 err:
@@ -189,7 +189,7 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 {
 	list<CheckEntry>::iterator it;
 	CheckEntry *chk_en;
-	u8 chk_buf[sizeof(i64)];
+	value_t __chk_buf, *chk_buf = &__chk_buf;
 	void *mem_addr;
 	i32 ret = 0;
 
@@ -219,8 +219,8 @@ out:
 }
 
 template <typename T>
-static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf,
-			    void *mem_offs)
+static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
+			    value_t *buf, void *mem_offs)
 {
 	list<CheckEntry> *chk_lp = cfg_en->checks;
 	void *mem_addr;
@@ -235,7 +235,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T value, u8 *buf,
 			goto out;
 	}
 
-	ret = check_mem_val(value, buf, cfg_en->check);
+	ret = check_mem_val(read_val, value, cfg_en->check);
 	if (ret)
 		goto out;
 
@@ -253,9 +253,10 @@ template <typename T>
 static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 			   T *value, void *mem_offs)
 {
-	u8 buf[sizeof(i64)] = { 0 };
-	u8 *bufp = buf;  // cheat compiler
+	value_t __buf, *buf = &__buf;
 	void *mem_addr = NULL;
+
+	__buf.i64 = 0;
 
 	switch (cfg_en->dynval) {
 	case DYN_VAL_MAX:
@@ -268,15 +269,15 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 		break;
 	case DYN_VAL_ADDR:
 		if (cfg_en->cfg_ref) {
-			if (handle_cfg_ref(cfg_en->cfg_ref, bufp) != 0)
+			if (handle_cfg_ref(cfg_en->cfg_ref, buf) != 0)
 				*value = 0;
 			else
-				*value = *(T *) bufp;
+				*value = *(T *) buf;
 		} else {
 			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->val_addr);
 			if (read_memory(pid, mem_addr, buf, "DYNVAL MEMORY"))
 				goto out;
-			*value = *(T *) bufp;
+			*value = *(T *) buf;
 		}
 		break;
 	default:
@@ -286,7 +287,7 @@ out:
 	return;
 }
 
-static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
+static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 			   void *mem_offs, value_t *old_val)
 {
 	struct type *type = &cfg_en->type;
@@ -294,81 +295,81 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, u8 *buf,
 	if (type->is_float) {
 		switch (type->size) {
 		case 64:
-			old_val->f64 = *(double *) buf;
+			old_val->f64 = buf->f64;
 			handle_dynval(pid, cfg_en, old_val->f64, &cfg_en->value.f64, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.f64, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->f64, cfg_en->value.f64, buf, mem_offs);
 			break;
 		case 32:
-			old_val->f32 = *(float *) buf;
+			old_val->f32 = buf->f32;
 			handle_dynval(pid, cfg_en, old_val->f32, &cfg_en->value.f32, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.f32, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->f32, cfg_en->value.f32, buf, mem_offs);
 			break;
 		}
 	} else if (type->is_signed) {
 		switch (type->size) {
 		case 64:
-			old_val->i64 = *(i64 *) buf;
+			old_val->i64 = buf->i64;
 			handle_dynval(pid, cfg_en, old_val->i64, &cfg_en->value.i64, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.i64, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i64, cfg_en->value.i64, buf, mem_offs);
 			break;
 		case 32:
-			old_val->i32 = *(i32 *) buf;
+			old_val->i32 = buf->i32;
 			handle_dynval(pid, cfg_en, old_val->i32, &cfg_en->value.i32, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.i32, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i32, cfg_en->value.i32, buf, mem_offs);
 			break;
 		case 16:
-			old_val->i16 = *(i16 *) buf;
+			old_val->i16 = buf->i16;
 			handle_dynval(pid, cfg_en, old_val->i16, &cfg_en->value.i16, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.i16, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i16, cfg_en->value.i16, buf, mem_offs);
 			break;
 		default:
-			old_val->i8 = *(i8 *) buf;
+			old_val->i8 = buf->i8;
 			handle_dynval(pid, cfg_en, old_val->i8, &cfg_en->value.i8, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.i8, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i8, cfg_en->value.i8, buf, mem_offs);
 			break;
 		}
 	} else {
 		switch (type->size) {
 		case 64:
-			old_val->u64 = *(u64 *) buf;
+			old_val->u64 = buf->u64;
 			handle_dynval(pid, cfg_en, old_val->u64, &cfg_en->value.u64, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.u64, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u64, cfg_en->value.u64, buf, mem_offs);
 			break;
 		case 32:
-			old_val->u32 = *(u32 *) buf;
+			old_val->u32 = buf->u32;
 			handle_dynval(pid, cfg_en, old_val->u32, &cfg_en->value.u32, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.u32, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u32, cfg_en->value.u32, buf, mem_offs);
 			break;
 		case 16:
-			old_val->u16 = *(u16 *) buf;
+			old_val->u16 = buf->u16;
 			handle_dynval(pid, cfg_en, old_val->u16, &cfg_en->value.u16, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.u16, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u16, cfg_en->value.u16, buf, mem_offs);
 			break;
 		default:
-			old_val->u8 = *(u8 *) buf;
+			old_val->u8 = buf->u8;
 			handle_dynval(pid, cfg_en, old_val->u8, &cfg_en->value.u8, mem_offs);
-			change_mem_val(pid, cfg_en, cfg_en->value.u8, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u8, cfg_en->value.u8, buf, mem_offs);
 			break;
 		}
 	}
 }
 
 // TIME CRITICAL! Process all activated config entries from pointer
-static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
+static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_idx)
 {
 	void *mem_addr;
 	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
 
-	if (*(void **) buf == NULL || cfg_en->ptrtgt->v_state[mem_idx] == PTR_DONE)
+	if (buf->ptr == NULL || cfg_en->ptrtgt->v_state[mem_idx] == PTR_DONE)
 		return;
 
-	if (*(void **) buf == cfg_en->v_oldval[mem_idx].ptr) {
+	if (buf->ptr == cfg_en->v_oldval[mem_idx].ptr) {
 		if (cfg_en->dynval == DYN_VAL_PTR_ONCE)
 			cfg_en->ptrtgt->v_state[mem_idx] = PTR_DONE;
 		else
 			cfg_en->ptrtgt->v_state[mem_idx] = PTR_SETTLED;
-		cfg_en->ptrtgt->v_offs[mem_idx] = *(void **) buf;
+		cfg_en->ptrtgt->v_offs[mem_idx] = buf->ptr;
 		list_for_each (cfg_act, it) {
 			cfg_en = *it;
 			mem_addr = PTR_ADD(void *, cfg_en->ptrmem->v_offs[mem_idx], cfg_en->addr);
@@ -378,8 +379,7 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, u8 *buf, u32 mem_idx)
 				      &cfg_en->v_oldval[mem_idx]);
 		}
 	} else {
-		memcpy(&cfg_en->v_oldval[mem_idx],
-		       buf, sizeof(void *));
+		cfg_en->v_oldval[mem_idx].ptr = buf->ptr;
 	}
 }
 
@@ -388,9 +388,11 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 {
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
-	u8 buf[sizeof(i64)] = { 0 };
+	value_t __buf, *buf = &__buf;
 	void *mem_addr, *mem_offs;
 	u32 mem_idx;
+
+	__buf.i64 = 0;
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
@@ -799,7 +801,7 @@ prepare_dynmem:
 	if (opt->disc_str) {
 		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
 		if (opt->disc_str[0] == 'p')
-			memcpy(opt->disc_str, opt->disc_str + opt->disc_offs, 1);
+			opt->disc_str[0] = opt->disc_str[opt->disc_offs];
 		if (opt->disc_str[0] == '0') {
 			if (opt->scanmem_pid > 0) {
 				wait_proc(opt->scanmem_pid);
