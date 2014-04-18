@@ -186,21 +186,21 @@ void __attribute ((constructor)) memdisc_init (void)
 	pr_dbg("ofile: %p\n", ofile);
 
 	for (read_tries = 5; ; --read_tries) {
-		rbytes = read(ifd, ibuf, 2);
-		if (rbytes > 0)
+		rbytes = read(ifd, ibuf, 1);
+		if (rbytes == 1)
 			break;
 		if (read_tries <= 0)
 			goto read_err;
 		usleep(250 * 1000);
 	}
-	ioffs = 2;
+	ioffs = 1;
 
 	fprintf(ofile, "h%p\n", heap_start);
 
 	memset(&ptr_cfg, 0, sizeof(ptr_cfg));
 	if (ibuf[0] == 'p') {
 		READ_STAGE_CFG();
-		if (sscanf(ibuf + ioffs, "%zd;%p;%p;%p", &ptr_cfg.mem_size,
+		if (sscanf(ibuf + ioffs, ";%zd;%p;%p;%p", &ptr_cfg.mem_size,
 		    &ptr_cfg.code_addr, &ptr_cfg.stack_offs,
 		    &ptr_cfg.ptr_offs) != 4)
 			goto parse_err;
@@ -230,8 +230,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	without a free where (mem_addr <= found_addr < mem_addr+size).
 	 */
 	case '1':
-		ioffs += 2;
-		if (sscanf(ibuf + ioffs, "%p;%p", &heap_soffs,
+		ioffs += 1;
+		if (sscanf(ibuf + ioffs, ";%p;%p", &heap_soffs,
 		    &heap_eoffs) == 2) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
@@ -253,8 +253,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	with ignoring the frees.
 	 */
 	case '2':
-		ioffs += 2;
-		if (sscanf(ibuf + ioffs, "%p;%p;%zd", &heap_soffs, &heap_eoffs,
+		ioffs += 1;
+		if (sscanf(ibuf + ioffs, ";%p;%p;%zd", &heap_soffs, &heap_eoffs,
 		    &malloc_size) == 3) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
@@ -282,13 +282,13 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	With that we can ignore invalid code addresses.
 	 */
 	case '3':
-		ioffs += 2;
-		if (sscanf(ibuf + ioffs, "%3s;", gbt_buf) == 1 &&
+		ioffs += 1;
+		if (sscanf(ibuf + ioffs, ";%3s;", gbt_buf) == 1 &&
 		    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
 			use_gbt = true;
 			ioffs += sizeof(GBT_CMD);
 		}
-		if (sscanf(ibuf + ioffs, "%p;%p;%zd;%p;%p", &heap_soffs,
+		if (sscanf(ibuf + ioffs, ";%p;%p;%zd;%p;%p", &heap_soffs,
 		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
 			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
@@ -323,8 +323,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	 */
 	case '4':
 	case '5':
-		ioffs += 2;
-		if (sscanf(ibuf + ioffs, "%p;%p;%zd;%p;%p;%p", &heap_soffs,
+		ioffs += 1;
+		if (sscanf(ibuf + ioffs, ";%p;%p;%zd;%p;%p;%p", &heap_soffs,
 		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr,
 		    &code_addr) >= 5) {
 			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
