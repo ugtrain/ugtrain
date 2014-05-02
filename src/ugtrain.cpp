@@ -738,10 +738,12 @@ i32 main (i32 argc, char **argv, char **env)
 		allow_empty_cfg = true;
 	}
 
-	if (!opt->game_path)
-		opt->game_path = get_abs_app_path(opt->game_call);
-	if (!opt->game_path)
-		return -1;
+	if (opt->preload_lib) {
+		if (!opt->game_path)
+			opt->game_path = get_abs_app_path(opt->game_call);
+		if (!opt->game_path)
+			return -1;
+	}
 	if (!opt->game_binpath)
 		opt->game_binpath = opt->game_path;
 
