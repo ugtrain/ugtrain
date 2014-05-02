@@ -19,11 +19,19 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <stdlib.h>
 /* local includes */
 #include "getch.h"
 
 static struct termios saved_tty, raw_tty;
 static int tty_changed = 0;
+
+static void exit_handler (int signum)
+{
+	restore_getch();
+	exit(-1);
+}
 
 int prepare_getch (void)
 {
@@ -44,6 +52,7 @@ int prepare_getch (void)
 		return -1;
 	tcgetattr(STDIN_FILENO, &raw_tty);
 
+	signal(SIGINT, exit_handler);
 	return 0;
 }
 
