@@ -2,10 +2,10 @@
 ### DESCRIPTION ###
 ###################
 # The ugtrain is an advanced free and universal game trainer for the CLI under
-# GPLv2 license uploaded on GitHub and BerliOS. It is mostly written in C with
+# GPLv2 license on GitHub and Sourceforge.net. It is mostly written in C with
 # C++ parts for convenience and some shell scripts. The dynamic memory support
-# sets it apart. A preloader, a memory discovery and a memory hacking library
-# are included for this.
+# sets it apart. An integrated preloader, a memory discovery and a memory
+# hacking library are included for this.
 # The ugtrain uses one simple config file per game which can be exchanged
 # with others. Examples for games which allow cheating are included. These
 # also come with automatic adaption for dynamic memory so that you can use
@@ -24,12 +24,12 @@
 #
 # ### Current Limitations ###
 #
-# CPU Architecture:	* tested with x86 and x86_64 only
+# CPU Architecture:	* tested on x86 and x86_64 only
 #
-# Operating System:	* Linux-only
+# Operating System:	* Linux only
 #
 # Dynamic Memory:	* constructors-only (no growing objects/structures),
-#			* doesn't work for WINE, yet
+#			* doesn't work with WINE, yet
 #
 # Compilation:		* 32-bit and x86_64 only
 #			* tested with GCC g++ only
@@ -79,8 +79,17 @@
 # search has to be done only once.
 #
 # Furthermore, a REAL game trainer doesn't require own static memory search. If
-# the memory location changes between game runs, then this memory value is not
-# static and dynamic memory cheating is required.
+# the memory location changes between game runs, then either the binary is a
+# position independent executable (PIE) or this memory value is not static at
+# all (e.g. stored on the heap) and dynamic memory cheating is required.
+#
+# The ugtrain has PIE support since version 0.2.0. Its trick is to determine
+# the load address of the executable from /proc/$pid/maps and to add it to the
+# static memory addresses from the config. So your config must be aware of PIE.
+# The reason for the load address being different each execution is a security
+# measure called address space layout randomization (ASLR). Also libraries are
+# loaded at random location as these are position independent code (PIC).
+# There is a special scanmem version which supports PIC, PIE and ASLR as well.
 #
 #
 # ### Dynamic Memory ###
