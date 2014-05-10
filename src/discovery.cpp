@@ -1,7 +1,7 @@
 /* discovery.cpp:    discover dynamic memory objects
  *
- * Copyright (c) 2013, by:      Sebastian Riemer
- *    All rights reserved.     <sebastian.riemer@gmx.de>
+ * Copyright (c) 2012..14, by:  Sebastian Parschauer
+ *    All rights reserved.     <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *

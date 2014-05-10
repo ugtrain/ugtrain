@@ -1,7 +1,7 @@
 /* adaption.cpp:    adapt the config by running a script
  *
- * Copyright (c) 2012..13, by:  Sebastian Riemer
- *    All rights reserved.     <sebastian.riemer@gmx.de>
+ * Copyright (c) 2012..14, by:  Sebastian Parschauer
+ *    All rights reserved.     <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *

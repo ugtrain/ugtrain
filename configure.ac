@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([ugtrain], [0.2.0-pre], [ugtrain-devel@lists.berlios.de])
+AC_INIT([ugtrain], [0.2.0-pre], [ugtrain-devel@lists.sourceforge.net])
 
 AC_CONFIG_MACRO_DIR(m4)
 AC_CANONICAL_SYSTEM

@@ -1,7 +1,7 @@
 /* libmemdisc.c:    discovery of an unique malloc call
  *
- * Copyright (c) 2013..14, by:  Sebastian Riemer
- *    All rights reserved.     <sebastian.riemer@gmx.de>
+ * Copyright (c) 2012..14, by:  Sebastian Parschauer
+ *    All rights reserved.     <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *

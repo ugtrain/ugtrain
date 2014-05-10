@@ -1,8 +1,8 @@
 /* memattach_w.c:    functions to attach/read/write victim proc. memory
  * This file is for Windows only.
  *
- * Copyright (c) 2013, by:      Sebastian Riemer
- *    All rights reserved.     <sebastian.riemer@gmx.de>
+ * Copyright (c) 2012..14, by:  Sebastian Parschauer
+ *    All rights reserved.     <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *
