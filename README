@@ -36,8 +36,12 @@
 #
 # Operating System:	* Linux only
 #
+# Static Memory:	* no adaption, yet
+#			* no support for values in a library (PIC), yet
+#
 # Dynamic Memory:	* constructors-only (no growing objects/structures),
 #			* doesn't work with WINE, yet
+#			* no GTK (gmalloc()) support, yet
 #
 # Compilation:		* 32-bit and x86_64 only
 #			* tested with GCC g++ only
@@ -107,9 +111,17 @@
 # Since leaving the good old DOS times, games aren't implemented with pure
 # static memory in C any more but instead object-oriented with e.g. C++.
 # Memory objects are stored dynamically on the heap. But modern operating
-# systems use heap and stack randomization for security. The only thing which
-# remains constant is the code jump-back address of the malloc call and its
-# (reverse) offset on the stack.
+# systems use heap and stack randomization for security (ASLR). The only thing
+# which remains constant is the jump-back code address of the malloc call and
+# its (reverse) offset on the stack.
+# With PIE even the code address is different each execution. The load address
+# of the binary has to be determined from /proc/$pid/maps and to be added to
+# the code address from within the binary to get the randomized code address
+# on the stack in this case. The ugtrain does that automatically.
+# Sure, there are also static access pointers holding the result of a memory
+# allocation. But these are difficult to adapt and also often only work with
+# a single object. Imagine a vector or list in between. This is why ugtrain
+# prefers API hooking.
 #
 # With libmemdisc preloaded and static memory search in parallel you can
 # easily discover the code address and register with libmemhack as well as
