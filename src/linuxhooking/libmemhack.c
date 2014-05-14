@@ -31,6 +31,10 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
+#ifdef HAVE_GTK
+#include <glib.h>       /* g_malloc */
+#endif
+
 #include "libcommon.h"
 #include "../common.h"
 
@@ -38,6 +42,7 @@
 #define HOOK_MALLOC 1
 #define HOOK_CALLOC 1
 #define HOOK_FREE 1
+#define HOOK_G_MALLOC 1
 #define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
@@ -290,6 +295,7 @@ err:
 /* void *calloc (size_t nmemb, size_t size); */
 /* void *realloc (void *ptr, size_t size); */
 /* void free (void *ptr); */
+/* gpointer g_malloc (gsize n_bytes); */
 
 static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 {
@@ -370,6 +376,29 @@ void *malloc (size_t size)
 }
 #endif
 
+#if defined(HAVE_GTK) && defined(HOOK_G_MALLOC)
+gpointer g_malloc (gsize n_bytes)
+{
+	void *ffp = FIRST_FRAME_POINTER;
+	gpointer mem_addr;
+	static gpointer (*orig_g_malloc)(gsize n_bytes) = NULL;
+
+	if (no_hook)
+		return orig_g_malloc(n_bytes);
+
+	/* get the libc malloc function */
+	no_hook = true;
+	if (!orig_g_malloc)
+		*(void **) (&orig_g_malloc) = dlsym(RTLD_NEXT, "g_malloc");
+
+	mem_addr = orig_g_malloc(n_bytes);
+
+	postprocess_malloc(ffp, n_bytes, (void *) mem_addr);
+	no_hook = false;
+
+	return mem_addr;
+}
+#endif
 
 #ifdef HOOK_CALLOC
 /*
