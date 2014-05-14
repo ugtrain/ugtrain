@@ -46,6 +46,7 @@
 #define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
+//#define WRITE_UNCACHED 1
 #define MAX_BT 11   /* for reverse stack search only */
 
 /*
@@ -201,7 +202,9 @@ void __attribute ((constructor)) memdisc_init (void)
 	ioffs = 1;
 
 	fprintf(ofile, "h%p\n", heap_start);
-
+#ifdef WRITE_UNCACHED
+	fflush(ofile);
+#endif
 	memset(&ptr_cfg, 0, sizeof(ptr_cfg));
 	if (ibuf[0] == 'p') {
 		READ_STAGE_CFG();
@@ -555,6 +558,9 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 			//perror(PFX "fprintf");
 			//exit(1);
 		}
+#ifdef WRITE_UNCACHED
+		fflush(ofile);
+#endif
 	}
 out:
 	return;
@@ -694,6 +700,9 @@ void free (void *ptr)
 			//perror(PFX "fprintf");
 			//exit(1);
 		}
+#ifdef WRITE_UNCACHED
+		fflush(ofile);
+#endif
 	}
 out:
 	/* get the libc free function */
