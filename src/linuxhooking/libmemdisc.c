@@ -47,7 +47,8 @@
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 //#define WRITE_UNCACHED 1
-#define MAX_BT 11   /* for reverse stack search only */
+#define FLUSH_INTERVAL 1	/* in seconds */
+#define MAX_BT 11		/* for reverse stack search only */
 
 /*
  * Ask gcc for the current stack frame pointer.
@@ -133,6 +134,19 @@ static cfg_s ptr_cfg;
 			"disabling output.\n", ibuf[0]); \
 		return; \
 	}
+
+/*
+ * flush the output FIFO periodically
+ *
+ * A fork() doesn't work here. Must be the same
+ * process. Hopefully the game doesn't use SIGALRM.
+ */
+static void flush_output (int signum)
+{
+	pr_dbg("fflush(ofile) triggered by SIGALRM\n");
+	fflush(ofile);
+	alarm(FLUSH_INTERVAL);
+}
 
 /* prepare memory discovery upon library load */
 void __attribute ((constructor)) memdisc_init (void)
@@ -368,6 +382,10 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	if (stage > 0 && stage <= 5)
 		active = true;
+
+	signal(SIGALRM, flush_output);
+	alarm(FLUSH_INTERVAL);
+
 	return;
 read_err:
 	pr_err("Can't read config, disabling output.\n");
