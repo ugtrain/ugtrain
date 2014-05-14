@@ -862,7 +862,7 @@ prepare_dynmem:
 	handle_pie(pid, opt->proc_name, cfg);
 
 	while (true) {
-		sleep_sec_unless_input(1);
+		sleep_sec_unless_input(1, ifd, STDIN_FILENO);
 		ch = do_getch();
 		handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
 

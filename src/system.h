@@ -65,17 +65,27 @@ static inline void sleep_sec (u32 sec)
 	sleep(sec);
 }
 
-static inline void sleep_sec_unless_input (u32 sec)
+/*
+ * sleep given seconds count unless there is input on given fds
+ *
+ * Not using va_list to keep this inline. Two fds is the maximum.
+ * Use -1 for the second fd if it's not required.
+ */
+static inline void sleep_sec_unless_input (u32 sec, i32 fd1, i32 fd2)
 {
 	fd_set fs;
 	struct timeval tv;
+	i32 nfds = (fd2 > fd1) ? fd2 + 1 : fd1 + 1;
 
 	FD_ZERO(&fs);
-	FD_SET(STDIN_FILENO, &fs);
 	tv.tv_sec = sec;
 	tv.tv_usec = 0;
 
-	select(1, &fs, NULL, NULL, &tv);
+	FD_SET(fd1, &fs);
+	if (fd2 >= 0)
+		FD_SET(fd2, &fs);
+
+	select(nfds, &fs, NULL, NULL, &tv);
 }
 
 static inline void wait_proc (pid_t pid)
@@ -101,7 +111,10 @@ static inline void sleep_sec (u32 sec)
 	Sleep(sec * 1000);
 }
 
-static inline void sleep_sec_unless_input (u32 sec)
+#ifndef STDIN_FILENO
+#define STDIN_FILENO -1
+#endif
+static inline void sleep_sec_unless_input (u32 sec, i32 fd1, i32 fd2)
 {
 	sleep_sec(sec);
 }

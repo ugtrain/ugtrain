@@ -304,7 +304,7 @@ out:
 void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 {
 	while (true) {
-		sleep_sec(1);
+		sleep_sec_unless_input(1, ifd, -1);
 		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, process_disc5_output,
 				NULL);
 		if (!pid_is_running(pid, pid, NULL, true))
@@ -333,6 +333,7 @@ void run_stage1234_loop (void *argp)
 	}
 
 	while (true) {
+		sleep_sec_unless_input(1, ifd, -1);
 		rbytes = read(ifd, buf, sizeof(buf));
 		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN))
 			continue;
