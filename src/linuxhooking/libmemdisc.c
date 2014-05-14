@@ -521,7 +521,7 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 	i32 obuf_offs = 0;
 	bool found;
 
-	if (active && mem_addr > heap_saddr && mem_addr < heap_eaddr) {
+	if (active && mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
 		if (size == 0 || (malloc_size > 0 && size != malloc_size &&
 		    size != ptr_cfg.mem_size))
 			goto out;
@@ -653,7 +653,7 @@ void free (void *ptr)
 	}
 
 	no_hook = true;
-	if (active && ptr > heap_saddr && ptr < heap_eaddr) {
+	if (active && ptr >= heap_saddr && ptr < heap_eaddr) {
 		if (stage > 1)
 			goto out;
 		sprintf(obuf, "f%p\n", ptr);
