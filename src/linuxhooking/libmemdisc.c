@@ -159,7 +159,7 @@ static void flush_output (int signum)
 /* prepare memory discovery upon library load */
 void __attribute ((constructor)) memdisc_init (void)
 {
-	char *proc_name = NULL, *expected = NULL;
+	char *proc_name = NULL, *expected = NULL, *game_binpath = NULL;
 	ssize_t rbytes;
 	i32 read_tries, ioffs = 0;
 	char *iptr;
@@ -175,6 +175,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		if (strcmp(expected, proc_name) != 0)
 			return;
 	}
+	game_binpath = getenv(UGT_GAME_BINPATH);
 
 	/* We are preloaded into the right process - stop preloading us!
 	   This also hides our presence from the game. ;-) */
@@ -376,8 +377,8 @@ void __attribute ((constructor)) memdisc_init (void)
 		heap_eaddr = (void *) -1UL;
 
 	/* PIE: handle code address offset */
-	if (proc_name)
-		code_offs = get_code_offs(-1, proc_name);
+	if (game_binpath)
+		code_offs = get_code_offs(-1, game_binpath);
 	if (code_offs) {
 		pr_dbg("PIE (position independent executable) "
 			"detected!\n");

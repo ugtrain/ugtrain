@@ -20,7 +20,7 @@
 #include "system.h"
 
 
-void *get_code_offs (pid_t pid, char *proc_name)
+void *get_code_offs (pid_t pid, char *game_binpath)
 {
 	return NULL;
 }

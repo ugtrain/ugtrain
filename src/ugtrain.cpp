@@ -425,14 +425,14 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	}
 }
 
-static void handle_pie (pid_t pid, char *proc_name, list<CfgEntry> *cfg)
+static void handle_pie (pid_t pid, char *game_binpath, list<CfgEntry> *cfg)
 {
 	void *code_offs = NULL;
 	list<CfgEntry>::iterator it;
 	list<CheckEntry> *chk_lp;
 	list<CheckEntry>::iterator chk_it;
 
-	code_offs = get_code_offs(pid, proc_name);
+	code_offs = get_code_offs(pid, game_binpath);
 	if (!code_offs)
 		return;
 	cout << "PIE (position independent executable) "
@@ -859,7 +859,7 @@ prepare_dynmem:
 		return -1;
 	}
 
-	handle_pie(pid, opt->proc_name, cfg);
+	handle_pie(pid, opt->game_binpath, cfg);
 
 	while (true) {
 		sleep_sec_unless_input(1, ifd, STDIN_FILENO);

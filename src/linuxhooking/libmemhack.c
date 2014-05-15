@@ -130,7 +130,7 @@ cfg_s *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(cfg_s *)] = { NULL };
 /* prepare memory hacking upon library load */
 void __attribute ((constructor)) memhack_init (void)
 {
-	char *proc_name = NULL, *expected = NULL;
+	char *proc_name = NULL, *expected = NULL, *game_binpath = NULL;
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
 	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
@@ -146,6 +146,7 @@ void __attribute ((constructor)) memhack_init (void)
 		if (strcmp(expected, proc_name) != 0)
 			return;
 	}
+	game_binpath = getenv(UGT_GAME_BINPATH);
 
 	/* We are preloaded into the right process - stop preloading us!
 	   This also hides our presence from the game. ;-) */
@@ -276,8 +277,8 @@ void __attribute ((constructor)) memhack_init (void)
 	}
 
 	/* PIE: handle code address offset */
-	if (proc_name)
-		code_offs = get_code_offs(-1, proc_name);
+	if (game_binpath)
+		code_offs = get_code_offs(-1, game_binpath);
 	if (code_offs) {
 		pr_dbg("PIE (position independent executable) "
 			"detected!\n");

@@ -46,6 +46,7 @@ typedef ulong ptr_t;
 #define MAX_GNUBT   3      /* for GNU backtrace() */
 #define PRELOAD_VAR "LD_PRELOAD"
 #define UGT_GAME_PROC_NAME     "UGT_GAME_PROC_NAME"
+#define UGT_GAME_BINPATH       "UGT_GAME_BINPATH"
 
 // for Windows as not in limits.h
 #ifndef PIPE_BUF

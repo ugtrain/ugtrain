@@ -39,7 +39,7 @@
    find out that memory location and use it as an offset. This
    applies to code addresses on the stack and static memory as well.
    PIE is detected from that offset. */
-void *get_code_offs (pid_t pid, char *proc_name)
+void *get_code_offs (pid_t pid, char *game_binpath)
 {
 	char cmd[256] = { 0 };
 	char __buf[128] = { 0 }, *buf = (char *) __buf;
@@ -58,7 +58,7 @@ void *get_code_offs (pid_t pid, char *proc_name)
 
 	/* ask the kernel where the binary is loaded into memory */
 	sprintf(cmd, "grep \"r-xp.*%s\" /proc/%d/maps "
-		"| cut -d \'-\' -f 1", proc_name, pid);
+		"| cut -d \'-\' -f 1", game_binpath, pid);
 	rbytes = run_cmd_pipe(cmd, NULL, buf, buf_size);
 	if (rbytes <= 0)
 		goto out;
