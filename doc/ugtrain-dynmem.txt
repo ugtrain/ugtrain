@@ -359,3 +359,35 @@ You can also trigger this procedure explicitly with the -A option.
 
 E.g.:
 $ ugtrain -A examples/chromium-bsu64
+
+
+=== Known Issues ===
+
+Issue:
+Memory allocations of GNOME games can't be discovered.
+
+These use functions like g_malloc() and g_slice_alloc() which are only
+available in GTK environments.
+
+Solution:
+Configure ugtrain build with "./configure --enable-gtk".
+
+===
+
+Issue:
+LD_PRELOAD is ignored if set-group-ID bit is set.
+
+$ ls -l /usr/games
+-rwxr-xr-x 1 root root      567 Jan 15  2013 gnome-sudoku
+-rwxr-sr-x 1 root games  132624 Jan 15  2013 gnomine
+-rwxr-sr-x 1 root games  149016 Jan 15  2013 mahjongg
+-rwxr-xr-x 1 root root   224328 Apr 16  2012 sol
+
+In this case we would have no chance to hook functions of "gnomine" or
+"mahjongg".
+
+Solution:
+Remove the set-group-ID bit for them and add yourself into the related group
+("games" here) if required.
+
+$ sudo chmod g-s /usr/games/mahjongg /usr/games/gnomine
