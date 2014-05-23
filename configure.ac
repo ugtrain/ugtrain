@@ -23,9 +23,9 @@ AC_SUBST(VERSION_INFO)
 AC_ARG_ENABLE([multilib],
   [  --enable-multilib  enable multilib support],
   [], [enable_multilib=no])
-AC_ARG_ENABLE([gtk],
-  [  --enable-gtk  enable GTK (g_malloc hooking) support],
-  [], [enable_gtk=no])
+AC_ARG_ENABLE([glib],
+  [  --enable-glib  enable GLIB (g_malloc hooking) support],
+  [], [enable_glib=no])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -52,14 +52,13 @@ if test "$enable_multilib" != "no" -a bits64 != "no"; then
   CC="$TMP_CC"
 fi
 # Test GTK compile
-AS_IF([test "$enable_gtk" != "no"], [
-   PKG_CHECK_MODULES([GTK], [gtk+-2.0])
+AS_IF([test "$enable_glib" != "no"], [
    PKG_CHECK_MODULES([GLIB], [glib-2.0])
    AC_SUBST([GTK_CFLAGS])
    AC_SUBST([GTK_LIBS])])
 AM_CONDITIONAL([LINUX], test "$target_os" = "linux-gnu")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
-AM_CONDITIONAL([HAVE_GTK], test "$enable_gtk" != "no")
+AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
 AM_CONDITIONAL([BITS_32], test "$bits64" = "no" -o "$enable_multilib" != "no")
 AM_CONDITIONAL([BITS_64], test "$bits64" != "no")
 

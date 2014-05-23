@@ -367,10 +367,10 @@ Issue:
 Memory allocations of GNOME games can't be discovered.
 
 These use functions like g_malloc() and g_slice_alloc() which are only
-available in GTK environments.
+available in GLIB/GTK environments.
 
 Solution:
-Configure ugtrain build with "./configure --enable-gtk".
+Configure ugtrain build with "./configure --enable-glib".
 
 ===
 

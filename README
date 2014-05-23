@@ -41,7 +41,6 @@
 #
 # Dynamic Memory:	* constructors-only (no growing objects/structures),
 #			* doesn't work with WINE, yet
-#			* no GTK (gmalloc()) support, yet
 #
 # Compilation:		* 32-bit and x86_64 only
 #			* tested with GCC g++ only

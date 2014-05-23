@@ -31,7 +31,7 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
-#ifdef HAVE_GTK
+#ifdef HAVE_GLIB
 #include <glib.h>       /* g_malloc */
 #endif
 
@@ -42,7 +42,7 @@
 #define HOOK_MALLOC 1
 #define HOOK_CALLOC 1
 #define HOOK_FREE 1
-/* GTK hooks */
+/* GLIB hooks */
 #define HOOK_G_MALLOC 1
 #define HOOK_G_MALLOC0 1
 #define HOOK_G_MALLOC_N 1
@@ -719,7 +719,7 @@ void free (void *ptr)
 }
 #endif
 
-#ifdef HAVE_GTK
+#ifdef HAVE_GLIB
 /* gpointer g_malloc (gsize n_bytes); */
 /* gpointer g_malloc0 (gsize n_bytes); */
 /* gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes) */
@@ -924,4 +924,4 @@ void g_slice_free1 (gsize block_size, gpointer mem_block)
 }
 #endif
 
-#endif /* HAVE_GTK */
+#endif /* HAVE_GLIB */
