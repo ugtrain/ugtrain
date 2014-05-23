@@ -53,9 +53,9 @@ if test "$enable_multilib" != "no" -a bits64 != "no"; then
 fi
 # Test GTK compile
 AS_IF([test "$enable_glib" != "no"], [
-   PKG_CHECK_MODULES([GLIB], [glib-2.0])
-   AC_SUBST([GTK_CFLAGS])
-   AC_SUBST([GTK_LIBS])])
+   AM_PATH_GLIB_2_0([2.32.0], [
+      AC_SUBST([GLIB_CFLAGS])
+      AC_SUBST([GLIB_LIBS])])])
 AM_CONDITIONAL([LINUX], test "$target_os" = "linux-gnu")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
