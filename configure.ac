@@ -28,7 +28,11 @@ AC_ARG_ENABLE([glib],
   [], [enable_glib=no])
 
 # Checks for programs.
-AC_PROG_CXX
+AC_PROG_CXX([g++])
+AC_LANG_PUSH([C++])
+AC_MSG_CHECKING([if the C++ compiler can create executables])
+AC_TRY_LINK([], [return 0;], AC_MSG_RESULT([yes]), AC_MSG_ERROR([no]))
+AC_LANG_POP([C++])
 AC_PROG_CC
 AM_PROG_CC_STDC
 
@@ -53,9 +57,9 @@ if test "$enable_multilib" != "no" -a bits64 != "no"; then
 fi
 # Test GTK compile
 AS_IF([test "$enable_glib" != "no"], [
-   AM_PATH_GLIB_2_0([2.32.0], [
-      AC_SUBST([GLIB_CFLAGS])
-      AC_SUBST([GLIB_LIBS])])])
+   PKG_CHECK_MODULES([GLIB], [glib-2.0])
+   AC_SUBST([GLIB_CFLAGS])
+   AC_SUBST([GLIB_LIBS])])
 AM_CONDITIONAL([LINUX], test "$target_os" = "linux-gnu")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
