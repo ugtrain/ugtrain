@@ -1,0 +1,5 @@
+ugtrain (0.2.1~pre-1) unstable; urgency=low
+
+  * first packaging for MeeGo 1.2 Harmattan
+
+ -- Sebastian Parschauer <s.parschauer@gmx.de>  Wed, 11 Jun 2014 21:27:46 +0200
