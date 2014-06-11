@@ -1,3 +1,3 @@
-SUBDIRS = src src/linuxhooking src/tools
+SUBDIRS = src
 
 ACLOCAL_AMFLAGS = -I m4

@@ -1,3 +1,5 @@
+SUBDIRS = linuxhooking tools
+
 bin_PROGRAMS = ugtrain
 ugtrain_SOURCES = common.h \
                   options.h \

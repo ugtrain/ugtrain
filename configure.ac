@@ -35,6 +35,24 @@ AC_TRY_LINK([], [return 0;], AC_MSG_RESULT([yes]), AC_MSG_ERROR([no]))
 AC_LANG_POP([C++])
 AC_PROG_CC
 AM_PROG_CC_STDC
+AM_PROG_CC_C_O
+
+# check compiler flags
+AC_LANG_PUSH([C++])
+CXXFLAGS="-m32"
+AC_MSG_CHECKING([whether the C++ compiler accepts -m32])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+  [[long test;]])],
+    [has_m32="yes"; echo yes],
+    [has_m32="no"; echo no])
+CXXFLAGS="-m64"
+AC_MSG_CHECKING([whether the C++ compiler accepts -m64])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+  [[long test;]])],
+    [has_m64="yes"; echo yes],
+    [has_m64="no"; echo no])
+CXXFLAGS=""
+AC_LANG_POP([C++])
 
 # Check for 64-bit CPU
 bits64="no"
@@ -65,6 +83,8 @@ AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
 AM_CONDITIONAL([BITS_32], test "$bits64" = "no" -o "$enable_multilib" != "no")
 AM_CONDITIONAL([BITS_64], test "$bits64" != "no")
+AM_CONDITIONAL([HAVE_M32], test "$has_m32" != "no")
+AM_CONDITIONAL([HAVE_M64], test "$has_m64" != "no")
 
 # Checks for pkg-config.
 AC_SUBST(DEPS_CFLAGS)
