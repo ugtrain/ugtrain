@@ -2,8 +2,7 @@ Source: ugtrain
 Section: utils
 Priority: optional
 Maintainer: Sebastian Parschauer <s.parschauer@gmx.de>
-Build-Depends:
-    debhelper (>=5)
+Build-Depends: aegis-builder (>= 1.4), debhelper (>=5)
 Standards-Version: 3.8.2
 
 Package: ugtrain

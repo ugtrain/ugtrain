@@ -1,0 +1,14 @@
+<aegis>
+	<request>
+		<!--
+			* 'tcb' requires the aegis-installer hack
+			('com.nokia.maemo' origin)
+			* 'tcb' lets ugtrain have less credentials than the
+			  ptraced process - this is important
+		-->
+		<credential name="tcb" />
+		<credential name="CAP::sys_ptrace" />
+
+		<for path="/usr/bin/ugtrain" />
+	</request>
+</aegis>
