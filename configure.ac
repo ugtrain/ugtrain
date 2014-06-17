@@ -60,7 +60,7 @@ AS_IF([test "$enable_glib" != "no"], [
    PKG_CHECK_MODULES([GLIB], [glib-2.0])
    AC_SUBST([GLIB_CFLAGS])
    AC_SUBST([GLIB_LIBS])])
-AM_CONDITIONAL([LINUX], test "$target_os" = "linux-gnu")
+AM_CONDITIONAL([LINUX], test `echo "$target_os" | grep -o "linux"` = "linux")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
 AM_CONDITIONAL([BITS_32], test "$bits64" = "no" -o "$enable_multilib" != "no")
