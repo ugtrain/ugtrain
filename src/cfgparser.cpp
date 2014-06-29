@@ -32,6 +32,7 @@ typedef enum {
 	NAME_GAME_CALL,
 	NAME_GAME_PARAMS,
 	NAME_USE_GBT,
+	NAME_NO_PRELOAD,
 	NAME_REGULAR,
 	NAME_CHECK,
 	NAME_CHECK_OBJ,
@@ -176,6 +177,8 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			*name_type = NAME_REGULAR;
 	} else if (ret == "use_gbt") {
 		*name_type = NAME_USE_GBT;
+	} else if (ret == "no_preload") {
+		*name_type = NAME_NO_PRELOAD;
 	} else {
 		*name_type = NAME_REGULAR;
 	}
@@ -673,6 +676,14 @@ void read_config (struct app_options *opt,
 				cfg_parse_err(&line, lnr, start);
 
 			opt->use_gbt = true;
+			break;
+
+		case NAME_NO_PRELOAD:
+			if (in_dynmem || in_ptrmem)
+				cfg_parse_err(&line, lnr, start);
+
+			if (opt->preload_lib)
+				opt->preload_lib = (char*) "-";
 			break;
 
 		default:

@@ -82,7 +82,8 @@ i32 preload_library (char *lib_path)
 	if (!lib_path)
 		goto out;
 
-	ret = env_append(PRELOAD_VAR, lib_path, ':');
+	if (lib_path[0] != '-')
+		ret = env_append(PRELOAD_VAR, lib_path, ':');
 out:
 	return ret;
 }
