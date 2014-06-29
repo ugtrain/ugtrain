@@ -552,7 +552,7 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 
 	sleep_sec(1);
 	if (!pid_is_running(pid, pid, NULL, true))
-		goto err;
+		pid = 0;    // The game process has been forked by a loader?!
 
 	return pid;
 err:
@@ -673,7 +673,9 @@ skip_memhack:
 		cout << "Starting game with " << opt->preload_lib
 		     << " preloaded.." << endl;
 		*pid = run_preloader(opt);
-		if (*pid < 0)
+		if (*pid == 0)
+			*pid = -1;
+		else if (*pid < 0)
 			return 1;
 	}
 
