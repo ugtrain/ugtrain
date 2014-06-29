@@ -814,7 +814,8 @@ prepare_dynmem:
 			}
 			return 0;
 		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
-			worker_pid = fork_proc(run_stage1234_loop, &ifd);
+			struct disc_loop_pp dpp = { ifd, opt };
+			worker_pid = fork_proc(run_stage1234_loop, &dpp);
 			if (opt->scanmem_pid > 0) {
 				wait_proc(opt->scanmem_pid);
 				// Have you closed scanmem before the game?

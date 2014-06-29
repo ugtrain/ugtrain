@@ -21,6 +21,8 @@
 #include "options.h"
 
 
+#define DYNMEM_FILE "/tmp/memhack_file"
+
 void do_assumptions (struct app_options *opt)
 {
 	/* Adaption handling */
@@ -114,6 +116,7 @@ static void init_options (struct app_options *opt)
 
 	/* no direct CLI input */
 	opt->scanmem_pid = -1;
+	opt->dynmem_file = DYNMEM_FILE;
 }
 
 /*

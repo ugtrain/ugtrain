@@ -45,6 +45,7 @@ struct app_options {
 	char	*game_path;
 	char	*game_binpath;
 	char	*game_params;
+	char	*dynmem_file;
 	bool	use_gbt;
 	size_t	disc_offs;
 	void	*disc_addr;

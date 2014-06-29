@@ -32,6 +32,12 @@
 #define DISC_NEXT	1
 #define DISC_OKAY	2
 
+// parameter for run_stage1234_loop()
+struct disc_loop_pp {
+	i32 ifd;
+	struct app_options *opt;
+};
+
 i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
 void run_stage1234_loop (void *argp);
 void run_stage5_loop    (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid);

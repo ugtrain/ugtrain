@@ -38,7 +38,6 @@
 #include "discovery.h"
 #include "adaption.h"
 
-#define DYNMEM_FILE "/tmp/memhack_file"
 #define DISASM_FILE "/tmp/memhack_disasm"
 #define MAX_BT 11
 #define DISC_DEBUG 0
@@ -221,7 +220,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 	void *mem_addr;
 	struct disc_pp dpp;
 
-	ifd = open(DYNMEM_FILE, O_RDONLY);
+	ifd = open(opt->dynmem_file, O_RDONLY);
 	if (ifd < 0) {
 		perror("open ifd");
 		return -1;
@@ -316,7 +315,9 @@ void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
 
 void run_stage1234_loop (void *argp)
 {
-	i32 ifd = *(i32 *) argp;
+	struct disc_loop_pp *dpp = (struct disc_loop_pp *) argp;
+	i32 ifd = dpp->ifd;
+	struct app_options *opt = dpp->opt;
 	i32 ofd;
 	char buf[PIPE_BUF];
 	ssize_t rbytes, wbytes;
@@ -324,7 +325,7 @@ void run_stage1234_loop (void *argp)
 #if DEBUG_PARSING
 	ofd = open("/dev/null", O_WRONLY);
 #else
-	ofd = open(DYNMEM_FILE, O_WRONLY | O_CREAT | O_TRUNC,
+	ofd = open(opt->dynmem_file, O_WRONLY | O_CREAT | O_TRUNC,
 		   0644);
 #endif
 	if (ofd < 0) {
