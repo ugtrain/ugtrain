@@ -91,10 +91,6 @@ extern void *__libc_stack_end;
    don't work here */
 extern char *__progname;
 
-/* For PIE (position independent executable) we have to determine
-   the code start in memory and use it as an offset. */
-static void *code_offs = NULL;
-
 /*
  * ATTENTION: GNU backtrace() might crash with SIGSEGV!
  *
@@ -130,7 +126,7 @@ cfg_s *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(cfg_s *)] = { NULL };
 /* prepare memory hacking upon library load */
 void __attribute ((constructor)) memhack_init (void)
 {
-	char *proc_name = NULL, *expected = NULL, *game_binpath = NULL;
+	char *proc_name = NULL, *expected = NULL;
 	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
 	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
@@ -146,7 +142,6 @@ void __attribute ((constructor)) memhack_init (void)
 		if (strcmp(expected, proc_name) != 0)
 			return;
 	}
-	game_binpath = getenv(UGT_GAME_BINPATH);
 
 	/* We are preloaded into the right process - stop preloading us!
 	   This also hides our presence from the game. ;-) */
@@ -276,18 +271,6 @@ void __attribute ((constructor)) memhack_init (void)
 			config[i]->stack_offs);
 	}
 
-	/* PIE: handle code address offset */
-	if (game_binpath)
-		code_offs = get_code_offs(-1, game_binpath);
-	if (code_offs) {
-		pr_dbg("PIE (position independent executable) "
-			"detected!\n");
-		for (i = 0; i < num_cfg; i++)
-			config[i]->code_addr = PTR_ADD(void *,
-				code_offs, config[i]->code_addr);
-	}
-	pr_out("Code offset: %p\n", code_offs);
-
 	if (num_cfg > 0)
 		active = true;
 	return;
@@ -333,11 +316,9 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 				continue;
 found:
 			pr_dbg("malloc: mem_addr: %p, code_addr: %p\n",
-				mem_addr, PTR_SUB(void *, config[i]->code_addr,
-				code_offs));
+				mem_addr, config[i]->code_addr);
 			wbytes = sprintf(obuf, "m%p;c%p\n",
-				mem_addr, PTR_SUB(void *, config[i]->code_addr,
-				code_offs));
+				mem_addr, config[i]->code_addr);
 
 			wbytes = write(ofd, obuf, wbytes);
 			if (wbytes < 0) {

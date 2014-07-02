@@ -14,8 +14,8 @@ endif
 include_HEADERS =
 
 if BITS_32
-libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c ../system_l.c
-libmemhack32_la_SOURCES = libmemhack.c libcommon.c ../system_l.c
+libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c
+libmemhack32_la_SOURCES = libmemhack.c libcommon.c
 libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall
 libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -Wall
 libmemdisc32_la_LIBADD = $(DEPS_LIBS)
@@ -35,8 +35,8 @@ libmemhack32_la_LDFLAGS = -ldl
 endif
 
 if BITS_64
-libmemdisc64_la_SOURCES = libmemdisc.c libcommon.c ../system_l.c
-libmemhack64_la_SOURCES = libmemhack.c libcommon.c ../system_l.c
+libmemdisc64_la_SOURCES = libmemdisc.c libcommon.c
+libmemhack64_la_SOURCES = libmemhack.c libcommon.c
 libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall
 libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -Wall
 libmemdisc64_la_LIBADD = $(DEPS_LIBS)

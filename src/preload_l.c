@@ -72,7 +72,6 @@ err:
 void configure_libmem (struct app_options *opt)
 {
 	setenv(UGT_GAME_PROC_NAME, opt->proc_name, 1);
-	setenv(UGT_GAME_BINPATH, opt->game_binpath, 1);
 }
 
 i32 preload_library (char *lib_path)

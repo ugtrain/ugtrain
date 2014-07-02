@@ -25,7 +25,6 @@
 #define LIBCOMMON_H
 
 #include "../common.h"
-#include "../system.h"
 
 #define DEBUG 0
 #if !DEBUG

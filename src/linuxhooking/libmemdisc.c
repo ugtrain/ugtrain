@@ -103,10 +103,6 @@ extern void *__libc_stack_end;
    don't work here */
 extern char *__progname;
 
-/* For PIE (position independent executable) we have to determine
-   the code start in memory and use it as an offset. */
-static void *code_offs = NULL;
-
 /* relevant start and end code addresses of .text segment */
 static void *bt_saddr = NULL, *bt_eaddr = NULL;
 
@@ -159,7 +155,7 @@ static void flush_output (int signum)
 /* prepare memory discovery upon library load */
 void __attribute ((constructor)) memdisc_init (void)
 {
-	char *proc_name = NULL, *expected = NULL, *game_binpath = NULL;
+	char *proc_name = NULL, *expected = NULL;
 	ssize_t rbytes;
 	i32 read_tries, ioffs = 0;
 	char *iptr;
@@ -175,7 +171,6 @@ void __attribute ((constructor)) memdisc_init (void)
 		if (strcmp(expected, proc_name) != 0)
 			return;
 	}
-	game_binpath = getenv(UGT_GAME_BINPATH);
 
 	/* We are preloaded into the right process - stop preloading us!
 	   This also hides our presence from the game. ;-) */
@@ -376,19 +371,6 @@ void __attribute ((constructor)) memdisc_init (void)
 	if (heap_eaddr <= heap_saddr)
 		heap_eaddr = (void *) -1UL;
 
-	/* PIE: handle code address offset */
-	if (game_binpath)
-		code_offs = get_code_offs(-1, game_binpath);
-	if (code_offs) {
-		pr_dbg("PIE (position independent executable) "
-			"detected!\n");
-		bt_saddr = PTR_ADD(void *, code_offs, bt_saddr);
-		bt_eaddr = PTR_ADD(void *, code_offs, bt_eaddr);
-		if (code_addr)
-			code_addr = PTR_ADD(void *, code_offs, code_addr);
-	}
-	pr_out("Code offset: %p\n", code_offs);
-
 	if (stage > 0 && stage <= 5)
 		active = true;
 
@@ -504,14 +486,12 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
 			    (code_addr == NULL ||
 			     code_ptr == code_addr)) {
 				*obuf_offs += sprintf(obuf + *obuf_offs,
-					";c%p;o%p",
-					PTR_SUB(void *, code_ptr, code_offs),
+					";c%p;o%p", code_ptr,
 					(void *) (offs - ffp));
 				found = true;
 			} else if (stage == 3) {
 				*obuf_offs += sprintf(obuf + *obuf_offs,
-					";c%p",
-					PTR_SUB(void *, code_ptr, code_offs));
+					";c%p", code_ptr);
 				found = true;
 			}
 			i++;
@@ -535,8 +515,7 @@ static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 		for (i = 1; i < num_taddr; i++) {
 			if (trace[i] >= bt_saddr && trace[i] <= bt_eaddr) {
 				*obuf_offs += sprintf(obuf + *obuf_offs,
-					";c%p",
-					PTR_SUB(void *, trace[i], code_offs));
+					";c%p", trace[i]);
 				found = true;
 			}
 		}
