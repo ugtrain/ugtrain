@@ -152,12 +152,31 @@ static void flush_output (int signum)
 	alarm(FLUSH_INTERVAL);
 }
 
+static inline i32 read_input (char ibuf[], size_t size)
+{
+	i32 ret = -1;
+	i32 read_tries;
+	ssize_t rbytes;
+
+	for (read_tries = 5; ; --read_tries) {
+		rbytes = read(ifd, ibuf, size);
+		if (rbytes > 0) {
+			ret = 0;
+			break;
+		}
+		if (read_tries <= 0)
+			break;
+		usleep(250 * 1000);
+	}
+	return ret;
+}
+
 /* prepare memory discovery upon library load */
 void __attribute ((constructor)) memdisc_init (void)
 {
 	char *proc_name = NULL, *expected = NULL;
 	ssize_t rbytes;
-	i32 read_tries, ioffs = 0;
+	i32 ioffs = 0;
 	char *iptr;
 	char ibuf[128] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
@@ -209,20 +228,10 @@ void __attribute ((constructor)) memdisc_init (void)
 	}
 	pr_dbg("ofile: %p\n", ofile);
 
-	for (read_tries = 5; ; --read_tries) {
-		rbytes = read(ifd, ibuf, 1);
-		if (rbytes == 1)
-			break;
-		if (read_tries <= 0)
-			goto read_err;
-		usleep(250 * 1000);
-	}
+	if (read_input(ibuf, 1) != 0)
+		goto read_err;
 	ioffs = 1;
 
-	fprintf(ofile, "h%p\n", heap_start);
-#ifdef WRITE_UNCACHED
-	fflush(ofile);
-#endif
 	memset(&ptr_cfg, 0, sizeof(ptr_cfg));
 	if (ibuf[0] == 'p') {
 		READ_STAGE_CFG();
@@ -370,6 +379,34 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	if (heap_eaddr <= heap_saddr)
 		heap_eaddr = (void *) -1UL;
+
+	/* Read new backtrace filter config (might be PIC/PIE) */
+	if (stage >= 3 && stage <= 5) {
+		void *code_offs = NULL;
+		fprintf(ofile, "ready\n");
+		fflush(ofile);
+		if (read_input(ibuf, sizeof(ibuf)) != 0) {
+			pr_err("Couldn't read code offset!\n");
+		} else {
+			if (sscanf(ibuf, "%p", &code_offs) < 1)
+				pr_err("Code offset parsing error!\n");
+			bt_saddr = PTR_ADD(void *, bt_saddr, code_offs);
+			bt_eaddr = PTR_ADD(void *, bt_eaddr, code_offs);
+			if (code_addr)
+				code_addr =
+					PTR_ADD(void *, code_addr, code_offs);
+		}
+		if (bt_eaddr <= bt_saddr)
+			bt_eaddr = (void *) ULONG_MAX;
+		pr_dbg("code cfg: %p;%p;%p\n",
+			bt_saddr, bt_eaddr, code_addr);
+	}
+
+	/* Send out the heap start */
+	fprintf(ofile, "h%p\n", heap_start);
+#ifdef WRITE_UNCACHED
+	fflush(ofile);
+#endif
 
 	if (stage > 0 && stage <= 5)
 		active = true;

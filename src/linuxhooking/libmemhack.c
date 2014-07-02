@@ -123,16 +123,35 @@ cfg_s *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(cfg_s *)] = { NULL };
 			i++; \
 	}
 
+static inline i32 read_input (char ibuf[], size_t size)
+{
+	i32 ret = -1;
+	i32 read_tries;
+	ssize_t rbytes;
+
+	for (read_tries = 5; ; --read_tries) {
+		rbytes = read(ifd, ibuf, size);
+		if (rbytes > 0) {
+			ret = 0;
+			break;
+		}
+		if (read_tries <= 0)
+			break;
+		usleep(250 * 1000);
+	}
+	return ret;
+}
+
 /* prepare memory hacking upon library load */
 void __attribute ((constructor)) memhack_init (void)
 {
 	char *proc_name = NULL, *expected = NULL;
-	ssize_t rbytes;
 	char ibuf[BUF_SIZE] = { 0 };
 	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
 	u32 max_obj;
-	i32 read_tries, scanned = 0;
+	i32 wbytes, scanned = 0;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
+	void *code_offs = NULL;
 
 	/* only care for the game process (ignore shell and others) */
 	expected = getenv(UGT_GAME_PROC_NAME);
@@ -168,14 +187,8 @@ void __attribute ((constructor)) memhack_init (void)
 	}
 	pr_dbg("ofd: %d\n", ofd);
 
-	for (read_tries = 5; ; --read_tries) {
-		rbytes = read(ifd, ibuf, sizeof(ibuf));
-		if (rbytes > 0)
-			break;
-		if (read_tries <= 0)
-			goto read_err;
-		usleep(250 * 1000);
-	}
+	if (read_input(ibuf, sizeof(ibuf)) != 0)
+		goto read_err;
 
 	scanned = sscanf(ibuf + ibuf_offs, "%u", &num_cfg);
 	if (scanned != 1)
@@ -270,6 +283,19 @@ void __attribute ((constructor)) memhack_init (void)
 			config[i]->mem_size, config[i]->code_addr,
 			config[i]->stack_offs);
 	}
+
+	wbytes = write(ofd, "ready\n", sizeof("ready\n"));
+	if (wbytes < 0)
+		perror("write");
+	if (read_input(ibuf, sizeof(ibuf)) != 0) {
+		pr_err("Couldn't read code offset!\n");
+	} else {
+		if (sscanf(ibuf, "%p", &code_offs) < 1)
+			pr_err("Code offset parsing error!\n");
+	}
+	for (i = 0; i < num_cfg; i++)
+		config[i]->code_addr = PTR_ADD(void *,
+		code_offs, config[i]->code_addr);
 
 	if (num_cfg > 0)
 		active = true;

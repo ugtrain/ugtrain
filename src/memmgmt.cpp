@@ -194,6 +194,7 @@ void alloc_dynmem_addr (list<CfgEntry> *cfg,
 			void *heap_start,
 			void *mem_addr,
 			size_t mem_size,
+			void *code_offs,
 			void *code_addr,
 			void *stack_offs)
 {
@@ -202,7 +203,8 @@ void alloc_dynmem_addr (list<CfgEntry> *cfg,
 
 	// find class, allocate and set mem_addr
 	list_for_each (cfg, it) {
-		if (!it->dynmem || it->dynmem->code_addr != code_addr)
+		if (!it->dynmem || it->dynmem->code_addr !=
+		    PTR_SUB(void *, code_addr, code_offs))
 			continue;
 		mvec = &it->dynmem->v_maddr;
 		mvec->push_back(mem_addr);

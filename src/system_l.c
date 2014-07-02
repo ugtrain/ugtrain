@@ -33,45 +33,6 @@
 #define SHELL "/bin/sh"
 
 
-/* Some Linux distributions use the GCC options -pie and -fPIE
-   by default for hardened security. Together with ASLR, the binary
-   is loaded each execution to another memory location. We have to
-   find out that memory location and use it as an offset. This
-   applies to code addresses on the stack and static memory as well.
-   PIE is detected from that offset. */
-void *get_code_offs (pid_t pid, char *game_binpath)
-{
-	char cmd[256] = { 0 };
-	char __buf[128] = { 0 }, *buf = (char *) __buf;
-	u32 buf_size = sizeof(__buf);
-	i32 buf_offs = 2;
-	ssize_t rbytes;
-	void *code_offs = NULL;
-
-	if (pid < 0)
-		pid = getpid();
-
-	buf[0] = '0';
-	buf[1] = 'x';
-	buf += buf_offs;
-	buf_size -= buf_offs;
-
-	/* ask the kernel where the binary is loaded into memory */
-	sprintf(cmd, "grep \"r-xp.*%s\" /proc/%d/maps "
-		"| cut -d \'-\' -f 1", game_binpath, pid);
-	rbytes = run_cmd_pipe(cmd, NULL, buf, buf_size);
-	if (rbytes <= 0)
-		goto out;
-	if (sscanf(buf, "%p", &code_offs) != 1)
-		goto out;
-	/* PIE detection: x86 offs: 0x8048000, x86_64 offs: 0x400000 */
-	if ((ptr_t) code_offs == 0x8048000UL ||
-	    (ptr_t) code_offs == 0x400000UL)
-		code_offs = NULL;
-out:
-	return code_offs;
-}
-
 /*
  * Run a task in background.
  *

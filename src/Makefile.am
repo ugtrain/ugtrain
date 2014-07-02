@@ -16,6 +16,7 @@ ugtrain_SOURCES = common.h \
                   valoutput.h \
                   discovery.h \
                   adaption.h \
+                  maps.h \
                   commont.cpp \
                   common.cpp \
                   ugtrain.cpp \
@@ -35,7 +36,8 @@ ugtrain_SOURCES = common.h \
                   memmgmt.cpp \
                   valoutput.cpp \
                   discovery.cpp \
-                  adaption.cpp
+                  adaption.cpp \
+                  maps_l.cpp
 
 ugtrain_LDADD = $(DEPS_LIBS)
 AM_CPPFLAGS = $(DEPS_CPPFLAGS) \

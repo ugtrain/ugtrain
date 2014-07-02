@@ -50,6 +50,8 @@ struct app_options {
 	size_t	disc_offs;
 	void	*disc_addr;
 	pid_t	scanmem_pid;
+	void	*code_addr;
+	void	*code_offs;
 };
 
 #ifdef __cplusplus

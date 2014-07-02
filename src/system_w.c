@@ -20,11 +20,6 @@
 #include "system.h"
 
 
-void *get_code_offs (pid_t pid, char *game_binpath)
-{
-	return NULL;
-}
-
 /*
  * Run a task in background.
  *

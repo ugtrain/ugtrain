@@ -112,12 +112,14 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 				     void *heap_start,
 				     void *mem_addr,
 				     size_t mem_size,
+				     void *code_offs,
 				     void *code_addr,
 				     void *stack_offs)
 {
 	struct disc_pp *dpp = (struct disc_pp *) pp->argp;
 	void *in_addr = dpp->in_addr;
-	char stage = dpp->opt->disc_str[0];
+	struct app_options *opt = dpp->opt;
+	char stage = opt->disc_str[0];
 	bool *do_disasm = &dpp->do_disasm;
 	void *codes[MAX_BT] = { NULL };
 	void *soffs[MAX_BT] = { NULL };
@@ -152,6 +154,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 				     &codes[i], &soffs[i]);
 			if (ret >= 1) {
 				num_codes++;
+				codes[i] = PTR_SUB(void *, codes[i], opt->code_offs);
 
 				sep_pos = strchr(pp->ibuf + pp->ppos, ';');
 				if (!sep_pos)
@@ -172,7 +175,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 		// get disassembly only once
 		if (*do_disasm) {
 			cmd_str = "objdump -D ";
-			cmd_str += dpp->opt->game_binpath;
+			cmd_str += opt->game_binpath;
 			cmd_str += " > " DISASM_FILE;
 #if (DISC_DEBUG)
 			cout << "$ " << cmd_str << endl;
@@ -244,7 +247,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 
 	while (true) {
 		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
-		    process_disc1234_malloc, NULL) < 0)
+		    opt->code_offs, process_disc1234_malloc, NULL) < 0)
 			break;
 	}
 	rm_file(DISASM_FILE);
@@ -273,11 +276,13 @@ static void process_disc5_output (list<CfgEntry> *cfg,
 				  void *heap_start,
 				  void *mem_addr,
 				  size_t mem_size,
+				  void *code_offs,
 				  void *code_addr,
 				  void *stack_offs)
 {
 	list<CfgEntry>::iterator it;
 
+	code_addr = PTR_SUB(void *, code_addr, code_offs);
 	cout << "Discovery output: " << endl;
 	cout << "m" << hex << mem_addr << dec << ";s"
 	     << mem_size << hex << ";c" << code_addr
@@ -300,19 +305,29 @@ out:
 	return;
 }
 
-void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid)
+void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
+		      void *code_offs)
 {
 	while (true) {
 		sleep_sec_unless_input(1, ifd, -1);
-		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, process_disc5_output,
-				NULL);
+		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, code_offs,
+				process_disc5_output, NULL);
 		if (!pid_is_running(pid, pid, NULL, true))
 			break;
 	}
 }
 
-#define DEBUG_PARSING 0
+void prepare_backtrace (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
+			list<struct region> *rlist)
+{
+	if (opt->disc_str[0] >= '3' && opt->disc_str[0] <= '5')
+		handle_pie(opt, ifd, ofd, pid, rlist);
+}
 
+/*
+ * worker process
+ * changed values aren't available in the parent
+ */
 void run_stage1234_loop (void *argp)
 {
 	struct disc_loop_pp *dpp = (struct disc_loop_pp *) argp;
@@ -322,12 +337,9 @@ void run_stage1234_loop (void *argp)
 	char buf[PIPE_BUF];
 	ssize_t rbytes, wbytes;
 
-#if DEBUG_PARSING
-	ofd = open("/dev/null", O_WRONLY);
-#else
 	ofd = open(opt->dynmem_file, O_WRONLY | O_CREAT | O_TRUNC,
 		   0644);
-#endif
+
 	if (ofd < 0) {
 		perror("open ofd");
 		exit(1);
@@ -356,7 +368,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	char *iptr, *main_part;
 	i32 i, ret, ioffs = 0;
 	list<CfgEntry>::iterator it;
-	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr;
+	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr, *code_addr = NULL;
 	ulong mem_size;
 	char pbuf[PIPE_BUF] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
@@ -396,9 +408,10 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			ioffs = sizeof(GBT_CMD);
 		}
 	case '4':
-		ret = sscanf(&main_part[1] + ioffs, ";%p;%p;%lu;%p;%p",
+		ret = sscanf(&main_part[1] + ioffs, ";%p;%p;%lu;%p;%p;%p",
 			     &heap_soffs, &heap_eoffs, &mem_size, &bt_saddr,
-			     &bt_eaddr);
+			     &bt_eaddr, &code_addr);
+		opt->code_addr = code_addr;
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
 				"stage " << main_part[0] << "!" << endl;

@@ -24,9 +24,10 @@
 #define REVERSE_EOF -3  // reverse file read end
 
 
-ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask, bool reverse,
+ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
+			 bool reverse, void *code_offs,
 			 void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
-				    void *, size_t, void *, void *),
+				    void *, size_t, void *, void *, void *),
 			 void (*ff)(list<CfgEntry> *, void *, void *))
 {
 	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
@@ -165,7 +166,7 @@ skip_o:
 
 			// call post parsing function
 			mf(cfg, &pp, heap_start, mem_addr, mem_size,
-			   code_addr, stack_offs);
+			   code_offs, code_addr, stack_offs);
 			break;
 		case 'f':
 			if (!ff)

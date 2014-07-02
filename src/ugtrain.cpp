@@ -435,19 +435,12 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	}
 }
 
-static void handle_pie (pid_t pid, char *game_binpath, list<CfgEntry> *cfg)
+static inline void handle_statmem_pie (void *code_offs, list<CfgEntry> *cfg)
 {
-	void *code_offs = NULL;
 	list<CfgEntry>::iterator it;
 	list<CheckEntry> *chk_lp;
 	list<CheckEntry>::iterator chk_it;
 
-	code_offs = get_code_offs(pid, game_binpath);
-	if (!code_offs)
-		return;
-	cout << "PIE (position independent executable) "
-		"detected!" << endl;
-	cout << "PIE: code offset: " << code_offs << endl;
 	list_for_each (cfg, it) {
 		if (it->dynmem || it->ptrmem)
 			continue;
@@ -456,7 +449,8 @@ static void handle_pie (pid_t pid, char *game_binpath, list<CfgEntry> *cfg)
 			continue;
 		chk_lp = it->checks;
 		list_for_each (chk_lp, chk_it)
-			chk_it->addr = PTR_ADD(void *, code_offs, chk_it->addr);
+			chk_it->addr = PTR_ADD(void *,
+				code_offs, chk_it->addr);
 	}
 }
 
@@ -722,6 +716,7 @@ i32 main (i32 argc, char **argv, char **env)
 	bool allow_empty_cfg = false;
 	ssize_t rbytes;
 	bool use_wait = true;
+	list<struct region> rlist;
 
 	atexit(restore_getch);
 
@@ -827,6 +822,7 @@ prepare_dynmem:
 			return 0;
 		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
 			struct disc_loop_pp dpp = { ifd, opt };
+			prepare_backtrace(opt, ifd, ofd, pid, &rlist);
 			worker_pid = fork_proc(run_stage1234_loop, &dpp);
 			if (opt->scanmem_pid > 0) {
 				wait_proc(opt->scanmem_pid);
@@ -839,8 +835,11 @@ prepare_dynmem:
 			if (worker_pid < 0)
 				return -1;
 		} else if (opt->disc_str[0] == '5') {
-			run_stage5_loop(cfg, ifd, pmask, call_pid);
+			prepare_backtrace(opt, ifd, ofd, pid, &rlist);
+			run_stage5_loop(cfg, ifd, pmask, call_pid,
+					opt->code_offs);
 		}
+		//list_regions(&rlist);
 		ret = postproc_discovery(opt, cfg, lines);
 		switch (ret) {
 		case DISC_NEXT:
@@ -872,7 +871,8 @@ prepare_dynmem:
 		return -1;
 	}
 
-	handle_pie(pid, opt->game_binpath, cfg);
+	handle_pie(opt, ifd, ofd, pid, &rlist);
+	handle_statmem_pie(opt->code_offs, cfg);
 
 	while (true) {
 		sleep_sec_unless_input(1, ifd, STDIN_FILENO);
@@ -882,7 +882,8 @@ prepare_dynmem:
 		// get allocated and freed objects (TIME CRITICAL!)
 		do {
 			rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
-						 alloc_dynmem_addr, clear_dynmem_addr);
+				opt->code_offs, alloc_dynmem_addr,
+				clear_dynmem_addr);
 		} while (rbytes > 0);
 
 		// print allocated and freed object counts

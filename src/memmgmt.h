@@ -23,7 +23,7 @@
 
 void alloc_dynmem_addr (list<CfgEntry> *cfg, struct post_parse *pp,
 			void *heap_start, void *mem_addr, size_t mem_size,
-			void *code_addr, void *stack_offs);
+			void *code_offs, void *code_addr, void *stack_offs);
 void clear_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr);
 void output_dynmem_changes (list<CfgEntry> *cfg);
 void free_dynmem  (list<CfgEntry> *cfg, bool process_kicked);
