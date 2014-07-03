@@ -403,7 +403,6 @@ char *get_abs_app_path (char *app_name)
 
 	return abs_path;
 err:
-	fprintf(stderr, "Absolute path not found or invalid!\n");
 	return NULL;
 }
 

@@ -700,6 +700,22 @@ skip_memhack:
 	return 0;
 }
 
+static inline bool tool_is_available (char *name)
+{
+	bool ret = false;
+	char *tmp_path = get_abs_app_path(name);
+	cout << "Checking if " << name << " is available: ";
+	if (tmp_path) {
+		cout << "yes" << endl;
+		free(tmp_path);
+		ret = true;
+	} else {
+		cout << "no" << endl;
+		cerr << "Please consider installing " << name << "!" << endl;
+	}
+	return ret;
+}
+
 i32 main (i32 argc, char **argv, char **env)
 {
 	vector<string> __lines, *lines = &__lines;
@@ -731,14 +747,26 @@ i32 main (i32 argc, char **argv, char **env)
 
 	if (opt->disc_str) {
 		if (opt->disc_str[0] >= '0' && opt->disc_str[0] <= '4') {
+			if (opt->run_scanmem &&
+			    !tool_is_available((char *) "scanmem"))
+				return -1;
+			if (opt->disc_str[0] >= '3') {
+				if (!tool_is_available((char *) "objdump"))
+					return -1;
+			}
 			cout << "Clearing config for discovery!" << endl;
 			cfg->clear();
 			cfg_act->clear();
 			allow_empty_cfg = true;
 		} else {
 			opt->run_scanmem = false;
+			if (opt->disc_str[0] == '5' &&
+			    !tool_is_available((char *) "objdump"))
+				return -1;
 		}
 	} else if (opt->run_scanmem) {
+		if (!tool_is_available((char *) "scanmem"))
+			return -1;
 		cout << "Clearing config for scanmem!" << endl;
 		cfg->clear();
 		cfg_act->clear();
@@ -748,8 +776,11 @@ i32 main (i32 argc, char **argv, char **env)
 	if (opt->preload_lib) {
 		if (!opt->game_path)
 			opt->game_path = get_abs_app_path(opt->game_call);
-		if (!opt->game_path)
+		if (!opt->game_path) {
+			cerr << "Absolute game path not found or invalid!"
+			     << endl;
 			return -1;
+		}
 	}
 	if (!opt->game_binpath)
 		opt->game_binpath = opt->game_path;
