@@ -461,7 +461,12 @@ static void get_ptr_to_heap (size_t size, void *mem_addr, void *ffp,
 		ptr_addr = (void *) (*(ptr_t *) ptr_cfg.ptr_offs);
 	}
 	if (ptr_addr && ptr_addr != old_ptr_addr) {
-		*obuf_offs += sprintf(obuf + *obuf_offs, "p%p\n", ptr_addr);
+		i32 wbytes = snprintf(obuf + *obuf_offs, BUF_SIZE - *obuf_offs,
+				  "p%p\n", ptr_addr);
+		if (wbytes < 0)
+			perror(PFX "snprintf");
+		else
+			*obuf_offs += wbytes;
 		old_ptr_addr = ptr_addr;
 	}
 }
@@ -522,13 +527,23 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
 			if (stage == 4 &&
 			    (code_addr == NULL ||
 			     code_ptr == code_addr)) {
-				*obuf_offs += sprintf(obuf + *obuf_offs,
+				i32 wbytes = snprintf(obuf + *obuf_offs,
+					BUF_SIZE - *obuf_offs,
 					";c%p;o%p", code_ptr,
 					(void *) (offs - ffp));
+				if (wbytes < 0)
+					perror(PFX "snprintf");
+				else
+					*obuf_offs += wbytes;
 				found = true;
 			} else if (stage == 3) {
-				*obuf_offs += sprintf(obuf + *obuf_offs,
+				i32 wbytes = snprintf(obuf + *obuf_offs,
+					BUF_SIZE - *obuf_offs,
 					";c%p", code_ptr);
+				if (wbytes < 0)
+					perror(PFX "snprintf");
+				else
+					*obuf_offs += wbytes;
 				found = true;
 			}
 			i++;
@@ -551,8 +566,13 @@ static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 		/* skip the first code addr (our own one) */
 		for (i = 1; i < num_taddr; i++) {
 			if (trace[i] >= bt_saddr && trace[i] <= bt_eaddr) {
-				*obuf_offs += sprintf(obuf + *obuf_offs,
+				i32 wbytes = snprintf(obuf + *obuf_offs,
+					BUF_SIZE - *obuf_offs,
 					";c%p", trace[i]);
+				if (wbytes < 0)
+					perror(PFX "snprintf");
+				else
+					*obuf_offs += wbytes;
 				found = true;
 			}
 		}
@@ -563,7 +583,7 @@ static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 {
 	i32 wbytes;
-	char obuf[BUF_SIZE];
+	char obuf[BUF_SIZE + 1] = { 0 };
 	i32 obuf_offs = 0;
 	bool found;
 
@@ -571,7 +591,11 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 		if (size == 0 || (malloc_size > 0 && size != malloc_size &&
 		    size != ptr_cfg.mem_size))
 			goto out;
-		obuf_offs = sprintf(obuf, "m%p;s%zd", mem_addr, size);
+		wbytes = snprintf(obuf, BUF_SIZE, "m%p;s%zd", mem_addr, size);
+		if (wbytes < 0)
+			perror(PFX "snprintf");
+		else
+			obuf_offs += wbytes;
 
 		if (stage >= 3) {
 			dump_stack_raw(ffp);  /* debugging only */
@@ -583,17 +607,28 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 			if (!found)
 				goto out;
 		}
-		obuf_offs += sprintf(obuf + obuf_offs, "\n");
+		wbytes = snprintf(obuf + obuf_offs, BUF_SIZE - obuf_offs,
+				  "\n");
+		if (wbytes < 0)
+			perror(PFX "snprintf");
+		else
+			obuf_offs += wbytes;
 
 		if (discover_ptr)
 			get_ptr_to_heap(size, mem_addr, ffp, obuf, &obuf_offs);
+		/* only send out terminated messages */
+		if (obuf_offs >= 1 && obuf[obuf_offs - 1] == '\n') {
 #if DEBUG_MEM
-		pr_out("%s", obuf);
+			pr_out("%s", obuf);
 #endif
-		wbytes = fprintf(ofile, "%s", obuf);
-		if (wbytes < 0) {
-			//perror(PFX "fprintf");
-			//exit(1);
+			wbytes = fprintf(ofile, "%s", obuf);
+			if (wbytes < 0) {
+				//perror(PFX "fprintf");
+				//exit(1);
+			}
+		} else {
+			pr_err("%s: not terminated message detected!\n",
+				__func__);
 		}
 #ifdef WRITE_UNCACHED
 		fflush(ofile);
@@ -606,10 +641,12 @@ out:
 static inline void preprocess_free (void *mem_addr)
 {
 	i32 wbytes;
-	char obuf[BUF_SIZE];
+	char obuf[BUF_SIZE + 1] = { 0 };
 
 	if (active && mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
-		sprintf(obuf, "f%p\n", mem_addr);
+		wbytes = snprintf(obuf, BUF_SIZE, "f%p\n", mem_addr);
+		if (wbytes < 0)
+			perror(PFX "snprintf");
 #if DEBUG_MEM
 		pr_out("f%p\n", mem_addr);
 #endif
