@@ -59,6 +59,16 @@
 #define DYNMEM_OUT "/tmp/memhack_in"
 
 
+static inline void memattach_err_once (pid_t pid)
+{
+	static bool reported = false;
+
+	if (!reported) {
+		cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
+		reported = true;
+	}
+}
+
 static inline i32 read_memory (pid_t pid, void *mem_addr, value_t *buf, const char *pfx)
 {
 	i32 ret;
@@ -894,7 +904,8 @@ prepare_dynmem:
 		if (memattach(pid) != 0) {
 			if (!pid_is_running(call_pid, pid, opt->proc_name, use_wait))
 				return 0;
-			cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
+			// coming here often when endling the game
+			memattach_err_once(pid);
 			continue;
 		}
 
