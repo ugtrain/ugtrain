@@ -22,6 +22,8 @@ function get_malloc_code()
     RC=0
 
     let "alines = $reslines - 1"
+    blines=$alines
+    if [ $blines -lt 2 ]; then blines=2; fi
 
     IFS=`printf '\n+'`
     if [ "$CODE" == "" ]; then
@@ -29,8 +31,8 @@ function get_malloc_code()
         CODE=`objdump -D "$app_path"`
     fi
     if [ "$OLD_FNAME" != "$fname" ]; then
-        if [ $DEBUG -eq 1 ]; then echo "echo -e \$CODE | grep $fname -B 2 -A 1"; fi
-        FUNC_CALLS=`echo -e "$CODE" | grep "$fname" -B 2 -A 1`
+        if [ $DEBUG -eq 1 ]; then echo "echo -e \$CODE | grep $fname -B $blines -A 1"; fi
+        FUNC_CALLS=`echo -e "$CODE" | grep "$fname" -B $blines -A 1`
         OLD_FNAME="$fname"
     fi
     if [ $DEBUG -eq 1 ]; then echo "echo -e \$FUNC_CALLS | grep -A $alines $msize"; fi
