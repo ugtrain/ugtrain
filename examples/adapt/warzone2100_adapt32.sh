@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Tested with: Warzone 2100 2.3.8, 2.3.9, 3.1.0, 3.1.1
+# Tested with: Warzone 2100 2.3.8, 2.3.9, 3.1~rc2, 3.1.0, 3.1.1
 
 # We already know that warzone2100 is a 32-bit C++ application and that
 # the Droid and Structure classes are allocated with _Znwj() or malloc().
