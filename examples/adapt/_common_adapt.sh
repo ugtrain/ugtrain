@@ -22,7 +22,7 @@ function get_malloc_code()
     RC=0
 
     let "alines = $reslines - 1"
-    blines=$alines
+    let "blines = $alines - 1"
     if [ $blines -lt 2 ]; then blines=2; fi
 
     IFS=`printf '\n+'`
