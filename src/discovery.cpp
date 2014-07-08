@@ -459,8 +459,10 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	case '5':
 		if (!opt->do_adapt) {
 			list_for_each (cfg, it) {
-				if (it->dynmem && !it->dynmem->adp_addr)
+				if (it->dynmem && !it->dynmem->adp_addr) {
+					it->dynmem->adp_size = it->dynmem->mem_size;
 					it->dynmem->adp_addr = it->dynmem->code_addr;
+				}
 			}
 		}
 		if (strlen(opt->disc_str) != 1) {
@@ -479,7 +481,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 found:
 			disc_str = opt->disc_str[0];
 			disc_str += ";0x0;0x0;";
-			disc_str += to_string(it->dynmem->mem_size);
+			disc_str += to_string(it->dynmem->adp_size);
 			for (i = 0; i < 3; i++) {
 				disc_str += ";";
 				disc_str += to_string(it->dynmem->adp_addr);

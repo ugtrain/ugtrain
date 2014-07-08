@@ -62,6 +62,7 @@ i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
 			continue;
 		tmp = cfg_it->dynmem;
+		tmp->mem_size = tmp->adp_size;
 		tmp->code_addr = tmp->adp_addr;
 		if (tmp->adp_soffs)
 			tmp->stack_offs = tmp->adp_soffs;
@@ -97,6 +98,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 	ssize_t part_size, ppos = 0;
 	u32 i, num_obj = 0;
 	string *obj_name = NULL;
+	u32 malloc_size = 0;
 	void *code_addr = NULL;
 	list<CfgEntry>::iterator it;
 	DynMemEntry *tmp = NULL;
@@ -118,16 +120,29 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 		obj_name = new string(buf + ppos, part_size);
 		ppos += part_size + 1;
 
+		if (sscanf(buf + ppos, "%x", &malloc_size) != 1)
+			goto parse_err;
+		part_end = strchr(buf + ppos, ';');
+		if (part_end == NULL)
+			goto parse_err;
+		part_size = part_end - (buf + ppos);
+		ppos += part_size + 1;
+
 		if (sscanf(buf + ppos, "%p", &code_addr) != 1)
 			goto parse_err;
 
-		// find object and set adp_addr
+		// find object and set adp_size and adp_addr
 		found = false;
 		list_for_each (cfg, it) {
 			tmp = it->dynmem;
 			if (tmp && !tmp->adp_addr &&
 			    tmp->name == *obj_name) {
+				tmp->adp_size = malloc_size;
 				tmp->adp_addr = code_addr;
+				cout << "Class " << tmp->name
+				     << ", old_size: " << tmp->mem_size
+				     << ", new_size: " << tmp->adp_size
+				     << endl;
 				cout << "Class " << tmp->name
 				     << ", old_code: " << hex << tmp->code_addr
 				     << ", new_code: " << tmp->adp_addr
@@ -226,7 +241,8 @@ i32 process_adaption (struct app_options *opt, list<CfgEntry> *cfg,
 		}
 		ret = adapt_config(opt, cfg);
 		if (ret) {
-			cerr << "Error while code address adaption!" << endl;
+			cerr << "Error while size or code address adaption!"
+			     << endl;
 			goto out;
 		}
 		if (opt->use_gbt) {

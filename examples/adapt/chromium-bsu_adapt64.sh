@@ -12,13 +12,14 @@ CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
 RC=0
+MSIZE="0x120"
 
 . _common_adapt.sh
 
-get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "0x120" 4 4 4
+get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE," 4 4 4
 if [ $RC -ne 0 ]; then exit 1; fi
 
-RESULT=`echo "1;HeroAircraft;0x$CODE_ADDR"`
+RESULT=`echo "1;HeroAircraft;$MSIZE;0x$CODE_ADDR"`
 echo "$RESULT"
 
 # Should return something like this:

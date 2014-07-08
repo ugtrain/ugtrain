@@ -39,6 +39,7 @@ public:
 	u32 pr_idx;      // print index
 
 	// adaption
+	u32  adp_size;                // adapted object size
 	void *adp_addr;               // adapted code address
 	void *adp_soffs;              // adapted reverse stack offset
 	u32 cfg_line;                 // to write back new cfg
