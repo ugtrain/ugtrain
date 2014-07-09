@@ -59,7 +59,7 @@ static inline void handle_exe_region (struct region *r, i32 ofd,
 {
 	ssize_t wbytes;
 	char obuf[PIPE_BUF];
-	u32 osize;
+	i32 osize;
 	void *code_offs;
 
 	cout << "Found exe, start: " << hex << r->start
