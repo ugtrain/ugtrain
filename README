@@ -13,6 +13,8 @@
 #
 # The ugtrain is powered by the Open Game Cheating Association.
 #
+# What a game trainer is: http://en.wikipedia.org/wiki/Trainer_%28games%29
+#
 # ### Videos of the Examples ###
 #
 # Chromium B.S.U.
@@ -52,7 +54,7 @@
 # For the challenge of cheating them without looking at the source or
 # even modifying the source code and also for education purposes. Advanced
 # reverse engineering methods are often used by computer criminals
-# (Crackers) for cheating games. They don't tell you how they do it. The
+# (Crackers) for cheating at games. They don't tell you how they do it. The
 # goal is to get to know the operating system and the memory management
 # better.
 #
@@ -100,7 +102,8 @@
 # The reason for the load address being different each execution is a security
 # measure called address space layout randomization (ASLR). Also libraries are
 # loaded at random location as these are position independent code (PIC).
-# There is a special scanmem version which supports PIC, PIE and ASLR as well.
+# There is a special scanmem version which supports PIC, PIE and ASLR as well
+# (merged upstream 2014-05-16).
 #
 #
 # ### Dynamic Memory ###
