@@ -148,7 +148,9 @@ static cfg_s ptr_cfg;
 static void flush_output (int signum)
 {
 	pr_dbg("fflush(ofile) triggered by SIGALRM\n");
-	fflush(ofile);
+	flockfile(ofile);
+	fflush_unlocked(ofile);
+	funlockfile(ofile);
 	alarm(FLUSH_INTERVAL);
 }
 
@@ -580,6 +582,26 @@ static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 	return found;
 }
 
+static inline void write_obuf (char obuf[])
+{
+	i32 wbytes;
+
+#if DEBUG_MEM
+	pr_out("%s", obuf);
+#endif
+	flockfile(ofile);
+	wbytes = fputs_unlocked(obuf, ofile);
+	if (wbytes < 0) {
+		perror(PFX "fputs_unlocked");
+		funlockfile(ofile);
+		exit(1);
+	}
+#ifdef WRITE_UNCACHED
+	fflush_unlocked(ofile);
+#endif
+	funlockfile(ofile);
+}
+
 static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 {
 	i32 wbytes;
@@ -617,22 +639,11 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 		if (discover_ptr)
 			get_ptr_to_heap(size, mem_addr, ffp, obuf, &obuf_offs);
 		/* only send out terminated messages */
-		if (obuf_offs >= 1 && obuf[obuf_offs - 1] == '\n') {
-#if DEBUG_MEM
-			pr_out("%s", obuf);
-#endif
-			wbytes = fprintf(ofile, "%s", obuf);
-			if (wbytes < 0) {
-				//perror(PFX "fprintf");
-				//exit(1);
-			}
-		} else {
+		if (obuf_offs >= 1 && obuf[obuf_offs - 1] == '\n')
+			write_obuf(obuf);
+		else
 			pr_err("%s: not terminated message detected!\n",
 				__func__);
-		}
-#ifdef WRITE_UNCACHED
-		fflush(ofile);
-#endif
 	}
 out:
 	return;
@@ -647,17 +658,7 @@ static inline void preprocess_free (void *mem_addr)
 		wbytes = snprintf(obuf, BUF_SIZE, "f%p\n", mem_addr);
 		if (wbytes < 0)
 			perror(PFX "snprintf");
-#if DEBUG_MEM
-		pr_out("f%p\n", mem_addr);
-#endif
-		wbytes = fprintf(ofile, "%s", obuf);
-		if (wbytes < 0) {
-			//perror(PFX "fprintf");
-			//exit(1);
-		}
-#ifdef WRITE_UNCACHED
-		fflush(ofile);
-#endif
+		write_obuf(obuf);
 	}
 }
 
