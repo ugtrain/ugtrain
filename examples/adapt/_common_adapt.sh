@@ -4,7 +4,14 @@
 # between distributions, compilers and game versions. But the thing which
 # remains constant is often the way how the code internally works.
 
-DEBUG=0
+if [ -n "$2" ]; then
+    if [ "$2" == "DEBUG" ]; then
+        DEBUG=1
+    fi
+fi
+if [ ! -v DEBUG ]; then
+    DEBUG=0
+fi
 
 CODE=""
 OLD_FNAME=""
