@@ -36,6 +36,7 @@ struct app_options {
 	char	*pre_cmd;
 	bool	use_glc;
 	/* no direct CLI input */
+	bool	pure_statmem;
 	bool	adp_required;
 	u32	adp_req_line;
 	char	*adp_script;

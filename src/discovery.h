@@ -75,11 +75,13 @@ static inline void handle_exe_region (struct region *r, i32 ofd,
 	if (code_offs)
 		cout << "PIE (position independent executable) detected!"
 		     << endl;
-	// Write code offset to output FIFO
-	osize = snprintf(obuf, sizeof(obuf), "%p\n", opt->code_offs);
-	wbytes = write(ofd, obuf, osize);
-	if (wbytes < osize)
-		perror("FIFO write");
+	if (!opt->pure_statmem) {
+		// Write code offset to output FIFO
+		osize = snprintf(obuf, sizeof(obuf), "%p\n", opt->code_offs);
+		wbytes = write(ofd, obuf, osize);
+		if (wbytes < osize)
+			perror("FIFO write");
+	}
 }
 
 static void handle_pie (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
@@ -89,14 +91,16 @@ static void handle_pie (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
 	ssize_t rbytes;
 	list<struct region>::iterator it;
 
-	while (true) {
-		sleep_sec_unless_input(1, ifd, -1);
-		rbytes = read(ifd, buf, sizeof(buf));
-		if (rbytes == 0 ||
-		    (rbytes < 0 && errno == EAGAIN))
-			continue;
-		else
-			break;
+	if (!opt->pure_statmem) {
+		while (true) {
+			sleep_sec_unless_input(1, ifd, -1);
+			rbytes = read(ifd, buf, sizeof(buf));
+			if (rbytes == 0 ||
+			    (rbytes < 0 && errno == EAGAIN))
+				continue;
+			else
+				break;
+		}
 	}
 	read_regions(pid, rlist);
 	list_for_each (rlist, it) {

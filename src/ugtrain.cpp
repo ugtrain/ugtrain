@@ -576,6 +576,7 @@ static pid_t run_preloader (struct app_options *opt)
 }
 #endif
 
+/* returns: 0: success, 1: error, 2: pure static memory detected */
 static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 			   i32 *ifd, i32 *ofd, pid_t *pid)
 {
@@ -630,7 +631,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 	obuf[pos++] = '\0';
 
 	if (num_cfg <= 0)
-		return 0;
+		return 2;
 
 skip_memhack:
 #ifdef __linux__
@@ -808,7 +809,10 @@ discover_next:
 		return -1;
 
 prepare_dynmem:
-	if (prepare_dynmem(opt, cfg, &ifd, &ofd, &call_pid) != 0) {
+	ret = prepare_dynmem(opt, cfg, &ifd, &ofd, &call_pid);
+	if (ret == 2) {
+		opt->pure_statmem = true;
+	} else if (ret != 0) {
 		cerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}
@@ -818,7 +822,7 @@ prepare_dynmem:
 		if (call_pid >= 0)
 			goto pid_err;
 		/* Run the game but not as root */
-		if (opt->preload_lib) {
+		if (opt->pure_statmem && opt->preload_lib) {
 #ifdef __linux__
 			if (getuid() == 0)
 				return -1;
@@ -911,14 +915,16 @@ prepare_dynmem:
 		handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
 
 		// get allocated and freed objects (TIME CRITICAL!)
-		do {
-			rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
-				opt->code_offs, alloc_dynmem_addr,
-				clear_dynmem_addr);
-		} while (rbytes > 0);
+		if (!opt->pure_statmem) {
+			do {
+				rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask,
+					false, opt->code_offs,
+					alloc_dynmem_addr, clear_dynmem_addr);
+			} while (rbytes > 0);
 
-		// print allocated and freed object counts
-		output_dynmem_changes(cfg);
+			// print allocated and freed object counts
+			output_dynmem_changes(cfg);
+		}
 
 		// check for active config
 		if (cfg_act->empty()) {
@@ -927,11 +933,13 @@ prepare_dynmem:
 			continue;
 		}
 
-		// handle objects freed in the game
-		free_dynmem(cfg, false);
+		if (!opt->pure_statmem) {
+			// handle objects freed in the game
+			free_dynmem(cfg, false);
 
-		// allocate old values per memory object
-		alloc_dynmem(cfg);
+			// allocate old values per memory object
+			alloc_dynmem(cfg);
+		}
 
 		if (memattach(pid) != 0) {
 			if (!pid_is_running(call_pid, pid, opt->proc_name, use_wait))
@@ -950,7 +958,8 @@ prepare_dynmem:
 		}
 
 		// free memory used for objects kicked out by object check
-		free_dynmem(cfg, true);
+		if (!opt->pure_statmem)
+			free_dynmem(cfg, true);
 
 		// output old values
 		output_mem_values(cfg_act);

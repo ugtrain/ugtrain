@@ -80,7 +80,8 @@ static inline void sleep_sec_unless_input (u32 sec, i32 fd1, i32 fd2)
 	tv.tv_sec = sec;
 	tv.tv_usec = 0;
 
-	FD_SET(fd1, &fs);
+	if (fd1 >= 0)
+		FD_SET(fd1, &fs);
 	if (fd2 >= 0)
 		FD_SET(fd2, &fs);
 
