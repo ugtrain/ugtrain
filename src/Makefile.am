@@ -41,4 +41,4 @@ ugtrain_SOURCES = common.h \
 
 ugtrain_LDADD = $(DEPS_LIBS)
 AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
-              -Wall
+              -Wall -g -O2
