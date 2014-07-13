@@ -368,7 +368,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	char *iptr, *main_part;
 	i32 i, ret, ioffs = 0;
 	list<CfgEntry>::iterator it;
-	void *heap_soffs, *heap_eoffs, *bt_saddr, *bt_eaddr, *code_addr = NULL;
+	ptr_t heap_soffs, heap_eoffs, bt_saddr, bt_eaddr, code_addr = 0;
 	ulong mem_size;
 	char pbuf[PIPE_BUF] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
@@ -408,10 +408,11 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			ioffs = sizeof(GBT_CMD);
 		}
 	case '4':
-		ret = sscanf(&main_part[1] + ioffs, ";%p;%p;%lu;%p;%p;%p",
+		ret = sscanf(&main_part[1] + ioffs, ";" SCN_PTR ";" SCN_PTR
+			     ";%lu;" SCN_PTR ";" SCN_PTR ";" SCN_PTR,
 			     &heap_soffs, &heap_eoffs, &mem_size, &bt_saddr,
 			     &bt_eaddr, &code_addr);
-		opt->code_addr = code_addr;
+		opt->code_addr = (void *) code_addr;
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
 				"stage " << main_part[0] << "!" << endl;
@@ -428,29 +429,29 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			cmd_str = "objdump -p ";
 			cmd_str += opt->game_binpath;
 			cmd_str += " | grep \"INIT\\|FINI\" "
-				   "| tr -d [:upper:] | tr -d [:blank:]";
+				   "| tr -d [:upper:] | tr -d [:blank:] | head -n 2";
 			cout << "$ " << cmd_str << endl;
 			if (run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
 			    sizeof(pbuf)) <= 0)
 				goto err;
-			if (sscanf(pbuf, "%p\n%p", &bt_saddr, &bt_eaddr) != 2) {
+			if (sscanf(pbuf, SCN_PTR "\n" SCN_PTR, &bt_saddr, &bt_eaddr) != 2) {
 				goto err;
 			} else {
 				main_part[1] = '\0';
 				disc_str = opt->disc_str;
 				if (use_gbt)
-					disc_str += ";" GBT_CMD ";";
+					disc_str += ";" GBT_CMD ";0x";
 				else
-					disc_str += ";";
-				disc_str += to_string(heap_soffs);
-				disc_str += ";";
-				disc_str += to_string(heap_eoffs);
+					disc_str += ";0x";
+				disc_str += to_xstring(heap_soffs);
+				disc_str += ";0x";
+				disc_str += to_xstring(heap_eoffs);
 				disc_str += ";";
 				disc_str += to_string(mem_size);
-				disc_str += ";";
-				disc_str += to_string(bt_saddr);
-				disc_str += ";";
-				disc_str += to_string(bt_eaddr);
+				disc_str += ";0x";
+				disc_str += to_xstring(bt_saddr);
+				disc_str += ";0x";
+				disc_str += to_xstring(bt_eaddr);
 				opt->disc_str = to_c_str(&disc_str);
 			}
 		}

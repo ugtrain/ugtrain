@@ -26,3 +26,12 @@ string to_string (T val)
 	ss << val;
 	return ss.str();
 }
+
+template <class T>
+string to_xstring (T val)
+{
+	ostringstream ss;
+
+	ss << hex << val << dec;
+	return ss.str();
+}

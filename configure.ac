@@ -73,7 +73,7 @@ if test "$enable_multilib" != "no" -a bits64 != "no"; then
 				to install 32-bit development libraries.])])
   CC="$TMP_CC"
 fi
-# Test GTK compile
+# Test GLIB compile
 AS_IF([test "$enable_glib" != "no"], [
    PKG_CHECK_MODULES([GLIB], [glib-2.0])
    AC_SUBST([GLIB_CFLAGS])
@@ -86,7 +86,6 @@ AM_CONDITIONAL([BITS_64], test "$bits64" != "no")
 AM_CONDITIONAL([HAVE_M32], test "$has_m32" != "no")
 AM_CONDITIONAL([HAVE_M64], test "$has_m64" != "no")
 
-# Checks for pkg-config.
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
@@ -98,6 +97,9 @@ AC_CHECK_HEADERS(stdlib.h string.h unistd.h)
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_TYPE_UID_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_UINTPTR_T
 
 # Checks for library functions.
 AC_FUNC_STAT

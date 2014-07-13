@@ -209,11 +209,11 @@ static void *parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
 	*start = lidx + 2;
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (lidx == line->length() - 1) {
-			ret = (void *) strtol(string(*line, *start,
+			ret = (void *) strtoptr(string(*line, *start,
 				lidx + 1 - *start).c_str(), NULL, 16);
 			break;
 		} else if (line->at(lidx) == ' ') {
-			ret = (void *) strtol(string(*line, *start,
+			ret = (void *) strtoptr(string(*line, *start,
 				lidx - *start).c_str(), NULL, 16);
 			break;
 		} else if (!isxdigit(line->at(lidx))) {

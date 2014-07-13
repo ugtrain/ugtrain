@@ -29,14 +29,15 @@
 
 struct app_options {
 	char	*cfg_path;
-	bool	do_adapt;
+	char	*pre_cmd;
 	char	*preload_lib;
 	char	*disc_str;
+	bool	do_adapt;
 	bool	run_scanmem;
-	char	*pre_cmd;
 	bool	use_glc;
 	/* no direct CLI input */
 	bool	pure_statmem;
+	bool	use_gbt;
 	bool	adp_required;
 	u32	adp_req_line;
 	char	*adp_script;
@@ -47,12 +48,11 @@ struct app_options {
 	char	*game_binpath;
 	char	*game_params;
 	char	*dynmem_file;
-	bool	use_gbt;
-	size_t	disc_offs;
 	void	*disc_addr;
-	pid_t	scanmem_pid;
 	void	*code_addr;
 	void	*code_offs;
+	size_t	disc_offs;
+	pid_t	scanmem_pid;
 };
 
 #ifdef __cplusplus

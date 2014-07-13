@@ -706,13 +706,13 @@ static inline bool tool_is_available (char *name)
 	bool ret = false;
 	char *tmp_path = get_abs_app_path(name);
 	cout << "Checking if " << name << " is available: ";
-	if (tmp_path) {
+	if (!tmp_path) {
+		cout << "no" << endl;
+		cerr << "Please consider installing " << name << "!" << endl;
+	} else {
 		cout << "yes" << endl;
 		free(tmp_path);
 		ret = true;
-	} else {
-		cout << "no" << endl;
-		cerr << "Please consider installing " << name << "!" << endl;
 	}
 	return ret;
 }

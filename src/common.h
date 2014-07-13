@@ -26,7 +26,7 @@
 	#include <stdbool.h>
 #endif
 
-// Common types
+/* Common types */
 typedef char i8;
 typedef unsigned char u8;
 typedef short i16;
@@ -39,20 +39,51 @@ typedef unsigned long ulong;
 #ifndef __linux__
 	typedef int pid_t;
 #endif
-typedef ulong ptr_t;
 
-// Common defines
+/* uintptr_t is optional */
+#if !defined(HAVE_UINTPTR_T) || !HAVE_UINTPTR_T
+#undef SCNxPTR
+#undef PRIxPTR
+#undef UINTPTR_MAX
+#if defined(_WIN64) || defined (__WIN64__)
+/* 64 bit Windows systems require unsigned long long */
+#define uintptr_t u64
+#define SCN_PTR "0x%llx"
+#define PRI_PTR "0x%llx"
+#define UINTPTR_MAX ULLONG_MAX
+#else
+/* unsigned long usable */
+#define uintptr_t ulong
+#define SCN_PTR "0x%lx"
+#define PRI_PTR "0x%lx"
+#define UINTPTR_MAX ULONG_MAX
+#endif
+#else
+#include <stdint.h>
+#include <inttypes.h>
+#define SCN_PTR "0x%"SCNxPTR
+#define PRI_PTR "0x%"PRIxPTR
+#endif
+typedef uintptr_t ptr_t;
+
+#if defined(_WIN64) || defined (__WIN64__)
+#define strtoptr strtoull
+#else
+#define strtoptr strtoul
+#endif
+
+/* Common defines */
 #define GBT_CMD     "gbt"  /* GNU backtrace() activation cmd */
 #define MAX_GNUBT   3      /* for GNU backtrace() */
 #define PRELOAD_VAR "LD_PRELOAD"
 #define UGT_GAME_PROC_NAME     "UGT_GAME_PROC_NAME"
 
-// for Windows as not in limits.h
+/* for Windows as not in limits.h */
 #ifndef PIPE_BUF
 	#define PIPE_BUF 4096
 #endif
 
-// Common macros
+/* Common macros */
 #define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
 #define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)
 #define PTR_SUB(type, x, y)  (type) ((ptr_t)x - (ptr_t)y)
@@ -62,10 +93,12 @@ typedef ulong ptr_t;
 #define vect_for_each(vect, it) \
 	list_for_each(vect, it)
 
-// Common functions
+/* Common functions */
 #ifdef __cplusplus
 	template <class T>
 	string to_string (T val);
+	template <class T>
+	string to_xstring (T val);
 	char *to_c_str(string *str);
 #endif
 

@@ -88,7 +88,7 @@ static i32 stage = 0;  /* 0: no output */
 /* Output filtering */
 
 /* relevant start and end memory addresses on the heap */
-static void *heap_saddr = NULL, *heap_eaddr = NULL;
+static ptr_t heap_saddr = 0, heap_eaddr = 0;
 
 /* malloc size */
 static size_t malloc_size = 0;
@@ -98,16 +98,17 @@ static size_t malloc_size = 0;
 /* This is a global variable set at program start time. It marks the
    greatest used stack address. */
 extern void *__libc_stack_end;
+#define stack_end (ptr_t) __libc_stack_end
 
 /* ask libc for our process name as 'argv[0]' and 'getenv("_")'
    don't work here */
 extern char *__progname;
 
 /* relevant start and end code addresses of .text segment */
-static void *bt_saddr = NULL, *bt_eaddr = NULL;
+static ptr_t bt_saddr = 0, bt_eaddr = 0;
 
 /* code address of the interesting malloc call */
-static void *code_addr = NULL;
+static ptr_t code_addr = 0;
 
 /*
  * ATTENTION: GNU backtrace() might crash with SIGSEGV!
@@ -121,10 +122,10 @@ static bool use_gbt = false;
 /* Config structure for pointer to heap object discovery */
 struct cfg {
 	size_t mem_size;
-	void *code_addr;
-	void *stack_offs;
-	void *mem_addr;   /* filled by malloc */
-	void *ptr_offs;
+	ptr_t code_addr;
+	ptr_t stack_offs;
+	ptr_t mem_addr;   /* filled by malloc */
+	ptr_t ptr_offs;
 };
 typedef struct cfg cfg_s;
 
@@ -182,7 +183,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	char *iptr;
 	char ibuf[128] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
-	void *heap_start = NULL, *heap_soffs = NULL, *heap_eoffs = NULL;
+	void *heap_ptr;
+	ptr_t heap_start = 0, heap_soffs = 0, heap_eoffs = 0;
 
 	/* only care for the game process (ignore shell and others) */
 	expected = getenv(UGT_GAME_PROC_NAME);
@@ -205,14 +207,15 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	pr_out("Stack end:  %p\n", __libc_stack_end);
 	/*
-	 * Don't you dare call malloc for another purpose in this lib!
 	 * We can only do this safely as (active == false).
+	 * Set no_hook to true to prevent malloc recursion.
 	 */
-	heap_start = malloc(1);
-	if (heap_start) {
-		pr_out("Heap start: %p\n", heap_start);
+	heap_ptr = malloc(1);
+	if (heap_ptr) {
+		heap_start = (ptr_t) heap_ptr;
+		pr_out("Heap start: " PRI_PTR "\n", heap_start);
 		heap_saddr = heap_eaddr = heap_start;
-		free(heap_start);
+		free(heap_ptr);
 	}
 
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
@@ -237,9 +240,9 @@ void __attribute ((constructor)) memdisc_init (void)
 	memset(&ptr_cfg, 0, sizeof(ptr_cfg));
 	if (ibuf[0] == 'p') {
 		READ_STAGE_CFG();
-		if (sscanf(ibuf + ioffs, ";%zd;%p;%p;%p", &ptr_cfg.mem_size,
-		    &ptr_cfg.code_addr, &ptr_cfg.stack_offs,
-		    &ptr_cfg.ptr_offs) != 4)
+		if (sscanf(ibuf + ioffs, ";%zd;" SCN_PTR ";" SCN_PTR ";"
+		    SCN_PTR, &ptr_cfg.mem_size, &ptr_cfg.code_addr,
+		    &ptr_cfg.stack_offs, &ptr_cfg.ptr_offs) != 4)
 			goto parse_err;
 		iptr = strstr(ibuf, ";;");
 	        if (!iptr)
@@ -250,9 +253,9 @@ void __attribute ((constructor)) memdisc_init (void)
 
 		pr_dbg("ibuf: %s\n", ibuf);
 		pr_dbg("ioffs; %d\n", ioffs);
-		pr_dbg("ptr_cfg: %zd;%p;%p;%p\n", ptr_cfg.mem_size,
-			ptr_cfg.code_addr, ptr_cfg.stack_offs,
-			ptr_cfg.ptr_offs);
+		pr_dbg("ptr_cfg: %zd;" PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
+			ptr_cfg.mem_size, ptr_cfg.code_addr,
+			ptr_cfg.stack_offs, ptr_cfg.ptr_offs);
 	} else if (ibuf[0] >= '1' && ibuf[0] <= '5') {
 		READ_STAGE_CFG();
 		ioffs = 0;
@@ -268,13 +271,13 @@ void __attribute ((constructor)) memdisc_init (void)
 	 */
 	case '1':
 		ioffs += 1;
-		if (sscanf(ibuf + ioffs, ";%p;%p", &heap_soffs,
+		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR, &heap_soffs,
 		    &heap_eoffs) == 2) {
-			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
-			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+			heap_saddr += heap_soffs;
+			heap_eaddr += heap_eoffs;
 			stage = 1;
-			pr_dbg("stage 1 cfg: %p;%p\n", heap_soffs,
-				heap_eoffs);
+			pr_dbg("stage 1 cfg: " PRI_PTR ";" PRI_PTR "\n",
+				heap_soffs, heap_eoffs);
 		} else {
 			goto parse_err;
 		}
@@ -291,13 +294,13 @@ void __attribute ((constructor)) memdisc_init (void)
 	 */
 	case '2':
 		ioffs += 1;
-		if (sscanf(ibuf + ioffs, ";%p;%p;%zd", &heap_soffs, &heap_eoffs,
-		    &malloc_size) == 3) {
-			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
-			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd",
+		    &heap_soffs, &heap_eoffs, &malloc_size) == 3) {
+			heap_saddr += heap_soffs;
+			heap_eaddr += heap_eoffs;
 			stage = 2;
-			pr_dbg("stage 2 cfg: %p;%p;%zd\n", heap_soffs,
-				heap_eoffs, malloc_size);
+			pr_dbg("stage 2 cfg: " PRI_PTR ";" PRI_PTR ";%zd\n",
+				heap_soffs, heap_eoffs, malloc_size);
 		} else {
 			goto parse_err;
 		}
@@ -325,19 +328,20 @@ void __attribute ((constructor)) memdisc_init (void)
 			use_gbt = true;
 			ioffs += sizeof(GBT_CMD);
 		}
-		if (sscanf(ibuf + ioffs, ";%p;%p;%zd;%p;%p", &heap_soffs,
-		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
-			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
-			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
+		    SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
+		    &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
+			heap_saddr += heap_soffs;
+			heap_eaddr += heap_eoffs;
 			if (malloc_size < 1)
 				use_gbt = false;
 			if (use_gbt)
 				pr_out("Using GNU backtrace(). "
 					"This might crash with SIGSEGV!\n");
 			stage = 3;
-			pr_dbg("stage 3 cfg: %p;%p;%zd;%p;%p\n",
-				heap_soffs, heap_eoffs, malloc_size,
-				bt_saddr, bt_eaddr);
+			pr_dbg("stage 3 cfg: " PRI_PTR ";" PRI_PTR ";%zd;"
+				PRI_PTR ";" PRI_PTR "\n", heap_soffs,
+				heap_eoffs, malloc_size, bt_saddr, bt_eaddr);
 		} else {
 			goto parse_err;
 		}
@@ -361,13 +365,15 @@ void __attribute ((constructor)) memdisc_init (void)
 	case '4':
 	case '5':
 		ioffs += 1;
-		if (sscanf(ibuf + ioffs, ";%p;%p;%zd;%p;%p;%p", &heap_soffs,
+		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
+		    SCN_PTR ";" SCN_PTR ";" SCN_PTR, &heap_soffs,
 		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr,
 		    &code_addr) >= 5) {
-			heap_saddr = PTR_ADD(void *, heap_saddr, heap_soffs);
-			heap_eaddr = PTR_ADD(void *, heap_eaddr, heap_eoffs);
+			heap_saddr += heap_soffs;
+			heap_eaddr += heap_eoffs;
 			stage = 4;
-			pr_dbg("stage 4 cfg: %p;%p;%zd;%p;%p;%p\n",
+			pr_dbg("stage 4 cfg: " PRI_PTR ";" PRI_PTR ";%zd;"
+				PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
 				heap_soffs, heap_eoffs, malloc_size,
 				bt_saddr, bt_eaddr, code_addr);
 		} else {
@@ -380,32 +386,31 @@ void __attribute ((constructor)) memdisc_init (void)
 	}
 
 	if (heap_eaddr <= heap_saddr)
-		heap_eaddr = (void *) -1UL;
+		heap_eaddr = UINTPTR_MAX;
 
 	/* Read new backtrace filter config (might be PIC/PIE) */
 	if (stage >= 3 && stage <= 5) {
-		void *code_offs = NULL;
+		ptr_t code_offs = 0;
 		fprintf(ofile, "ready\n");
 		fflush(ofile);
 		if (read_input(ibuf, sizeof(ibuf)) != 0) {
 			pr_err("Couldn't read code offset!\n");
 		} else {
-			if (sscanf(ibuf, "%p", &code_offs) < 1)
+			if (sscanf(ibuf, SCN_PTR, &code_offs) < 1)
 				pr_err("Code offset parsing error!\n");
-			bt_saddr = PTR_ADD(void *, bt_saddr, code_offs);
-			bt_eaddr = PTR_ADD(void *, bt_eaddr, code_offs);
+			bt_saddr += code_offs;
+			bt_eaddr += code_offs;
 			if (code_addr)
-				code_addr =
-					PTR_ADD(void *, code_addr, code_offs);
+				code_addr += code_offs;
 		}
 		if (bt_eaddr <= bt_saddr)
-			bt_eaddr = (void *) ULONG_MAX;
-		pr_dbg("code cfg: %p;%p;%p\n",
+			bt_eaddr = UINTPTR_MAX;
+		pr_dbg("code cfg: " PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
 			bt_saddr, bt_eaddr, code_addr);
 	}
 
 	/* Send out the heap start */
-	fprintf(ofile, "h%p\n", heap_start);
+	fprintf(ofile, "h" PRI_PTR "\n", heap_start);
 #ifdef WRITE_UNCACHED
 	fflush(ofile);
 #endif
@@ -441,30 +446,29 @@ void __attribute ((destructor)) memdisc_exit (void)
  *
  * Assumption: (discover_ptr == true)
  */
-static void get_ptr_to_heap (size_t size, void *mem_addr, void *ffp,
+static void get_ptr_to_heap (size_t size, ptr_t mem_addr, ptr_t ffp,
 			     char *obuf, i32 *obuf_offs)
 {
-	void *stack_addr, *ptr_addr = NULL;
-	static void *old_ptr_addr = NULL;
+	ptr_t stack_addr, ptr_addr = 0;
+	static ptr_t old_ptr_addr = 0;
 
 	if (ptr_cfg.code_addr) {
 		if (size == ptr_cfg.mem_size) {
-			stack_addr = PTR_ADD(void *, ffp, ptr_cfg.stack_offs);
-			if (stack_addr <= __libc_stack_end - sizeof(void *) &&
-			    *(ptr_t *) stack_addr == (ptr_t) ptr_cfg.code_addr)
+			stack_addr = ffp + ptr_cfg.stack_offs;
+			if (stack_addr <= stack_end - sizeof(ptr_t) &&
+			    stack_addr == ptr_cfg.code_addr)
 				ptr_cfg.mem_addr = mem_addr;
 		}
 		if (ptr_cfg.mem_addr) {
-			ptr_addr = PTR_ADD(void *, ptr_cfg.mem_addr,
-					   ptr_cfg.ptr_offs);
-			ptr_addr = (void *) (*(ptr_t *) ptr_addr);
+			ptr_addr = ptr_cfg.mem_addr + ptr_cfg.ptr_offs;
+			ptr_addr = *(ptr_t *) ptr_addr;
 		}
 	} else if (ptr_cfg.ptr_offs) {
-		ptr_addr = (void *) (*(ptr_t *) ptr_cfg.ptr_offs);
+		ptr_addr = *(ptr_t *) ptr_cfg.ptr_offs;
 	}
 	if (ptr_addr && ptr_addr != old_ptr_addr) {
 		i32 wbytes = snprintf(obuf + *obuf_offs, BUF_SIZE - *obuf_offs,
-				  "p%p\n", ptr_addr);
+				  "p" PRI_PTR "\n", ptr_addr);
 		if (wbytes < 0)
 			perror(PFX "snprintf");
 		else
@@ -475,14 +479,14 @@ static void get_ptr_to_heap (size_t size, void *mem_addr, void *ffp,
 
 #if DEBUG_MEM && 0
 /* debugging for stack backtracing */
-static void dump_stack_raw (void *ffp)
+static void dump_stack_raw (ptr_t ffp)
 {
-	void *offs;
+	ptr_t offs;
 	i32 col = 0;
 	i32 byte;
 
 	printf("\n");
-	for (offs = ffp; offs < __libc_stack_end; offs++) {
+	for (offs = ffp; offs < stack_end; offs++) {
 		if (col >= 16) {
 			printf("\n");
 			col = 0;
@@ -490,7 +494,7 @@ static void dump_stack_raw (void *ffp)
 			printf(" ");
 		}
 		if (col == 0)
-			printf("%p: ", offs);
+			printf(PRI_PTR ": ", offs);
 		byte = *(char *) offs;
 		printf(" %02x", byte & 0xFF);
 		col++;
@@ -498,7 +502,7 @@ static void dump_stack_raw (void *ffp)
 	printf("\n\n");
 }
 #else
-static void dump_stack_raw (void* ffp) {}
+static void dump_stack_raw (ptr_t ffp) {}
 #endif
 
 /*
@@ -508,9 +512,9 @@ static void dump_stack_raw (void* ffp) {}
  *
  * We expect the first frame pointer to be (32/64 bit) memory aligned here.
  */
-static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
+static bool find_code_addresses (ptr_t ffp, char *obuf, i32 *obuf_offs)
 {
-	void *offs, *code_ptr;
+	ptr_t offs, code_addr_os;  /* stack offset and code address on stack */
 	i32 i = 0;
 	bool found = false;
 
@@ -518,21 +522,21 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
 	 * check if we are in the correct section
 	 * -> we shouldn't be more that 16 MiB away
 	 */
-	if (!ffp || ffp < __libc_stack_end - (1 << 24))
+	if (!ffp || ffp < stack_end - (1 << 24))
 		return false;
 
 	for (offs = ffp;
-	     offs <= __libc_stack_end - sizeof(void *);
-	     offs += sizeof(void *)) {
-		code_ptr = (void *) *(ptr_t *) offs;
-		if (code_ptr >= bt_saddr && code_ptr <= bt_eaddr) {
+	     offs <= stack_end - sizeof(ptr_t);
+	     offs += sizeof(ptr_t)) {
+		code_addr_os = *(ptr_t *) offs;
+		if (code_addr_os >= bt_saddr && code_addr_os <= bt_eaddr) {
 			if (stage == 4 &&
-			    (code_addr == NULL ||
-			     code_ptr == code_addr)) {
+			    (!code_addr ||
+			     code_addr_os == code_addr)) {
 				i32 wbytes = snprintf(obuf + *obuf_offs,
 					BUF_SIZE - *obuf_offs,
-					";c%p;o%p", code_ptr,
-					(void *) (offs - ffp));
+					";c" PRI_PTR ";o" PRI_PTR,
+					code_addr_os, offs - ffp);
 				if (wbytes < 0)
 					perror(PFX "snprintf");
 				else
@@ -541,7 +545,7 @@ static bool find_code_pointers (void *ffp, char *obuf, i32 *obuf_offs)
 			} else if (stage == 3) {
 				i32 wbytes = snprintf(obuf + *obuf_offs,
 					BUF_SIZE - *obuf_offs,
-					";c%p", code_ptr);
+					";c" PRI_PTR, code_addr_os);
 				if (wbytes < 0)
 					perror(PFX "snprintf");
 				else
@@ -567,10 +571,11 @@ static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 	if (num_taddr > 1) {
 		/* skip the first code addr (our own one) */
 		for (i = 1; i < num_taddr; i++) {
-			if (trace[i] >= bt_saddr && trace[i] <= bt_eaddr) {
+			ptr_t trace_addr = (ptr_t) trace[i];
+			if (trace_addr >= bt_saddr && trace_addr <= bt_eaddr) {
 				i32 wbytes = snprintf(obuf + *obuf_offs,
 					BUF_SIZE - *obuf_offs,
-					";c%p", trace[i]);
+					";c" PRI_PTR, trace_addr);
 				if (wbytes < 0)
 					perror(PFX "snprintf");
 				else
@@ -602,7 +607,7 @@ static inline void write_obuf (char obuf[])
 	funlockfile(ofile);
 }
 
-static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
+static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 {
 	i32 wbytes;
 	char obuf[BUF_SIZE + 1] = { 0 };
@@ -613,7 +618,8 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 		if (size == 0 || (malloc_size > 0 && size != malloc_size &&
 		    size != ptr_cfg.mem_size))
 			goto out;
-		wbytes = snprintf(obuf, BUF_SIZE, "m%p;s%zd", mem_addr, size);
+		wbytes = snprintf(obuf, BUF_SIZE, "m" PRI_PTR ";s%zd",
+				  mem_addr, size);
 		if (wbytes < 0)
 			perror(PFX "snprintf");
 		else
@@ -624,7 +630,7 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 			if (use_gbt)
 				found = run_gnu_backtrace(obuf, &obuf_offs);
 			else
-				found = find_code_pointers(ffp, obuf,
+				found = find_code_addresses(ffp, obuf,
 					&obuf_offs);
 			if (!found)
 				goto out;
@@ -649,13 +655,13 @@ out:
 	return;
 }
 
-static inline void preprocess_free (void *mem_addr)
+static inline void preprocess_free (ptr_t mem_addr)
 {
 	i32 wbytes;
 	char obuf[BUF_SIZE + 1] = { 0 };
 
 	if (active && mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
-		wbytes = snprintf(obuf, BUF_SIZE, "f%p\n", mem_addr);
+		wbytes = snprintf(obuf, BUF_SIZE, "f" PRI_PTR "\n", mem_addr);
 		if (wbytes < 0)
 			perror(PFX "snprintf");
 		write_obuf(obuf);
@@ -670,7 +676,7 @@ static inline void preprocess_free (void *mem_addr)
 #ifdef HOOK_MALLOC
 void *malloc (size_t size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	void *mem_addr;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
@@ -684,7 +690,7 @@ void *malloc (size_t size)
 
 	mem_addr = orig_malloc(size);
 
-	postprocess_malloc(ffp, size, mem_addr);
+	postprocess_malloc(ffp, size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -726,7 +732,7 @@ static void *stat_calloc (size_t size) {
 
 void *calloc (size_t nmemb, size_t size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	void *mem_addr;
 	size_t full_size = nmemb * size;
 	static void *(*orig_calloc)(size_t nmemb, size_t size) = NULL;
@@ -744,7 +750,7 @@ void *calloc (size_t nmemb, size_t size)
 
 	mem_addr = orig_calloc(nmemb, size);
 
-	postprocess_malloc(ffp, full_size, mem_addr);
+	postprocess_malloc(ffp, full_size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -763,7 +769,7 @@ void free (void *ptr)
 
 	no_hook = true;
 	if (stage == 1)
-		preprocess_free(ptr);
+		preprocess_free((ptr_t) ptr);
 	/* get the libc free function */
 	if (!orig_free)
 		*(void **) (&orig_free) = dlsym(RTLD_NEXT, "free");
@@ -786,7 +792,7 @@ void free (void *ptr)
 #ifdef HOOK_G_MALLOC
 gpointer g_malloc (gsize n_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc)(gsize n_bytes) = NULL;
 
@@ -800,7 +806,7 @@ gpointer g_malloc (gsize n_bytes)
 
 	mem_addr = orig_g_malloc(n_bytes);
 
-	postprocess_malloc(ffp, n_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -810,7 +816,7 @@ gpointer g_malloc (gsize n_bytes)
 #ifdef HOOK_G_MALLOC0
 gpointer g_malloc0 (gsize n_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc0)(gsize n_bytes) = NULL;
 
@@ -824,7 +830,7 @@ gpointer g_malloc0 (gsize n_bytes)
 
 	mem_addr = orig_g_malloc0(n_bytes);
 
-	postprocess_malloc(ffp, n_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -834,7 +840,7 @@ gpointer g_malloc0 (gsize n_bytes)
 #ifdef HOOK_G_MALLOC_N
 gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc_n)
 		(gsize n_blocks, gsize n_block_bytes) = NULL;
@@ -849,7 +855,7 @@ gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes)
 
 	mem_addr = orig_g_malloc_n(n_blocks, n_block_bytes);
 
-	postprocess_malloc(ffp, n_blocks * n_block_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -859,7 +865,7 @@ gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes)
 #ifdef HOOK_G_MALLOC0_N
 gpointer g_malloc0_n (gsize n_blocks, gsize n_block_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc0_n)
 		(gsize n_blocks, gsize n_block_bytes) = NULL;
@@ -875,7 +881,7 @@ gpointer g_malloc0_n (gsize n_blocks, gsize n_block_bytes)
 
 	mem_addr = orig_g_malloc0_n(n_blocks, n_block_bytes);
 
-	postprocess_malloc(ffp, n_blocks * n_block_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -894,7 +900,7 @@ void g_free (gpointer mem)
 
 	no_hook = true;
 	if (stage == 1)
-		preprocess_free((void *) mem);
+		preprocess_free((ptr_t) mem);
 	/* get the glib g_free function */
 	if (!orig_g_free)
 		*(void **) (&orig_g_free) = dlsym(RTLD_NEXT, "g_free");
@@ -907,7 +913,7 @@ void g_free (gpointer mem)
 #ifdef HOOK_G_SLICE_ALLOC
 gpointer g_slice_alloc (gsize block_size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_slice_alloc)(gsize block_size) = NULL;
 
@@ -922,7 +928,7 @@ gpointer g_slice_alloc (gsize block_size)
 
 	mem_addr = orig_g_slice_alloc(block_size);
 
-	postprocess_malloc(ffp, block_size, (void *) mem_addr);
+	postprocess_malloc(ffp, block_size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -932,7 +938,7 @@ gpointer g_slice_alloc (gsize block_size)
 #ifdef HOOK_G_SLICE_ALLOC0
 gpointer g_slice_alloc0 (gsize block_size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_slice_alloc0)(gsize block_size) = NULL;
 
@@ -947,7 +953,7 @@ gpointer g_slice_alloc0 (gsize block_size)
 
 	mem_addr = orig_g_slice_alloc0(block_size);
 
-	postprocess_malloc(ffp, block_size, (void *) mem_addr);
+	postprocess_malloc(ffp, block_size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -967,7 +973,7 @@ void g_slice_free1 (gsize block_size, gpointer mem_block)
 
 	no_hook = true;
 	if (stage == 1)
-		preprocess_free((void *) mem_block);
+		preprocess_free((ptr_t) mem_block);
 	/* get the glib g_slice_free1 function */
 	if (!orig_g_slice_free1)
 		*(void **) (&orig_g_slice_free1) =
