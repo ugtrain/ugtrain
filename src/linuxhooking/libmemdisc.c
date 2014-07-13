@@ -387,6 +387,8 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	if (heap_eaddr <= heap_saddr)
 		heap_eaddr = UINTPTR_MAX;
+	if (!code_addr && bt_eaddr <= bt_saddr)
+		bt_eaddr = UINTPTR_MAX;
 
 	/* Read new backtrace filter config (might be PIC/PIE) */
 	if (stage >= 3 && stage <= 5) {
@@ -398,16 +400,18 @@ void __attribute ((constructor)) memdisc_init (void)
 		} else {
 			if (sscanf(ibuf, SCN_PTR, &code_offs) < 1)
 				pr_err("Code offset parsing error!\n");
-			bt_saddr += code_offs;
-			bt_eaddr += code_offs;
-			if (code_addr)
+			if (bt_saddr <= UINTPTR_MAX - code_offs && bt_saddr)
+				bt_saddr += code_offs;
+			if (bt_eaddr <= UINTPTR_MAX - code_offs)
+				bt_eaddr += code_offs;
+			if (code_addr && code_addr <= UINTPTR_MAX - code_offs)
 				code_addr += code_offs;
 		}
-		if (bt_eaddr <= bt_saddr)
-			bt_eaddr = UINTPTR_MAX;
-		pr_dbg("code cfg: " PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
-			bt_saddr, bt_eaddr, code_addr);
 	}
+	pr_dbg("new cfg: %d;" PRI_PTR ";" PRI_PTR ";%zd;"
+		PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
+		stage, heap_saddr, heap_eaddr, malloc_size,
+		bt_saddr, bt_eaddr, code_addr);
 
 	/* Send out the heap start */
 	fprintf(ofile, "h" PRI_PTR "\n", heap_start);
