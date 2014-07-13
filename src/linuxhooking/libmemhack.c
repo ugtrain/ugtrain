@@ -55,8 +55,8 @@
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 
-#define PTR_INVAL (void *) 1
-#define NUM_CFG_PAGES sizeof(long) * 1
+#define ADDR_INVAL 1
+#define NUM_CFG_PAGES sizeof(ptr_t) * 1
 
 /*
  * Ask gcc for the current stack frame pointer.
@@ -86,6 +86,7 @@ static bool active = false;
 /* This is a global variable set at program start time. It marks the
    greatest used stack address. */
 extern void *__libc_stack_end;
+#define stack_end (ptr_t) __libc_stack_end
 
 /* ask libc for our process name as 'argv[0]' and 'getenv("_")'
    don't work here */
@@ -101,10 +102,10 @@ static bool use_gbt = false;
 /* Config structure */
 struct cfg {
 	size_t mem_size;
-	void *code_addr;
-	void *stack_offs;
+	ptr_t code_addr;
+	ptr_t stack_offs;
 	u32 max_obj;
-	void **mem_addrs;  /* filled by malloc for free */
+	ptr_t *mem_addrs;  /* filled by malloc for free */
 };
 typedef struct cfg cfg_s;
 
@@ -151,7 +152,7 @@ void __attribute ((constructor)) memhack_init (void)
 	u32 max_obj;
 	i32 wbytes, scanned = 0;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
-	void *code_offs = NULL;
+	ptr_t code_offs = 0;
 
 	/* only care for the game process (ignore shell and others) */
 	expected = getenv(UGT_GAME_PROC_NAME);
@@ -207,7 +208,7 @@ void __attribute ((constructor)) memhack_init (void)
 		max_obj = 0;
 	} else {
 		max_obj = sizeof(config) - cfg_offs - num_cfg * sizeof(cfg_s);
-		max_obj /= sizeof(void *) * num_cfg;
+		max_obj /= sizeof(ptr_t) * num_cfg;
 	}
 	if (max_obj <= 1) {
 		pr_err("Error: No space for memory addresses!\n");
@@ -217,8 +218,8 @@ void __attribute ((constructor)) memhack_init (void)
 			max_obj - 1);
 	}
 
-	pr_dbg("sizeof(config) = %lu\n", (ulong) sizeof(config));
-	pr_dbg("sizeof(cfg_s) = %lu\n", (ulong) sizeof(cfg_s));
+	pr_dbg("sizeof(config) = %zu\n", sizeof(config));
+	pr_dbg("sizeof(cfg_s) = %zu\n", sizeof(cfg_s));
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
@@ -226,12 +227,12 @@ void __attribute ((constructor)) memhack_init (void)
 			i * sizeof(cfg_s));
 
 		pr_dbg("&config[%u] pos = %lu\n", i,
-			(ulong) PTR_SUB(void *, &config[i], config));
+			(ulong) ((ptr_t) &config[i] - (ptr_t) config));
 		pr_dbg("config[%u] pos = %lu\n", i,
-			(ulong) PTR_SUB(void *, config[i], config));
+			(ulong) ((ptr_t) config[i] - (ptr_t) config));
 		pr_dbg("config[%u] end pos = %lu\n", i,
-			(ulong)((ptr_t) config[i] + sizeof(cfg_s) -
-				(ptr_t) config));
+			(ulong) ((ptr_t) config[i] + sizeof(cfg_s) -
+				 (ptr_t) config));
 
 		if ((ptr_t) config[i] + sizeof(cfg_s) - (ptr_t) config
 		    > sizeof(config) || ibuf_offs >= BUF_SIZE) {
@@ -239,12 +240,12 @@ void __attribute ((constructor)) memhack_init (void)
 			pr_err("Config buffer too small!\n");
 			goto err;
 		}
-		scanned = sscanf(ibuf + ibuf_offs, "%zd;%p",
+		scanned = sscanf(ibuf + ibuf_offs, "%zd;" SCN_PTR,
 			&config[i]->mem_size, &config[i]->code_addr);
 		if (scanned != 2)
 			goto err;
 		SET_IBUF_OFFS(2, j);
-		scanned = sscanf(ibuf + ibuf_offs, "%p",
+		scanned = sscanf(ibuf + ibuf_offs, SCN_PTR,
 				 &config[i]->stack_offs);
 		if (scanned != 1)
 			goto err;
@@ -252,25 +253,26 @@ void __attribute ((constructor)) memhack_init (void)
 
 		/* put stored memory addresses behind all cfg_s stuctures */
 		config[i]->max_obj = max_obj - 1;
-		config[i]->mem_addrs = PTR_ADD2(void **, config, cfg_offs,
+		config[i]->mem_addrs = (ptr_t *) ((ptr_t) config + cfg_offs +
 			num_cfg * sizeof(cfg_s));
-		config[i]->mem_addrs = PTR_ADD(void **, config[i]->mem_addrs,
-			i * max_obj * sizeof(void *));
+		config[i]->mem_addrs = (ptr_t *) ((ptr_t) config[i]->mem_addrs
+			+ i * max_obj * sizeof(ptr_t));
 
 		/* debug mem_addrs pointer */
 		pr_dbg("config[%u]->mem_addrs pos = %lu\n", i,
-			(ulong) PTR_SUB(void *, config[i]->mem_addrs, config));
+			(ulong) ((ptr_t) config[i]->mem_addrs -
+				 (ptr_t) config));
 		pr_dbg("config[%u]->mem_addrs end pos = %lu\n", i,
-			(ulong) PTR_SUB(void *, config[i]->mem_addrs, config) +
-			(ulong) (max_obj * sizeof(void *)));
+			(ulong) ((ptr_t) config[i]->mem_addrs -
+				 (ptr_t) config + max_obj * sizeof(ptr_t)));
 
-		if ((ulong) PTR_SUB(void *, config[i]->mem_addrs, config) +
-		    (ulong) (max_obj * sizeof(void *)) > sizeof(config))
+		if (((ptr_t) config[i]->mem_addrs - (ptr_t) config +
+		    (ptr_t) (max_obj * sizeof(ptr_t))) > sizeof(config))
 			goto err;
 
 		/* fill with invalid pointers to detect end */
 		for (k = 0; k < max_obj; k++)
-			config[i]->mem_addrs[k] = PTR_INVAL;
+			config[i]->mem_addrs[k] = ADDR_INVAL;
 	}
 	if (i != num_cfg)
 		goto err;
@@ -279,7 +281,7 @@ void __attribute ((constructor)) memhack_init (void)
 	pr_dbg("num_cfg: %u, cfg_offs: %u\n", num_cfg, cfg_offs);
 	for (i = 0; config[i] != NULL; i++) {
 		pr_out("config[%u]: mem_size: %zd; "
-			"code_addr: %p; stack_offs: %p\n", i,
+			"code_addr: " PRI_PTR "; stack_offs: " PRI_PTR "\n", i,
 			config[i]->mem_size, config[i]->code_addr,
 			config[i]->stack_offs);
 	}
@@ -290,12 +292,11 @@ void __attribute ((constructor)) memhack_init (void)
 	if (read_input(ibuf, sizeof(ibuf)) != 0) {
 		pr_err("Couldn't read code offset!\n");
 	} else {
-		if (sscanf(ibuf, "%p", &code_offs) < 1)
+		if (sscanf(ibuf, SCN_PTR, &code_offs) < 1)
 			pr_err("Code offset parsing error!\n");
 	}
 	for (i = 0; i < num_cfg; i++)
-		config[i]->code_addr = PTR_ADD(void *,
-		code_offs, config[i]->code_addr);
+		config[i]->code_addr = code_offs + config[i]->code_addr;
 
 	if (num_cfg > 0)
 		active = true;
@@ -309,9 +310,9 @@ err:
 	return;
 }
 
-static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
+static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 {
-	void *stack_addr;
+	ptr_t stack_addr;
 	i32 i, j, wbytes, num_taddr = 0;
 	void *trace[MAX_GNUBT] = { NULL };
 
@@ -326,24 +327,24 @@ static inline void postprocess_malloc (void *ffp, size_t size, void *mem_addr)
 					continue;
 				/* skip the first code addr (our own one) */
 				for (j = 1; j < num_taddr; j++) {
-					if (trace[j] == config[i]->code_addr)
+					if ((ptr_t) trace[j] == config[i]->code_addr)
 						goto found;
 				}
 				continue;
 			}
 
 			/* reverse stack offset method */
-			stack_addr = PTR_ADD(void *, ffp,
-				config[i]->stack_offs);
+			stack_addr = ffp + config[i]->stack_offs;
 
-			if (stack_addr > __libc_stack_end - sizeof(void *) ||
-			    *(ptr_t *) stack_addr !=
-			    (ptr_t) config[i]->code_addr)
+			if (stack_addr > stack_end - sizeof(ptr_t) ||
+			    *(ptr_t *) stack_addr != config[i]->code_addr)
 				continue;
 found:
-			pr_dbg("malloc: mem_addr: %p, code_addr: %p\n",
-				mem_addr, config[i]->code_addr);
-			wbytes = sprintf(obuf, "m%p;c%p\n",
+#if DEBUG_MEM
+			pr_out("malloc: mem_addr: " PRI_PTR ", code_addr: "
+				PRI_PTR "\n", mem_addr, config[i]->code_addr);
+#endif
+			wbytes = sprintf(obuf, "m" PRI_PTR ";c" PRI_PTR "\n",
 				mem_addr, config[i]->code_addr);
 
 			wbytes = write(ofd, obuf, wbytes);
@@ -351,7 +352,7 @@ found:
 				perror("write");
 			} else if (config[i]->mem_addrs) {
 				for (j = 0; j < config[i]->max_obj; j++) {
-					if (config[i]->mem_addrs[j] <= PTR_INVAL) {
+					if (config[i]->mem_addrs[j] <= ADDR_INVAL) {
 						config[i]->mem_addrs[j] = mem_addr;
 						break;
 					}
@@ -362,27 +363,29 @@ found:
 	}
 }
 
-static inline void preprocess_free (void *mem_addr)
+static inline void preprocess_free (ptr_t mem_addr)
 {
 	i32 i, j, wbytes;
 
-	if (active && mem_addr != NULL) {
+	if (active && mem_addr) {
 		for (i = 0; config[i] != NULL; i++) {
 			if (!config[i]->mem_addrs)
 				continue;
-			for (j = 0; config[i]->mem_addrs[j] != PTR_INVAL; j++) {
+			for (j = 0; config[i]->mem_addrs[j] != ADDR_INVAL; j++) {
 				if (config[i]->mem_addrs[j] == mem_addr)
 					goto found;
 			}
 			continue;
 found:
-			pr_dbg("free: mem_addr: %p\n", mem_addr);
-			wbytes = sprintf(obuf, "f%p\n", mem_addr);
+#if DEBUG_MEM
+			pr_out("free: mem_addr: " PRI_PTR "\n", mem_addr);
+#endif
+			wbytes = sprintf(obuf, "f" PRI_PTR "\n", mem_addr);
 
 			wbytes = write(ofd, obuf, wbytes);
 			if (wbytes < 0)
 				perror("write");
-			config[i]->mem_addrs[j] = NULL;
+			config[i]->mem_addrs[j] = 0;
 			break;
 		}
 	}
@@ -396,7 +399,7 @@ found:
 #ifdef HOOK_MALLOC
 void *malloc (size_t size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	void *mem_addr;
 	static void *(*orig_malloc)(size_t size) = NULL;
 
@@ -410,7 +413,7 @@ void *malloc (size_t size)
 
 	mem_addr = orig_malloc(size);
 
-	postprocess_malloc(ffp, size, mem_addr);
+	postprocess_malloc(ffp, size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -452,7 +455,7 @@ static void *stat_calloc (size_t size) {
 
 void *calloc (size_t nmemb, size_t size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	void *mem_addr;
 	size_t full_size = nmemb * size;
 	static void *(*orig_calloc)(size_t nmemb, size_t size) = NULL;
@@ -470,7 +473,7 @@ void *calloc (size_t nmemb, size_t size)
 
 	mem_addr = orig_calloc(nmemb, size);
 
-	postprocess_malloc(ffp, full_size, mem_addr);
+	postprocess_malloc(ffp, full_size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -488,7 +491,7 @@ void free (void *ptr)
 	}
 
 	no_hook = true;
-	preprocess_free(ptr);
+	preprocess_free((ptr_t) ptr);
 	/* get the libc free function */
 	if (!orig_free)
 		*(void **) (&orig_free) = dlsym(RTLD_NEXT, "free");
@@ -511,7 +514,7 @@ void free (void *ptr)
 #ifdef HOOK_G_MALLOC
 gpointer g_malloc (gsize n_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc)(gsize n_bytes) = NULL;
 
@@ -525,7 +528,7 @@ gpointer g_malloc (gsize n_bytes)
 
 	mem_addr = orig_g_malloc(n_bytes);
 
-	postprocess_malloc(ffp, n_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -535,7 +538,7 @@ gpointer g_malloc (gsize n_bytes)
 #ifdef HOOK_G_MALLOC0
 gpointer g_malloc0 (gsize n_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc0)(gsize n_bytes) = NULL;
 
@@ -549,7 +552,7 @@ gpointer g_malloc0 (gsize n_bytes)
 
 	mem_addr = orig_g_malloc0(n_bytes);
 
-	postprocess_malloc(ffp, n_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -559,7 +562,7 @@ gpointer g_malloc0 (gsize n_bytes)
 #ifdef HOOK_G_MALLOC_N
 gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc_n)
 		(gsize n_blocks, gsize n_block_bytes) = NULL;
@@ -574,7 +577,7 @@ gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes)
 
 	mem_addr = orig_g_malloc_n(n_blocks, n_block_bytes);
 
-	postprocess_malloc(ffp, n_blocks * n_block_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -584,7 +587,7 @@ gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes)
 #ifdef HOOK_G_MALLOC0_N
 gpointer g_malloc0_n (gsize n_blocks, gsize n_block_bytes)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_malloc0_n)
 		(gsize n_blocks, gsize n_block_bytes) = NULL;
@@ -600,7 +603,7 @@ gpointer g_malloc0_n (gsize n_blocks, gsize n_block_bytes)
 
 	mem_addr = orig_g_malloc0_n(n_blocks, n_block_bytes);
 
-	postprocess_malloc(ffp, n_blocks * n_block_bytes, (void *) mem_addr);
+	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -618,7 +621,7 @@ void g_free (gpointer mem)
 	}
 
 	no_hook = true;
-	preprocess_free((void *) mem);
+	preprocess_free((ptr_t) mem);
 	/* get the glib g_free function */
 	if (!orig_g_free)
 		*(void **) (&orig_g_free) = dlsym(RTLD_NEXT, "g_free");
@@ -631,7 +634,7 @@ void g_free (gpointer mem)
 #ifdef HOOK_G_SLICE_ALLOC
 gpointer g_slice_alloc (gsize block_size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_slice_alloc)(gsize block_size) = NULL;
 
@@ -646,7 +649,7 @@ gpointer g_slice_alloc (gsize block_size)
 
 	mem_addr = orig_g_slice_alloc(block_size);
 
-	postprocess_malloc(ffp, block_size, (void *) mem_addr);
+	postprocess_malloc(ffp, block_size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -656,7 +659,7 @@ gpointer g_slice_alloc (gsize block_size)
 #ifdef HOOK_G_SLICE_ALLOC0
 gpointer g_slice_alloc0 (gsize block_size)
 {
-	void *ffp = FIRST_FRAME_POINTER;
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	gpointer mem_addr;
 	static gpointer (*orig_g_slice_alloc0)(gsize block_size) = NULL;
 
@@ -671,7 +674,7 @@ gpointer g_slice_alloc0 (gsize block_size)
 
 	mem_addr = orig_g_slice_alloc0(block_size);
 
-	postprocess_malloc(ffp, block_size, (void *) mem_addr);
+	postprocess_malloc(ffp, block_size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
@@ -690,7 +693,7 @@ void g_slice_free1 (gsize block_size, gpointer mem_block)
 	}
 
 	no_hook = true;
-	preprocess_free((void *) mem_block);
+	preprocess_free((ptr_t) mem_block);
 	/* get the glib g_slice_free1 function */
 	if (!orig_g_slice_free1)
 		*(void **) (&orig_g_slice_free1) =
