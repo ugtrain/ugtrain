@@ -20,11 +20,10 @@
 #include <list>
 #include "common.h"
 #include "cfgentry.h"
+#include "fifoparser.h"
 
-void alloc_dynmem_addr (list<CfgEntry> *cfg, struct post_parse *pp,
-			void *heap_start, void *mem_addr, size_t mem_size,
-			void *code_offs, void *code_addr, void *stack_offs);
-void clear_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr);
+void alloc_dynmem_addr (MF_PARAMS);
+void clear_dynmem_addr (FF_PARAMS);
 void output_dynmem_changes (list<CfgEntry> *cfg);
 void free_dynmem  (list<CfgEntry> *cfg, bool process_kicked);
 void alloc_dynmem (list<CfgEntry> *cfg);

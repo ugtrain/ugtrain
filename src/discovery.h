@@ -44,7 +44,7 @@ void prepare_backtrace  (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
 			 list<struct region> *rlist);
 void run_stage1234_loop (void *argp);
 void run_stage5_loop    (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
-			 void *code_offs);
+			 ptr_t code_offs);
 i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			 vector<string> *lines);
 
@@ -60,24 +60,25 @@ static inline void handle_exe_region (struct region *r, i32 ofd,
 	ssize_t wbytes;
 	char obuf[PIPE_BUF];
 	i32 osize;
-	void *code_offs;
+	ptr_t code_offs;
 
-	cout << "Found exe, start: " << hex << r->start
-	     << ", end: " << r->start + r->size << dec << endl;
+	cout << "Found exe, start: 0x" << hex << r->start
+	     << ", end: 0x" << r->start + r->size << dec << endl;
 	/* PIE detection: x86 offs: 0x8048000, x86_64 offs: 0x400000 */
 	if (r->start == 0x8048000UL ||
 	    (r->start == 0x400000UL))
-		code_offs = NULL;
+		code_offs = 0;
 	else
-		code_offs = (void *) r->start;
+		code_offs = r->start;
 	opt->code_offs = code_offs;
-	cout << "code_offs: " << opt->code_offs << endl;
+	cout << "code_offs: 0x" << hex << opt->code_offs << dec << endl;
 	if (code_offs)
 		cout << "PIE (position independent executable) detected!"
 		     << endl;
 	if (!opt->pure_statmem) {
 		// Write code offset to output FIFO
-		osize = snprintf(obuf, sizeof(obuf), "%p\n", opt->code_offs);
+		osize = snprintf(obuf, sizeof(obuf), PRI_PTR "\n",
+				 opt->code_offs);
 		wbytes = write(ofd, obuf, osize);
 		if (wbytes < osize)
 			perror("FIFO write");

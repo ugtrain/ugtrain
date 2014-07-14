@@ -24,7 +24,7 @@
 
 
 static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,
-			  void *mem_addr, size_t size)
+			  ptr_t mem_addr, size_t size)
 {
 	i32 fd;
 	string fname;
@@ -62,7 +62,7 @@ err:
 }
 
 static void dump_mem_obj (pid_t pid, u32 class_id, u32 obj_id,
-			  void *mem_addr, size_t size)
+			  ptr_t mem_addr, size_t size)
 {
 	i32 fd;
 	string fname;
@@ -109,8 +109,9 @@ void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 			obj_id = 0;
 			for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
 				cout << ">>> Dumping Class " << class_id
-				     << " Obj " << obj_id << " at "
-				     << it->dynmem->v_maddr[obj_id] << endl;
+				     << " Obj " << obj_id << " at 0x"
+				     << hex << it->dynmem->v_maddr[obj_id]
+				     << dec << endl;
 				dump_mem_obj(pid, class_id, obj_id,
 					     it->dynmem->v_maddr[obj_id],
 					     it->dynmem->mem_size);

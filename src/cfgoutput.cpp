@@ -95,11 +95,11 @@ static void output_config_val (CfgEntry *cfg_en)
 static void output_config_en (CfgEntry *cfg_en)
 {
 	if (cfg_en->ptrtgt) {
-		cout << "  " << cfg_en->name << " 0x" << hex << (long) cfg_en->addr << dec
-			<< " " << 8 * sizeof(void *) << "-bit -> "
+		cout << "  " << cfg_en->name << " 0x" << hex << cfg_en->addr << dec
+			<< " " << 8 * sizeof(ptr_t) << "-bit -> "
 			<< cfg_en->ptrtgt->name << endl;
 	} else {
-		cout << "  " << cfg_en->name << " 0x" << hex << (long) cfg_en->addr << dec
+		cout << "  " << cfg_en->name << " 0x" << hex << cfg_en->addr << dec
 			<< " " << cfg_en->type.size << "-bit ";
 		output_config_val(cfg_en);
 	}
@@ -151,7 +151,7 @@ static void output_checks (CfgEntry *cfg_en)
 	char *check_op = get_check_op(cfg_en->check);
 
 	if (check_op) {
-		cout << "    check 0x" << hex << (long) cfg_en->addr << dec << check_op;
+		cout << "    check 0x" << hex << cfg_en->addr << dec << check_op;
 		output_val(&cfg_en->type, cfg_en->value, "");
 		cout << endl;
 	}
@@ -162,7 +162,7 @@ static void output_checks (CfgEntry *cfg_en)
 		if (it->cfg_ref)
 			cout << "    check " << it->cfg_ref->name;
 		else
-			cout << "    check 0x" << hex << (long) it->addr << dec;
+			cout << "    check 0x" << hex << it->addr << dec;
 		for (i = 0; it->check[i] != CHECK_END; i++) {
 			if (i > 0)
 				cout << " ||";
@@ -207,8 +207,8 @@ void output_config (list<CfgEntry> *cfg)
 		// headline
 		if (cfg_en.dynmem)
 			cout << "dynmem: " << cfg_en.dynmem->name << " "
-				<< cfg_en.dynmem->mem_size << " "
-				<< hex << cfg_en.dynmem->code_addr << " "
+				<< cfg_en.dynmem->mem_size << " 0x"
+				<< hex << cfg_en.dynmem->code_addr << " 0x"
 				<< cfg_en.dynmem->stack_offs << dec << endl;
 		else if (cfg_en.ptrmem)
 			cout << "ptrmem: " << cfg_en.ptrmem->name << " "

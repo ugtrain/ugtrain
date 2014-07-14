@@ -68,9 +68,9 @@ i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 			tmp->stack_offs = tmp->adp_soffs;
 		lnr = tmp->cfg_line;
 		lines->at(lnr) = "dynmemstart " + tmp->name + " "
-			+ to_string(tmp->mem_size) + " "
-			+ to_string(tmp->code_addr) + " "
-			+ to_string(tmp->stack_offs);
+			+ to_string(tmp->mem_size) + " 0x"
+			+ to_xstring(tmp->code_addr) + " 0x"
+			+ to_xstring(tmp->stack_offs);
 	}
 	// Adaption isn't required anymore
 	lnr = opt->adp_req_line;
@@ -99,7 +99,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 	u32 i, num_obj = 0;
 	string *obj_name = NULL;
 	u32 malloc_size = 0;
-	void *code_addr = NULL;
+	ptr_t code_addr = 0;
 	list<CfgEntry>::iterator it;
 	DynMemEntry *tmp = NULL;
 	bool found;
@@ -128,7 +128,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 		part_size = part_end - (buf + ppos);
 		ppos += part_size + 1;
 
-		if (sscanf(buf + ppos, "%p", &code_addr) != 1)
+		if (sscanf(buf + ppos, SCN_PTR, &code_addr) != 1)
 			goto parse_err;
 
 		// find object and set adp_size and adp_addr
@@ -144,8 +144,8 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 				     << ", new_size: " << tmp->adp_size
 				     << endl;
 				cout << "Class " << tmp->name
-				     << ", old_code: " << hex << tmp->code_addr
-				     << ", new_code: " << tmp->adp_addr
+				     << ", old_code: 0x" << hex << tmp->code_addr
+				     << ", new_code: 0x" << tmp->adp_addr
 				     << dec << endl;
 				found = true;
 				break;

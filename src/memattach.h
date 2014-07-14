@@ -32,8 +32,8 @@ extern "C" {
 	i32 memattach_test (pid_t pid);
 	i32 memattach (pid_t pid);
 	i32 memdetach (pid_t pid);
-	i32 memread   (pid_t pid, void *addr, void *buf, long buf_len);
-	i32 memwrite  (pid_t pid, void *addr, void *buf, long buf_len);
+	i32 memread   (pid_t pid, ptr_t addr, void *buf, size_t buf_len);
+	i32 memwrite  (pid_t pid, ptr_t addr, void *buf, size_t buf_len);
 #ifdef __cplusplus
 };
 #endif

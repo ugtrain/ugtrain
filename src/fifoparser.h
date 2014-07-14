@@ -20,6 +20,7 @@
 #include <list>
 #include "common.h"
 #include "cfgentry.h"
+#include "system.h"
 
 #define PARSE_M 1
 #define PARSE_S 2
@@ -32,9 +33,15 @@ struct post_parse {
 	void	*argp;
 };
 
+#define MF_PARAMS \
+	list<CfgEntry> *cfg, struct post_parse *pp, ptr_t heap_start, \
+	ptr_t mem_addr, size_t mem_size, ptr_t code_offs, ptr_t code_addr, \
+	ptr_t stack_offs
+
+#define FF_PARAMS \
+	list<CfgEntry> *cfg, void *argp, ptr_t mem_addr
+
 ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
-			 bool reverse, void *code_offs,
-			 void (*mf)(list<CfgEntry> *, struct post_parse *,
-			     void *, void *, size_t, void *, void *, void *),
-			 void (*ff)(list<CfgEntry> *, void *, void *));
+			 bool reverse, ptr_t code_offs, void (*mf)(MF_PARAMS),
+			 void (*ff)(FF_PARAMS));
 #endif

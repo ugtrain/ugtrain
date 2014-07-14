@@ -69,7 +69,7 @@ static inline void memattach_err_once (pid_t pid)
 	}
 }
 
-static inline i32 read_memory (pid_t pid, void *mem_addr, value_t *buf, const char *pfx)
+static inline i32 read_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
 {
 	i32 ret;
 
@@ -80,7 +80,7 @@ static inline i32 read_memory (pid_t pid, void *mem_addr, value_t *buf, const ch
 	return ret;
 }
 
-static inline i32 write_memory (pid_t pid, void *mem_addr, value_t *buf, const char *pfx)
+static inline i32 write_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
 {
 	i32 ret;
 
@@ -195,12 +195,12 @@ err:
 
 static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 			   list<CheckEntry> *chk_lp,
-			   void *mem_offs)
+			   ptr_t mem_offs)
 {
 	list<CheckEntry>::iterator it;
 	CheckEntry *chk_en;
 	value_t __chk_buf, *chk_buf = &__chk_buf;
-	void *mem_addr;
+	ptr_t mem_addr;
 	i32 ret = 0;
 
 	list_for_each (chk_lp, it) {
@@ -210,7 +210,7 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 			if (ret)
 				continue;
 		} else {
-			mem_addr = PTR_ADD(void *, mem_offs, chk_en->addr);
+			mem_addr = mem_offs + chk_en->addr;
 
 			ret = read_memory(pid, mem_addr, chk_buf, "MEMORY");
 			if (ret)
@@ -220,7 +220,7 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 		if (ret) {
 			// Parser must ensure (dynmem != NULL)
 			if (chk_en->is_objcheck)
-				dynmem->v_maddr[dynmem->obj_idx] = NULL;
+				dynmem->v_maddr[dynmem->obj_idx] = 0;
 			goto out;
 		}
 	}
@@ -230,10 +230,10 @@ out:
 
 template <typename T>
 static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
-			    value_t *buf, void *mem_offs)
+			    value_t *buf, ptr_t mem_offs)
 {
 	list<CheckEntry> *chk_lp = cfg_en->checks;
-	void *mem_addr;
+	ptr_t mem_addr;
 	i32 ret;
 
 	if (cfg_en->dynval == DYN_VAL_WATCH)
@@ -250,7 +250,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
 		goto out;
 
 	memcpy(buf, &value, sizeof(T));
-	mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
+	mem_addr = mem_offs + cfg_en->addr;
 
 	ret = write_memory(pid, mem_addr, buf, "MEMORY");
 	if (ret)
@@ -261,10 +261,10 @@ out:
 
 template <typename T>
 static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
-			   T *value, void *mem_offs)
+			   T *value, ptr_t mem_offs)
 {
 	value_t __buf, *buf = &__buf;
-	void *mem_addr = NULL;
+	ptr_t mem_addr = 0;
 
 	__buf.i64 = 0;
 
@@ -284,7 +284,7 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 			else
 				*value = *(T *) buf;
 		} else {
-			mem_addr = PTR_ADD(void *, mem_offs, cfg_en->val_addr);
+			mem_addr = mem_offs + cfg_en->val_addr;
 			if (read_memory(pid, mem_addr, buf, "DYNVAL MEMORY"))
 				goto out;
 			*value = *(T *) buf;
@@ -298,7 +298,7 @@ out:
 }
 
 static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
-			   void *mem_offs, value_t *old_val)
+			   ptr_t mem_offs, value_t *old_val)
 {
 	struct type *type = &cfg_en->type;
 
@@ -367,11 +367,11 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 // TIME CRITICAL! Process all activated config entries from pointer
 static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_idx)
 {
-	void *mem_addr;
+	ptr_t mem_addr;
 	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
 
-	if (buf->ptr == NULL || cfg_en->ptrtgt->v_state[mem_idx] == PTR_DONE)
+	if (buf->ptr == 0 || cfg_en->ptrtgt->v_state[mem_idx] == PTR_DONE)
 		return;
 
 	if (buf->ptr == cfg_en->v_oldval[mem_idx].ptr) {
@@ -382,7 +382,7 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 		cfg_en->ptrtgt->v_offs[mem_idx] = buf->ptr;
 		list_for_each (cfg_act, it) {
 			cfg_en = *it;
-			mem_addr = PTR_ADD(void *, cfg_en->ptrmem->v_offs[mem_idx], cfg_en->addr);
+			mem_addr = cfg_en->ptrmem->v_offs[mem_idx] + cfg_en->addr;
 			if (read_memory(pid, mem_addr, buf, "PTR MEMORY"))
 				continue;
 			change_memory(pid, cfg_en, buf, cfg_en->ptrmem->v_offs[mem_idx],
@@ -399,7 +399,7 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
 	value_t __buf, *buf = &__buf;
-	void *mem_addr, *mem_offs;
+	ptr_t mem_addr, mem_offs;
 	u32 mem_idx;
 
 	__buf.i64 = 0;
@@ -411,11 +411,11 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 			     mem_idx < cfg_en->dynmem->v_maddr.size();
 			     mem_idx++) {
 				mem_offs = cfg_en->dynmem->v_maddr[mem_idx];
-				if (mem_offs == NULL)
+				if (!mem_offs)
 					continue;
 				cfg_en->dynmem->obj_idx = mem_idx;
 
-				mem_addr = PTR_ADD(void *, mem_offs, cfg_en->addr);
+				mem_addr =  mem_offs + cfg_en->addr;
 				if (read_memory(pid, mem_addr, buf, "MEMORY"))
 					continue;
 				if (cfg_en->ptrtgt)
@@ -425,7 +425,7 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 						&cfg_en->v_oldval[mem_idx]);
 			}
 		} else {
-			mem_offs = NULL;
+			mem_offs = 0;
 
 			mem_addr = cfg_en->addr;
 			if (read_memory(pid, mem_addr, buf, "MEMORY"))
@@ -435,7 +435,7 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	}
 }
 
-static inline void handle_statmem_pie (void *code_offs, list<CfgEntry> *cfg)
+static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
 {
 	list<CfgEntry>::iterator it;
 	list<CheckEntry> *chk_lp;
@@ -444,13 +444,12 @@ static inline void handle_statmem_pie (void *code_offs, list<CfgEntry> *cfg)
 	list_for_each (cfg, it) {
 		if (it->dynmem || it->ptrmem)
 			continue;
-		it->addr = PTR_ADD(void *, code_offs, it->addr);
+		it->addr += code_offs;
 		if (!it->checks)
 			continue;
 		chk_lp = it->checks;
 		list_for_each (chk_lp, chk_it)
-			chk_it->addr = PTR_ADD(void *,
-				code_offs, chk_it->addr);
+			chk_it->addr += code_offs;
 	}
 }
 
@@ -582,7 +581,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 {
 	char obuf[PIPE_BUF] = { 0 };
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
-	void *old_code_addr = NULL;
+	ptr_t old_code_addr = 0;
 	list<CfgEntry>::iterator it;
 #ifdef __linux__
 	size_t written;
@@ -611,10 +610,10 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-				";%lu;%p", (ulong) it->dynmem->mem_size,
+				";%lu;" SCN_PTR, (ulong) it->dynmem->mem_size,
 				it->dynmem->code_addr);
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-					";%p", it->dynmem->stack_offs);
+					";" SCN_PTR, it->dynmem->stack_offs);
 			old_code_addr = it->dynmem->code_addr;
 		}
 	}

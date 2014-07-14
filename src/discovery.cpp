@@ -46,8 +46,8 @@
 static void process_stage5_result (DynMemEntry *dynmem)
 {
 	cout << "Class " << dynmem->name << ":" << endl;
-	cout << "old_offs: " << hex << dynmem->stack_offs
-	     << ", new_offs: " << dynmem->adp_soffs << dec << endl;
+	cout << "old_offs: 0x" << hex << dynmem->stack_offs
+	     << ", new_offs: 0x" << dynmem->adp_soffs << dec << endl;
 }
 
 static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
@@ -101,28 +101,21 @@ out_wb:
 
 // parameter for process_disc1234_malloc()
 struct disc_pp {
-	void *in_addr;
+	ptr_t in_addr;
 	struct app_options *opt;
 	bool do_disasm;
 };
 
 // mf() callback for read_dynmem_buf()
-static void process_disc1234_malloc (list<CfgEntry> *cfg,
-				     struct post_parse *pp,
-				     void *heap_start,
-				     void *mem_addr,
-				     size_t mem_size,
-				     void *code_offs,
-				     void *code_addr,
-				     void *stack_offs)
+static void process_disc1234_malloc (MF_PARAMS)
 {
 	struct disc_pp *dpp = (struct disc_pp *) pp->argp;
-	void *in_addr = dpp->in_addr;
+	ptr_t in_addr = dpp->in_addr;
 	struct app_options *opt = dpp->opt;
 	char stage = opt->disc_str[0];
 	bool *do_disasm = &dpp->do_disasm;
-	void *codes[MAX_BT] = { NULL };
-	void *soffs[MAX_BT] = { NULL };
+	ptr_t codes[MAX_BT] = { 0 };
+	ptr_t soffs[MAX_BT] = { 0 };
 	char *sep_pos;
 	i32 i, ret, num_codes = 0;
 	string cmd_str, tmp_str;
@@ -130,11 +123,12 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 	ssize_t rbytes = 0;
 
 	if (in_addr >= mem_addr &&
-	    in_addr < PTR_ADD(void *,mem_addr, mem_size)) {
-		cout << "m" << mem_addr << ";" << "s" << mem_size
-		     << " contains " << in_addr << ", offs: "
-		     << PTR_SUB(void *, in_addr, mem_addr) << ", heap offs: "
-		     << PTR_SUB(void *, mem_addr, heap_start) << endl;
+	    in_addr < mem_addr + mem_size) {
+		cout << "m0x" << hex << mem_addr << dec << ";" << "s"
+		     << mem_size << " contains 0x" << hex << in_addr
+		     << ", offs: 0x" << in_addr - mem_addr
+		     << ", heap offs: 0x" << mem_addr - heap_start
+		     << dec << endl;
 
 		switch (stage) {
 		case '3':
@@ -150,11 +144,11 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 
 		/* stage 3 and 4 parsing */
 		for (i = 0; i < MAX_BT; i++) {
-			ret = sscanf(pp->ibuf + pp->ppos, "c%p;o%p",
+			ret = sscanf(pp->ibuf + pp->ppos, "c" SCN_PTR ";o" SCN_PTR,
 				     &codes[i], &soffs[i]);
 			if (ret >= 1) {
 				num_codes++;
-				codes[i] = PTR_SUB(void *, codes[i], opt->code_offs);
+				codes[i] = codes[i] - opt->code_offs;
 
 				sep_pos = strchr(pp->ibuf + pp->ppos, ';');
 				if (!sep_pos)
@@ -187,10 +181,10 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 		}
 		for (i = 0; i < num_codes; i++) {
 			// get the function call from disassembly
-			tmp_str = to_string(codes[i]);
+			tmp_str = to_xstring(codes[i]);
 
 			cmd_str = "cat " DISASM_FILE " | grep -B 1 -e \"^[ ]\\+";
-			cmd_str += tmp_str.substr(2, string::npos);  // no '0x'
+			cmd_str += tmp_str;
 			cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
 				   "| grep -o -e \"<.*@plt>\"";
 #if (DISC_DEBUG)
@@ -205,9 +199,9 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 			}
 
 			// output one call from backtrace
-			cout << "c" << codes[i];
+			cout << "c0x" << hex << codes[i];
 			if (stage == '4')
-				cout << ";o" << soffs[i];
+				cout << ";o0x" << hex << soffs[i] << dec;
 			cout << " " << pbuf << endl;
 
 			// cleanup pipe buffer
@@ -220,7 +214,7 @@ static void process_disc1234_malloc (list<CfgEntry> *cfg,
 static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	i32 ifd, pmask = PARSE_M | PARSE_S;
-	void *mem_addr;
+	ptr_t mem_addr;
 	struct disc_pp dpp;
 
 	ifd = open(opt->dynmem_file, O_RDONLY);
@@ -234,11 +228,11 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 	cout << "Memory address (e.g. 0xdeadbeef): ";
 	fflush(stdout);
 	cin >> hex >> mem_addr;
-	if (mem_addr == NULL) {
+	if (!mem_addr) {
 		cerr << "Error: Invalid memory address!" << endl;
 		return -1;
 	}
-	cout << hex << "Searching reverse for " << mem_addr << dec
+	cout << hex << "Searching reverse for 0x" << mem_addr << dec
 	     << " in discovery output.." << endl;
 
 	dpp.in_addr = mem_addr;
@@ -271,22 +265,15 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 }
 
 // mf() callback for read_dynmem_buf()
-static void process_disc5_output (list<CfgEntry> *cfg,
-				  struct post_parse *pp,
-				  void *heap_start,
-				  void *mem_addr,
-				  size_t mem_size,
-				  void *code_offs,
-				  void *code_addr,
-				  void *stack_offs)
+static void process_disc5_output (MF_PARAMS)
 {
 	list<CfgEntry>::iterator it;
 
-	code_addr = PTR_SUB(void *, code_addr, code_offs);
+	code_addr -= code_offs;
 	cout << "Discovery output: " << endl;
-	cout << "m" << hex << mem_addr << dec << ";s"
-	     << mem_size << hex << ";c" << code_addr
-	     << ";o" << stack_offs << dec << endl;
+	cout << "m0x" << hex << mem_addr << dec << ";s"
+	     << mem_size << ";c0x" << hex << code_addr
+	     << ";o0x" << stack_offs << dec << endl;
 
 	// find object and set adp_soffs
 	list_for_each (cfg, it) {
@@ -306,7 +293,7 @@ out:
 }
 
 void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
-		      void *code_offs)
+		      ptr_t code_offs)
 {
 	while (true) {
 		sleep_sec_unless_input(1, ifd, -1);
@@ -412,7 +399,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			     ";%lu;" SCN_PTR ";" SCN_PTR ";" SCN_PTR,
 			     &heap_soffs, &heap_eoffs, &mem_size, &bt_saddr,
 			     &bt_eaddr, &code_addr);
-		opt->code_addr = (void *) code_addr;
+		opt->code_addr = code_addr;
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
 				"stage " << main_part[0] << "!" << endl;
@@ -484,8 +471,8 @@ found:
 			disc_str += ";0x0;0x0;";
 			disc_str += to_string(it->dynmem->adp_size);
 			for (i = 0; i < 3; i++) {
-				disc_str += ";";
-				disc_str += to_string(it->dynmem->adp_addr);
+				disc_str += ";0x";
+				disc_str += to_xstring(it->dynmem->adp_addr);
 			}
 			opt->disc_str = to_c_str(&disc_str);
 			cout << "Discovering class " << it->dynmem->name

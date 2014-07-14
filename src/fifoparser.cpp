@@ -25,13 +25,11 @@
 
 
 ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
-			 bool reverse, void *code_offs,
-			 void (*mf)(list<CfgEntry> *, struct post_parse *, void *,
-				    void *, size_t, void *, void *, void *),
-			 void (*ff)(list<CfgEntry> *, void *, void *))
+			 bool reverse, ptr_t code_offs, void (*mf)(MF_PARAMS),
+			 void (*ff)(FF_PARAMS))
 {
-	void *mem_addr = NULL, *code_addr = NULL, *stack_offs = NULL;
-	static void *heap_start = NULL;
+	ptr_t mem_addr = 0, code_addr = 0, stack_offs = 0;
+	static ptr_t heap_start = 0;
 	static ssize_t ipos = 0, ilen = 0;
 	ulong mem_size = 0;
 	ssize_t tmp_ilen, ppos = 0;
@@ -51,7 +49,7 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 				goto parse_err;
 			if (scan_ch == 'h') {
 				ppos = msg_start - ibuf + 1;
-				if (sscanf(ibuf + ppos, "%p", &heap_start) != 1)
+				if (sscanf(ibuf + ppos, SCN_PTR, &heap_start) != 1)
 					goto parse_err;
 			}
 			// clear buffer again
@@ -118,7 +116,7 @@ next:
 		switch (scan_ch) {
 		case 'm':
 			ppos = msg_start - ibuf + 1;
-			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
+			if (sscanf(ibuf + ppos, SCN_PTR, &mem_addr) != 1)
 				goto parse_err;
 
 			if (!(pmask & PARSE_S))
@@ -144,7 +142,7 @@ skip_s:
 			    scan_ch != 'c')
 				goto parse_err;
 			ppos++;
-			if (sscanf(ibuf + ppos, "%p", &code_addr) != 1)
+			if (sscanf(ibuf + ppos, SCN_PTR, &code_addr) != 1)
 				goto parse_err;
 skip_c:
 			if (!(pmask & PARSE_O))
@@ -157,7 +155,7 @@ skip_c:
 			    scan_ch != 'o')
 				goto parse_err;
 			ppos++;
-			if (sscanf(ibuf + ppos, "%p", &stack_offs) != 1)
+			if (sscanf(ibuf + ppos, SCN_PTR, &stack_offs) != 1)
 				goto parse_err;
 skip_o:
 			pp.ibuf = ibuf;
@@ -172,7 +170,7 @@ skip_o:
 			if (!ff)
 				break;
 			ppos = msg_start - ibuf + 1;
-			if (sscanf(ibuf + ppos, "%p", &mem_addr) != 1)
+			if (sscanf(ibuf + ppos, SCN_PTR, &mem_addr) != 1)
 				goto parse_err;
 
 			// call post parsing function
@@ -180,7 +178,7 @@ skip_o:
 			break;
 		case 'h':
 			ppos = msg_start - ibuf + 1;
-			if (sscanf(ibuf + ppos, "%p", &heap_start) != 1)
+			if (sscanf(ibuf + ppos, SCN_PTR, &heap_start) != 1)
 				goto parse_err;
 			break;
 		}

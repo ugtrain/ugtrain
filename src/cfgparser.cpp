@@ -186,12 +186,12 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	return ret;
 }
 
-static void *parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
+static ptr_t parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
 			    string *line, u32 lnr, u32 *start)
 {
 	u32 lidx;
 	string tmp_str;
-	void *ret = NULL;
+	ptr_t ret = 0;
 
 	lidx = *start;
 	if (lidx + 2 > line->length())
@@ -209,11 +209,11 @@ static void *parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
 	*start = lidx + 2;
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (lidx == line->length() - 1) {
-			ret = (void *) strtoptr(string(*line, *start,
+			ret = strtoptr(string(*line, *start,
 				lidx + 1 - *start).c_str(), NULL, 16);
 			break;
 		} else if (line->at(lidx) == ' ') {
-			ret = (void *) strtoptr(string(*line, *start,
+			ret = strtoptr(string(*line, *start,
 				lidx - *start).c_str(), NULL, 16);
 			break;
 		} else if (!isxdigit(line->at(lidx))) {
@@ -347,7 +347,7 @@ skip_check:
 			*dynval = DYN_VAL_MIN;
 		} else if (tmp_str.substr(0, 2) == "0x") {
 			*dynval = DYN_VAL_ADDR;
-			if (sscanf(tmp_str.c_str(), "%p", &ret.ptr) != 1)
+			if (sscanf(tmp_str.c_str(), SCN_PTR, &ret.ptr) != 1)
 				cfg_parse_err(line, lnr, lidx);
 		} else if (tmp_str == "watch") {
 			*dynval = DYN_VAL_WATCH;

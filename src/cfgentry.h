@@ -28,11 +28,11 @@ class DynMemEntry {
 public:
 	string name;
 	size_t mem_size;
-	void *code_addr;
-	void *stack_offs;
+	ptr_t code_addr;
+	ptr_t stack_offs;
 
 	// later determined values
-	vector<void *> v_maddr;    // set by malloc calls
+	vector<ptr_t> v_maddr;    // set by malloc calls
 	u32 num_alloc;   // how many obj. created at once
 	u32 num_freed;   // how many obj. freed at once
 	u32 obj_idx;     // object index for object check
@@ -40,8 +40,8 @@ public:
 
 	// adaption
 	u32  adp_size;                // adapted object size
-	void *adp_addr;               // adapted code address
-	void *adp_soffs;              // adapted reverse stack offset
+	ptr_t adp_addr;               // adapted code address
+	ptr_t adp_soffs;              // adapted reverse stack offset
 	u32 cfg_line;                 // to write back new cfg
 };
 
@@ -61,7 +61,7 @@ public:
 
 	DynMemEntry *dynmem;
 	vector<ptr_e> v_state;
-	vector<void *> v_offs;
+	vector<ptr_t> v_offs;
 };
 
 
@@ -100,14 +100,14 @@ typedef union {
 	unsigned long long u64;
 	float		f32;
 	double		f64;
-	void		*ptr;
+	ptr_t		ptr;
 } value_t;
 
 #define MAX_CHK_VALS 4  // for "or" checks
 
 class CheckEntry {
 public:
-	void *addr;
+	ptr_t addr;
 	CfgEntry *cfg_ref;
 	bool is_objcheck;
 	struct type type;
@@ -118,11 +118,11 @@ public:
 class CfgEntry {
 public:
 	string name;
-	void *addr;
+	ptr_t addr;
 	struct type type;
 	check_e check;
 	dynval_e dynval;
-	void *val_addr;   // for DYN_VAL_ADDR only
+	ptr_t val_addr;   // for DYN_VAL_ADDR only
 	value_t value;
 	value_t old_val;      // for static memory only
 

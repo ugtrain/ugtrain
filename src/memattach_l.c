@@ -91,32 +91,32 @@ err:
 	return -1;
 }
 
-i32 memread (pid_t pid, void *addr, void *buf, long buf_len)
+i32 memread (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 {
-	long read_val = 0;
-	long pos = 0;      /* position in sizeof(long) steps */
-	long len = buf_len / sizeof(long);
+	ptr_t read_val = 0;
+	off_t pos = 0;      /* position in sizeof(ptr_t) steps */
+	size_t len = buf_len / sizeof(ptr_t);
 
-	if (pid <= 1 || addr == NULL || buf == NULL || buf_len <= 0)
+	if (pid <= 1 || addr == 0 || buf == NULL || buf_len <= 0)
 		return -1;
 
 	errno = 0;
 	for (pos = 0; pos < len; pos++) {
 		read_val = ptrace(PTRACE_PEEKDATA, pid,
-			addr + pos * sizeof(long), read_val);
+			addr + pos * sizeof(ptr_t), read_val);
 		if (errno != 0)
 			goto err;
-		memcpy(buf + pos * sizeof(long), &read_val, sizeof(long));
+		memcpy(buf + pos * sizeof(ptr_t), &read_val, sizeof(ptr_t));
 	}
 
 	/* remainder processing */
-	len = buf_len % sizeof(long);
+	len = buf_len % sizeof(ptr_t);
 	if (len > 0) {
 		read_val = ptrace(PTRACE_PEEKDATA, pid,
-			addr + pos * sizeof(long), read_val);
+			addr + pos * sizeof(ptr_t), read_val);
 		if (errno != 0)
 			goto err;
-		memcpy(buf + pos * sizeof(long), &read_val, len);
+		memcpy(buf + pos * sizeof(ptr_t), &read_val, len);
 	}
 
 	return 0;
@@ -124,33 +124,33 @@ err:
 	return -1;
 }
 
-i32 memwrite (pid_t pid, void *addr, void *buf, long buf_len)
+i32 memwrite (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 {
-	long rw_val = 0;
-	long pos = 0;      /* position in sizeof(long) steps */
-	long len = buf_len / sizeof(long);
+	ptr_t rw_val = 0;
+	off_t pos = 0;      /* position in sizeof(ptr_t) steps */
+	size_t len = buf_len / sizeof(ptr_t);
 
-	if (pid <= 1 || addr == NULL || buf == NULL || buf_len <= 0)
+	if (pid <= 1 || addr == 0 || buf == NULL || buf_len <= 0)
 		return -1;
 
 	errno = 0;
 	for (pos = 0; pos < len; pos++) {
-		memcpy(&rw_val, buf + pos * sizeof(long), sizeof(long));
+		memcpy(&rw_val, buf + pos * sizeof(ptr_t), sizeof(ptr_t));
 		ptrace(PTRACE_POKEDATA, pid,
-			addr + pos * sizeof(long), rw_val);
+			addr + pos * sizeof(ptr_t), rw_val);
 		if (errno != 0)
 			goto err;
 	}
 
 	/* remainder processing */
-	len = buf_len % sizeof(long);
+	len = buf_len % sizeof(ptr_t);
 	if (len > 0) {
 		rw_val = ptrace(PTRACE_PEEKDATA, pid, addr, rw_val);
 		if (errno != 0)
 			goto err;
-		memcpy(&rw_val, buf + pos * sizeof(long), len);
+		memcpy(&rw_val, buf + pos * sizeof(ptr_t), len);
 		ptrace(PTRACE_POKEDATA, pid,
-			addr + pos * sizeof(long), rw_val);
+			addr + pos * sizeof(ptr_t), rw_val);
 		if (errno != 0)
 			goto err;
 	}

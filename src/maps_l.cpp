@@ -165,7 +165,7 @@ bool readmaps(pid_t pid, list<struct region> *regions)
 				map->flags.read = true;
 				map->flags.write = true;
 				map->start = start;
-				map->size = (unsigned long) (end - start);
+				map->size = end - start;
 				map->type = type;
 				map->load_addr = load_addr;
 

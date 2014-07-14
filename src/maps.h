@@ -60,7 +60,7 @@ static inline void list_regions (list<struct region> *rlist)
 	list_for_each (rlist, region)
 		printf("[%2u] %14lx, %7lu bytes, %5s, "
 			"%14lx, %c%c%c, %s\n", region->id,
-			(ulong) region->start, region->size,
+			region->start, region->size,
 			region_type_names[region->type], region->load_addr,
 			region->flags.read ? 'r' : '-',
 			region->flags.write ? 'w' : '-',

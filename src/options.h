@@ -48,9 +48,9 @@ struct app_options {
 	char	*game_binpath;
 	char	*game_params;
 	char	*dynmem_file;
-	void	*disc_addr;
-	void	*code_addr;
-	void	*code_offs;
+	ptr_t	disc_addr;
+	ptr_t	code_addr;
+	ptr_t	code_offs;
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
 };
@@ -64,17 +64,17 @@ extern "C" {
 	/* inline functions */
 	static inline void use_libmemdisc (struct app_options *opt)
 	{
-		if (sizeof(long) == 8)
+		if (sizeof(ptr_t) == 8)
 			opt->preload_lib = (char *) LDISC_PRE "64" LIB_END;
-		else if (sizeof(long) == 4)
+		else if (sizeof(ptr_t) == 4)
 			opt->preload_lib = (char *) LDISC_PRE "32" LIB_END;
 	}
 
 	static inline void use_libmemhack (struct app_options *opt)
 	{
-		if (sizeof(long) == 8)
+		if (sizeof(ptr_t) == 8)
 			opt->preload_lib = (char *) LHACK_PRE "64" LIB_END;
-		else if (sizeof(long) == 4)
+		else if (sizeof(ptr_t) == 4)
 			opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
 	}
 #ifdef __cplusplus

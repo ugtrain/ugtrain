@@ -79,7 +79,7 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 	list<CfgEntry>::iterator it;
 	CfgEntry *cfg_en;
 	DynMemEntry *old_dynmem = NULL;
-	vector<void *> *mvec;
+	vector<ptr_t> *mvec;
 	u32 mem_idx, ov_idx, num_kicked;
 
 	// remove old values marked to be removed by free() or by object check
@@ -130,7 +130,7 @@ void output_dynmem_changes (list<CfgEntry> *cfg)
 	list<CfgEntry>::iterator it;
 	CfgEntry *cfg_en;
 	DynMemEntry *old_dynmem = NULL;
-	vector<void *> *mvec;
+	vector<ptr_t> *mvec;
 
 	old_dynmem = NULL;
 	list_for_each (cfg, it) {
@@ -154,7 +154,7 @@ void output_dynmem_changes (list<CfgEntry> *cfg)
 	}
 }
 
-static i32 find_addr_idx (vector<void *> *vec, void *addr)
+static i32 find_addr_idx (vector<ptr_t> *vec, ptr_t addr)
 {
 	u32 i;
 	i32 ret = -1;
@@ -169,10 +169,10 @@ static i32 find_addr_idx (vector<void *> *vec, void *addr)
 }
 
 // ff() callback for read_dynmem_buf()
-void clear_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
+void clear_dynmem_addr (FF_PARAMS)
 {
 	list<CfgEntry>::iterator it;
-	vector<void *> *mvec;
+	vector<ptr_t> *mvec;
 	i32 idx;
 
 	list_for_each (cfg, it) {
@@ -182,29 +182,22 @@ void clear_dynmem_addr (list<CfgEntry> *cfg, void *argp, void *mem_addr)
 		idx = find_addr_idx(mvec, mem_addr);
 		if (idx < 0)
 			continue;
-		mvec->at(idx) = NULL;
+		mvec->at(idx) = 0;
 		it->dynmem->num_freed++;
 		break;
 	}
 }
 
 // mf() callback for read_dynmem_buf()
-void alloc_dynmem_addr (list<CfgEntry> *cfg,
-			struct post_parse *pp,
-			void *heap_start,
-			void *mem_addr,
-			size_t mem_size,
-			void *code_offs,
-			void *code_addr,
-			void *stack_offs)
+void alloc_dynmem_addr (MF_PARAMS)
 {
 	list<CfgEntry>::iterator it;
-	vector<void *> *mvec;
+	vector<ptr_t> *mvec;
 
 	// find class, allocate and set mem_addr
 	list_for_each (cfg, it) {
 		if (!it->dynmem || it->dynmem->code_addr !=
-		    PTR_SUB(void *, code_addr, code_offs))
+		    code_addr - code_offs)
 			continue;
 		mvec = &it->dynmem->v_maddr;
 		mvec->push_back(mem_addr);
