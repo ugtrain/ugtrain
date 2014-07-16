@@ -167,7 +167,7 @@ static void process_disc1234_malloc (MF_PARAMS)
 
 		/* stage 3 and 4 post-processing */
 		// get disassembly only once
-		if (*do_disasm) {
+		if (*do_disasm && opt->have_objdump) {
 			cmd_str = "objdump -D ";
 			cmd_str += opt->game_binpath;
 			cmd_str += " > " DISASM_FILE;
@@ -180,6 +180,8 @@ static void process_disc1234_malloc (MF_PARAMS)
 			*do_disasm = false;
 		}
 		for (i = 0; i < num_codes; i++) {
+			if (!opt->have_objdump)
+				goto skip_lookup;
 			// get the function call from disassembly
 			tmp_str = to_xstring(codes[i]);
 
@@ -197,7 +199,7 @@ static void process_disc1234_malloc (MF_PARAMS)
 				if (pbuf[rbytes - 1] == '\n')
 					pbuf[rbytes - 1] = '\0';
 			}
-
+skip_lookup:
 			// output one call from backtrace
 			cout << "c0x" << hex << codes[i];
 			if (stage == '4')
@@ -413,6 +415,8 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			goto err;
 		}
 		if (ret < 5) {
+			if (!opt->have_objdump)
+				goto err;
 			cmd_str = "objdump -p ";
 			cmd_str += opt->game_binpath;
 			cmd_str += " | grep \"INIT\\|FINI\" "

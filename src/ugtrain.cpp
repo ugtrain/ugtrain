@@ -751,8 +751,11 @@ i32 main (i32 argc, char **argv, char **env)
 			    !tool_is_available((char *) "scanmem"))
 				return -1;
 			if (opt->disc_str[0] >= '3') {
-				if (!tool_is_available((char *) "objdump"))
-					return -1;
+				opt->have_objdump = tool_is_available(
+					(char *) "objdump");
+				if (!opt->have_objdump)
+					cerr << "Backtrace helpers and symbol "
+					    "lookup aren't available." << endl;
 			}
 			cout << "Clearing config for discovery!" << endl;
 			cfg->clear();
@@ -760,9 +763,6 @@ i32 main (i32 argc, char **argv, char **env)
 			allow_empty_cfg = true;
 		} else {
 			opt->run_scanmem = false;
-			if (opt->disc_str[0] == '5' &&
-			    !tool_is_available((char *) "objdump"))
-				return -1;
 		}
 	} else if (opt->run_scanmem) {
 		if (!tool_is_available((char *) "scanmem"))
