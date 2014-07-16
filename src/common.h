@@ -61,8 +61,27 @@ typedef unsigned long ulong;
 #else
 #include <stdint.h>
 #include <inttypes.h>
-#define SCN_PTR "0x%"SCNxPTR
-#define PRI_PTR "0x%"PRIxPTR
+/* These formats are not available with default C++ on MeeGo 1.2 Harmattan. */
+#if !defined(SCNxPTR) || !defined(PRIxPTR) || !defined(UINTPTR_MAX)
+#undef SCNxPTR
+#undef PRIxPTR
+#undef UINTPTR_MAX
+#if defined(_WIN64) || defined (__WIN64__)
+#define SCN_PTR "0x%llx"
+#define PRI_PTR "0x%llx"
+#define UINTPTR_MAX ULLONG_MAX
+#elif ULONG_MAX == 4294967295UL
+#define SCNxPTR "x"
+#define PRIxPTR "x"
+#define UINTPTR_MAX (4294967295U)
+#else
+#define SCNxPTR "lx"
+#define PRIxPTR "lx"
+#define UINTPTR_MAX ULONG_MAX
+#endif
+#endif
+#define SCN_PTR "0x%" SCNxPTR
+#define PRI_PTR "0x%" PRIxPTR
 #endif
 typedef uintptr_t ptr_t;
 
