@@ -851,7 +851,10 @@ prepare_dynmem:
 				// Have you closed scanmem before the game?
 				wait_orphan(pid, opt->proc_name);
 			} else {
-				wait_proc(call_pid);
+				if (use_wait)
+					wait_proc(call_pid);
+				// handle a loader that forks and exits
+				wait_orphan(pid, opt->proc_name);
 			}
 			return 0;
 		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
@@ -863,7 +866,10 @@ prepare_dynmem:
 				// Have you closed scanmem before the game?
 				wait_orphan(pid, opt->proc_name);
 			} else {
-				wait_proc(call_pid);
+				if (use_wait)
+					wait_proc(call_pid);
+				// handle a loader that forks and exits
+				wait_orphan(pid, opt->proc_name);
 			}
 			kill_proc(worker_pid);
 			if (worker_pid < 0)
