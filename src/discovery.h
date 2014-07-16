@@ -50,10 +50,10 @@ i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 
 /* Some Linux distributions use the GCC options -pie and -fPIE
    by default for hardened security. Together with ASLR, the binary
-   is loaded each execution to another memory location. We have to
-   find out that memory location and use it as an offset. This
+   is loaded each execution to another memory location/address. We
+   have to find out that memory address and use it as an offset. This
    applies to code addresses on the stack and static memory as well.
-   PIE is detected from that offset. */
+   PIE is detected from that load address. */
 static inline void handle_exe_region (struct region *r, i32 ofd,
 				      struct app_options *opt)
 {
@@ -64,9 +64,15 @@ static inline void handle_exe_region (struct region *r, i32 ofd,
 
 	cout << "Found exe, start: 0x" << hex << r->start
 	     << ", end: 0x" << r->start + r->size << dec << endl;
-	/* PIE detection: x86 offs: 0x8048000, x86_64 offs: 0x400000 */
+	/* PIE detection */
+#ifdef __arm__
+	/* Static load address: armv7l: 0x8000 */
+	if (r->start == 0x8000UL)
+#else
+	/* Static load address: x86: 0x8048000, x86_64: 0x400000 */
 	if (r->start == 0x8048000UL ||
 	    (r->start == 0x400000UL))
+#endif
 		code_offs = 0;
 	else
 		code_offs = r->start;
