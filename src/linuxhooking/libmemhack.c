@@ -154,6 +154,15 @@ void __attribute ((constructor)) memhack_init (void)
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	ptr_t code_offs = 0;
 
+#if USE_DEBUG_LOG
+	if (!DBG_FILE_VAR) {
+		DBG_FILE_VAR = fopen(DBG_FILE_NAME, "w");
+		if (!DBG_FILE_VAR) {
+			perror(PFX "fopen debug log");
+			exit(1);
+		}
+	}
+#endif
 	/* only care for the game process (ignore shell and others) */
 	expected = getenv(UGT_GAME_PROC_NAME);
 	if (expected) {
@@ -173,6 +182,8 @@ void __attribute ((constructor)) memhack_init (void)
 	if (active)
 		return;
 
+	if (ifd >= 0)
+		goto out;
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
 		perror(PFX "open input");
@@ -180,6 +191,8 @@ void __attribute ((constructor)) memhack_init (void)
 	}
 	pr_dbg("ifd: %d\n", ifd);
 
+	if (ofd >= 0)
+		goto out;
 	pr_out("Waiting for output FIFO opener..\n");
 	ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (ofd < 0) {
@@ -251,12 +264,19 @@ void __attribute ((constructor)) memhack_init (void)
 			goto err;
 		SET_IBUF_OFFS(1, j);
 
+		pr_dbg("config: %p, cfg_offs: %zd\n", config, cfg_offs);
+
+		/* set the address of the mem addrs array */
+		ptr_t addrarr = (ptr_t) config + cfg_offs + num_cfg *
+				sizeof(cfg_s) + i * max_obj * sizeof(ptr_t);
+
+		/* debug alignment before dereferencing */
+		pr_dbg("setting mem addr array to " PRI_PTR ", pos: %lu\n",
+			addrarr, addrarr_pos);
+
 		/* put stored memory addresses behind all cfg_s stuctures */
 		config[i]->max_obj = max_obj - 1;
-		config[i]->mem_addrs = (ptr_t *) ((ptr_t) config + cfg_offs +
-			num_cfg * sizeof(cfg_s));
-		config[i]->mem_addrs = (ptr_t *) ((ptr_t) config[i]->mem_addrs
-			+ i * max_obj * sizeof(ptr_t));
+		config[i]->mem_addrs = (ptr_t *) addrarr;
 
 		/* debug mem_addrs pointer */
 		pr_dbg("config[%u]->mem_addrs pos = %lu\n", i,
@@ -296,10 +316,11 @@ void __attribute ((constructor)) memhack_init (void)
 			pr_err("Code offset parsing error!\n");
 	}
 	for (i = 0; i < num_cfg; i++)
-		config[i]->code_addr = code_offs + config[i]->code_addr;
+		config[i]->code_addr += code_offs;
 
 	if (num_cfg > 0)
 		active = true;
+out:
 	return;
 
 read_err:
@@ -308,6 +329,17 @@ read_err:
 err:
 	pr_err("Error while reading config!\n");
 	return;
+}
+
+/* clean up upon library unload */
+void __attribute ((destructor)) memhack_exit (void)
+{
+#if USE_DEBUG_LOG
+	if (DBG_FILE_VAR) {
+		fflush(DBG_FILE_VAR);
+		fclose(DBG_FILE_VAR);
+	}
+#endif
 }
 
 static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)

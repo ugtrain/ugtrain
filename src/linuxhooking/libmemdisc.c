@@ -186,6 +186,15 @@ void __attribute ((constructor)) memdisc_init (void)
 	void *heap_ptr;
 	ptr_t heap_start = 0, heap_soffs = 0, heap_eoffs = 0;
 
+#if USE_DEBUG_LOG
+	if (!DBG_FILE_VAR) {
+		DBG_FILE_VAR = fopen(DBG_FILE_NAME, "w");
+		if (!DBG_FILE_VAR) {
+			perror(PFX "fopen debug log");
+			exit(1);
+		}
+	}
+#endif
 	/* only care for the game process (ignore shell and others) */
 	expected = getenv(UGT_GAME_PROC_NAME);
 	if (expected) {
@@ -218,6 +227,8 @@ void __attribute ((constructor)) memdisc_init (void)
 		free(heap_ptr);
 	}
 
+	if (ifd >= 0)
+		goto out;
 	ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (ifd < 0) {
 		perror(PFX "open input");
@@ -225,6 +236,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	}
 	pr_dbg("ifd: %d\n", ifd);
 
+	if (ofile)
+		goto out;
 	pr_out("Waiting for output FIFO opener..\n");
 	ofile = fopen(DYNMEM_OUT, "w");
 	if (!ofile) {
@@ -424,7 +437,7 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	signal(SIGALRM, flush_output);
 	alarm(FLUSH_INTERVAL);
-
+out:
 	return;
 read_err:
 	pr_err("Can't read config, disabling output.\n");
@@ -441,6 +454,12 @@ void __attribute ((destructor)) memdisc_exit (void)
 		fflush(ofile);
 		fclose(ofile);
 	}
+#if USE_DEBUG_LOG
+	if (DBG_FILE_VAR) {
+		fflush(DBG_FILE_VAR);
+		fclose(DBG_FILE_VAR);
+	}
+#endif
 }
 
 /*
@@ -595,6 +614,8 @@ static inline void write_obuf (char obuf[])
 {
 	i32 wbytes;
 
+	if (!ofile)
+		return;
 #if DEBUG_MEM
 	pr_out("%s", obuf);
 #endif

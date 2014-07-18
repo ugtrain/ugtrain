@@ -32,13 +32,58 @@
 #endif
 #define DEBUG_MEM 0    /* much output */
 
+#define USE_DEBUG_LOG 0
+#define DBG_FILE_NAME "libmem_dbg.txt"
+#define DBG_FILE_VAR  dfile
+
+
 #define pr_fmt(fmt) PFX fmt
+#if USE_DEBUG_LOG
+
+#define USE_BOTH_DBG 0
+
+static FILE *dfile = NULL;
+
+#define pr_dbg_file(fmt, ...) \
+	if (DBG_FILE_VAR) { \
+		fprintf(DBG_FILE_VAR, pr_fmt(fmt), ##__VA_ARGS__); \
+		fflush(DBG_FILE_VAR); \
+	}
+
+#if USE_BOTH_DBG
+#define printf(...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__); \
+	fprintf(stdout, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_dbg(fmt, ...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__); \
+	fprintf(stdout, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_out(fmt, ...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__); \
+	fprintf(stdout, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_err(fmt, ...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__); \
+	fprintf(stderr, pr_fmt(fmt), ##__VA_ARGS__)
+#else
+#define printf(...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__)
+#define pr_dbg(fmt, ...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__)
+#define pr_out(fmt, ...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__)
+#define pr_err(fmt, ...) \
+	pr_dbg_file(fmt, ##__VA_ARGS__)
+#endif
+
+#else
+
 #define pr_dbg(fmt, ...) \
 	printf(pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_out(fmt, ...) \
 	fprintf(stdout, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_err(fmt, ...) \
 	fprintf(stderr, pr_fmt(fmt), ##__VA_ARGS__)
+
+#endif
 
 
 void rm_from_env (char *env_name, char *pattern, char separator);
