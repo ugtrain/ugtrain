@@ -16,17 +16,21 @@ Options:
 External control (using ugtrain as backend):
 + support config from stdin or command line
 
+Multi-arch support:
++ support ARM as well
+
 Multi-platform support:
 + support Windows as well
 + write getch functions for Windows
 + add Windows support for memory changing (OpenProcess, Read/WriteProcessMemory)
-+ support mingw compilation
++ support MinGW compilation
 + implement arbitrary command execution helpers for Windows
-+ check boost libraries for help with that
 + add dyn. mem. support for Windows (Inline Hooking)
 + add dyn. mem. support for WINE (Inline Hooking)
 
 Trainer:
++ detect PIE in a more universal way by reading the ELF header
++ support PIC
 + support list and vector processing (hook 'memmove' as well)
 + support external control (start/stop freezing)
 
