@@ -169,15 +169,14 @@
 #
 #    +++ Additional info +++
 #
-#    Dynamic memory always needs the preloader. Here, only the code address
-#    in the binary where "malloc" is called remains static. We have to find
-#    it and its location on the stack with information from inside the game
-#    process.
+#    Dynamic memory always needs preloading (-P option). Ugtrain runs the game
+#    as regular user with it. Here, only the code address in the binary where
+#    "malloc" is called remains static. We have to find it and its location on
+#    the stack with information from inside the game process.
 #    See doc/ugtrain-dynmem.txt how to discover and adapt it to other versions.
 #
-#    Call the trainer first. Then, call the preloaded game in another terminal.
-#    Use the preloader for hooking libmemhack32/64.so into the game process.
-#    The trainer might require root permissions due to "ptrace" for a process
-#    in another process group.
-#    So it is better to let the trainer run the preloader with:
-#    "ugtrain -P [lib] <config>".
+#    $ ugtrain -P [lib] <config>
+#
+#    Ugtrain detects a position independent executable (PIE) automatically from
+#    its load address and converts code addresses between in-binary and
+#    in-memory.
