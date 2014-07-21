@@ -186,6 +186,23 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	return ret;
 }
 
+static bool parse_obj_num_chk (list<CfgEntry> *cfg, CheckEntry *chk_en,
+			       string *line, u32 lnr, u32 *start)
+{
+	u32 lidx;
+	bool ret = false;
+
+	lidx = *start;
+	if (lidx + 4 > line->length())
+		cfg_parse_err(line, lnr, --lidx);
+	if (line->at(lidx) == 'o' && line->at(lidx + 1) == 'b' &&
+	    line->at(lidx + 2) == 'j' && line->at(lidx + 3) == ' ') {
+		ret = true;
+		*start = lidx + 4;
+	}
+	return ret;
+}
+
 static ptr_t parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
 			    string *line, u32 lnr, u32 *start)
 {
@@ -530,7 +547,13 @@ void read_config (struct app_options *opt,
 
 			chk_lp = cfg_enp->checks;
 			chk_en.cfg_ref = NULL;
-			chk_en.addr = parse_address(cfg, &chk_en, &line, lnr, &start);
+			if (in_dynmem)
+				chk_en.check_obj_num = parse_obj_num_chk(cfg,
+					&chk_en, &line, lnr, &start);
+			else
+				chk_en.check_obj_num = false;
+			if (!chk_en.check_obj_num)
+				chk_en.addr = parse_address(cfg, &chk_en, &line, lnr, &start);
 			parse_data_type(&line, lnr, &start, &chk_en.type);
 			for (i = 0; i < MAX_CHK_VALS; i++)
 				chk_en.value[i] = parse_value(&line, lnr, &start, cfg,

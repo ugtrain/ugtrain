@@ -209,6 +209,10 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 			ret = handle_cfg_ref(chk_en->cfg_ref, chk_buf);
 			if (ret)
 				continue;
+		} else if (chk_en->check_obj_num) {
+			if (!dynmem)
+				continue;
+			chk_buf->u32 = dynmem->obj_idx;
 		} else {
 			mem_addr = mem_offs + chk_en->addr;
 

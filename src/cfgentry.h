@@ -110,6 +110,7 @@ public:
 	ptr_t addr;
 	CfgEntry *cfg_ref;
 	bool is_objcheck;
+	bool check_obj_num;
 	struct type type;
 	check_e check[MAX_CHK_VALS + 1];
 	value_t value[MAX_CHK_VALS + 1];
