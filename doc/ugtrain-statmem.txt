@@ -1,8 +1,11 @@
 === Static Memory Cheating ===
 
-Cheating static memory is very easy. Between two game runs the memory value of
+Modifying static memory is very easy. Between two game runs the memory value of
 interest stays at the same memory location. In general this is everything which
-is not stored on the heap or the stack.
+is not stored on the heap or the stack but in the .data or .bss section of the
+ELF binary instead. These have own regions in memory. Only security measures
+like ASLR/PIC/PIE make this more complex. Ugtrain supports ASLR with PIE but
+PIC (static memory in a library) isn't supported, yet. But let us start simple.
 
 All you need is the value name, absolute memory address, value type, wish
 value, key bindings, the initial activation state and optional checks. The
@@ -27,7 +30,11 @@ ugtrain run the game with -P makes much sense!
 We always recommend the tool "scanmem" for static memory search. It uses
 "ptrace" as well and is a very sophisticated CLI tool. If the value is
 displayed the same way it is stored, it is easy to find it by entering its
-value as numbers into scanmem until there is a single match.
+value as numbers into scanmem until there is a single match. The default scan
+data type is int32. Try with float if nothing is found this way.
+
+Use a more recent version of scanmem in case it doesn't support the region
+type detection which is required for ASLR/PIC/PIE and is described here.
 
 If you are guessing that there is a static bool, then try to search for 0 for
 false and 1 for true. It may take quite some cycles to reduce the number of
@@ -48,7 +55,7 @@ It is possible that 3 seconds aren't long enough. So enter the "reset" command
 on the scanmem command line as soon as you see the value you want to modify.
 Scanmem reloads the known memory regions then.
 
-Let's do an example with the "Power" in Warzone 2100 64-bit! In the versions
+Let us do an example with the "Power" in Warzone 2100, 64 bit! In the versions
 2.3.8 .. 3.1.1 it can be found as i32 as it is displayed at static location.
 
 Discovery preparation:
@@ -83,46 +90,54 @@ enter the new power value!
 
 784> 1200
 
-A single match? Man, we are lucky! List the matches,
+A single match? Man, we are lucky! List the match,
 set it to 5000 and build another building to verify that
 we haven't just changed the display value!
 
 1> list
-[ 0]            0x10fb180, 1200, [I64 I32 I16 ]
+[ 0] 7f9d7e623d44, 35 +       c3cd44,   exe, 1200, [I32 I16 ]
 1> set 0=5000
-info: setting *0x10fb180 to 0x1388...
+info: setting *0x7f9d7e623d44 to 0x1388...
+
+We see here that this is part of the executable and this is PIE here.
+So what you put into the config is the match offset 0xc3cd44. Ugtrain
+adds the load address again when running the game with PIE. Without
+PIE we would be able to put the memory address directly into the config.
 
 After building the research facility the value is at 4900. So we've
 found the correct memory location.
 
 With the scanmem "lregions" command we can see in which memory region
-we are.
+we are (region ID 35). This is the .bss section as it has no file name
+("unassociated") but is consecutive to the .data section. The address
+to which the dynamic loader has loaded the ELF binary is 0x7f9d7d9e7000
+here. Without PIE on x86_64 this would always be 0x400000 or on 32 bit
+x86 it would always be 0x8048000.
 
 1> lregions
-[ 0]   0x833000,  110592 bytes, rw-, /usr/games/warzone2100
-[ 1]   0x84e000, 11223040 bytes, rw-, unassociated
-[ 2]  0x1a0e000, 24252416 bytes, rw-, [heap]
 ...
+[34] 7f9d7df11000,  102400 bytes,   exe, 7f9d7d9e7000, rw-, /usr/games/warzone2100
+[35] 7f9d7df2a000, 11665408 bytes,   exe, 7f9d7d9e7000, rw-, unassociated
+[36] 7f9d803f9000, 35975168 bytes,  heap, 7f9d803f9000, rw-, [heap]
+[37] 7fffc8c00000,  139264 bytes, stack, 7fffc8c00000, rw-, [stack]
 
-We see that this address is too low to be on the heap or the stack. It is
-marked as "unassociated".
 Congratulations, we've found a static memory value! Close the game and type
 "exit" on the scanmem command line!
 
-We start watching it. Scanmem showed that i64, i32 and i16 are possible. In
+We start watching it. Scanmem showed that i32 and i16 are possible. In
 general use the lowest possible data type! But when setting it to > 65535,
 you'll see that i32 is possible.
 Our new config looks like this:
 
 warzone2100
-Power 0x10fb180 i32 watch
+Power 0xc3cd44 i32 watch
 
 We run it without -S:
 
 $ ugtrain -P test.conf
 
 Now, we see that it is 0 in main menu and 1300 upon campaign start. Now, we
-would see the latest if it wouldn't be static.
+would see the latest if the variable wouldn't be static. But it is.
 
 It is okay to modify it and we only want to set it if it is lower than the
 wish value and greater than 0 or a bit greater. Let's say 10. We want to
@@ -131,11 +146,21 @@ toggle it with the key '1' or '0' and it should be activated upon game start.
 The new config looks like this:
 
 warzone2100
-Power 0x10fb180 i32 l 5000 1,0 a
-check 0x10fb180 i32 g 10
+Power 0xc3cd44 i32 l 5000 1,0 a
+check 0xc3cd44 i32 g 10
 
 This is all we need!
 See examples/README for the complete config syntax.
+
+$ ugtrain -P test.conf
+...
+code_offs: 0x7fcddc0e6000
+PIE (position independent executable) detected!
+Power at 0x7fcddcd22d44, Data: 0x0 (0)
+Power at 0x7fcddcd22d44, Data: 0x514 (1300)
+Power at 0x7fcddcd22d44, Data: 0x1388 (5000)
+...
+
 
 === Static Memory Adaption ===
 
@@ -146,6 +171,6 @@ game process, we dump the related assembly code. The difficulty is then to find
 an unique similar code part in another binary of the game like different
 compiler options, distribution or other game version. There we have to extract
 the memory address it accesses. This address has to be set into the config
-afterwards.
+afterwards. But we don't support this, yet.
 
 In most cases it is easier to do the discovery with scanmem again.
