@@ -863,7 +863,8 @@ prepare_dynmem:
 			return 0;
 		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
 			struct disc_loop_pp dpp = { ifd, opt };
-			prepare_backtrace(opt, ifd, ofd, pid, &rlist);
+			if (opt->disc_str[0] >= '3')
+				handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 			worker_pid = fork_proc(run_stage1234_loop, &dpp);
 			if (opt->scanmem_pid > 0) {
 				wait_proc(opt->scanmem_pid);
@@ -879,7 +880,7 @@ prepare_dynmem:
 			if (worker_pid < 0)
 				return -1;
 		} else if (opt->disc_str[0] == '5') {
-			prepare_backtrace(opt, ifd, ofd, pid, &rlist);
+			handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 			run_stage5_loop(cfg, ifd, pmask, call_pid,
 					opt->code_offs);
 		}
@@ -915,7 +916,7 @@ prepare_dynmem:
 		return -1;
 	}
 
-	handle_pie(opt, ifd, ofd, pid, &rlist);
+	handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 	handle_statmem_pie(opt->code_offs, cfg);
 
 	while (true) {

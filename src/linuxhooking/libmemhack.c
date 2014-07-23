@@ -57,6 +57,7 @@
 
 #define ADDR_INVAL 1
 #define NUM_CFG_PAGES sizeof(ptr_t) * 1
+#define MAX_CFG 5
 
 /*
  * Ask gcc for the current stack frame pointer.
@@ -152,7 +153,7 @@ void __attribute ((constructor)) memhack_init (void)
 	u32 max_obj;
 	i32 wbytes, scanned = 0;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
-	ptr_t code_offs = 0;
+	ptr_t code_offs[MAX_CFG] = { 0 };
 
 #if USE_DEBUG_LOG
 	if (!DBG_FILE_VAR) {
@@ -312,12 +313,15 @@ void __attribute ((constructor)) memhack_init (void)
 	if (read_input(ibuf, sizeof(ibuf)) != 0) {
 		pr_err("Couldn't read code offset!\n");
 	} else {
-		if (sscanf(ibuf, SCN_PTR, &code_offs) < 1)
+		if (sscanf(ibuf, SCN_PTR ";" SCN_PTR ";" SCN_PTR ";" SCN_PTR
+		    ";" SCN_PTR, &code_offs[0], &code_offs[1], &code_offs[2],
+		    &code_offs[3], &code_offs[4]) < 1)
 			pr_err("Code offset parsing error!\n");
 	}
-	for (i = 0; i < num_cfg; i++)
-		config[i]->code_addr += code_offs;
-
+	if (num_cfg <= MAX_CFG) {
+		for (i = 0; i < num_cfg; i++)
+			config[i]->code_addr += code_offs[i];
+	}
 	if (num_cfg > 0)
 		active = true;
 out:

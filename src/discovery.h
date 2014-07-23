@@ -40,8 +40,6 @@ struct disc_loop_pp {
 };
 
 i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
-void prepare_backtrace  (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
-			 list<struct region> *rlist);
 void run_stage1234_loop (void *argp);
 void run_stage5_loop    (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
 			 ptr_t code_offs);
@@ -54,16 +52,11 @@ i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
    have to find out that memory address and use it as an offset. This
    applies to code addresses on the stack and static memory as well.
    PIE is detected from that load address. */
-static inline void handle_exe_region (struct region *r, i32 ofd,
-				      struct app_options *opt)
+static inline ptr_t handle_exe_region (struct region *r, i32 ofd,
+				       struct app_options *opt)
 {
-	ssize_t wbytes;
-	char obuf[PIPE_BUF];
-	i32 osize;
-	ptr_t code_offs;
+	ptr_t exe_offs;
 
-	cout << "Found exe, start: 0x" << hex << r->start
-	     << ", end: 0x" << r->start + r->size << dec << endl;
 	/* PIE detection */
 #ifdef __arm__
 	/* Static load address: armv7l: 0x8000 */
@@ -73,30 +66,29 @@ static inline void handle_exe_region (struct region *r, i32 ofd,
 	if (r->start == 0x8048000UL ||
 	    (r->start == 0x400000UL))
 #endif
-		code_offs = 0;
+		exe_offs = 0;
 	else
-		code_offs = r->start;
-	opt->code_offs = code_offs;
-	cout << "code_offs: 0x" << hex << opt->code_offs << dec << endl;
-	if (code_offs)
+		exe_offs = r->start;
+	opt->code_offs = exe_offs;
+	cout << "exe_offs: 0x" << hex << exe_offs << dec << endl;
+	if (exe_offs)
 		cout << "PIE (position independent executable) detected!"
 		     << endl;
-	if (!opt->pure_statmem) {
-		// Write code offset to output FIFO
-		osize = snprintf(obuf, sizeof(obuf), PRI_PTR "\n",
-				 opt->code_offs);
-		wbytes = write(ofd, obuf, osize);
-		if (wbytes < osize)
-			perror("FIFO write");
-	}
+	return exe_offs;
 }
 
-static void handle_pie (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
-			list<struct region> *rlist)
+static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
+	i32 ifd, i32 ofd, pid_t pid, list<struct region> *rlist)
 {
 	char buf[PIPE_BUF];
 	ssize_t rbytes;
+	list<CfgEntry>::iterator cfg_it;
 	list<struct region>::iterator it;
+	DynMemEntry *old_dynmem = NULL;
+	ptr_t exe_offs = 0;
+	ssize_t wbytes;
+	char obuf[PIPE_BUF];
+	i32 osize = 0;
 
 	if (!opt->pure_statmem) {
 		while (true) {
@@ -112,10 +104,28 @@ static void handle_pie (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
 	read_regions(pid, rlist);
 	list_for_each (rlist, it) {
 		if (it->type == REGION_TYPE_EXE && it->flags.exec) {
-			handle_exe_region(&(*it), ofd, opt);
+			exe_offs = handle_exe_region(&(*it), ofd, opt);
 			break;
 		}
 	}
+	if (opt->pure_statmem)
+		return;
+	if (opt->disc_str) {
+		osize += snprintf(obuf + osize, sizeof(obuf) - osize,
+			PRI_PTR "\n", exe_offs);
+	} else {
+		list_for_each (cfg, cfg_it) {
+			if (!cfg_it->dynmem || cfg_it->dynmem == old_dynmem)
+				continue;
+			old_dynmem = cfg_it->dynmem;
+			osize += snprintf(obuf + osize, sizeof(obuf) - osize,
+				PRI_PTR ";", exe_offs);
+		}
+	}
+	// Write code offsets to output FIFO
+	wbytes = write(ofd, obuf, osize);
+	if (wbytes < osize)
+		perror("FIFO write");
 }
 
 #endif

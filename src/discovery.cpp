@@ -306,13 +306,6 @@ void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
 	}
 }
 
-void prepare_backtrace (struct app_options *opt, i32 ifd, i32 ofd, pid_t pid,
-			list<struct region> *rlist)
-{
-	if (opt->disc_str[0] >= '3' && opt->disc_str[0] <= '5')
-		handle_pie(opt, ifd, ofd, pid, rlist);
-}
-
 /*
  * worker process
  * changed values aren't available in the parent
