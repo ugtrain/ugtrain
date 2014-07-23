@@ -42,9 +42,10 @@
 #			* no support for values in a library (PIC), yet
 #
 # Dynamic Memory:	* constructors-only (no growing objects/structures),
+#			* no support for allocations in a library (PIC), yet
 #			* doesn't work with WINE, yet
 #
-# Compilation:		* 32-bit and x86_64 only
+# Compilation:		* 32 bit and x86_64 only
 #			* tested with GCC g++ only
 #
 # GUI:			* can't serve as a backend, yet
@@ -63,7 +64,7 @@
 # CLI is important e.g. if you play full-screen on WINE. Some people
 # start another X session for the game but we don't like that. Moreover,
 # you will be able to write your own GUI frontend for it. CLI tools can
-# last decades while GUIs change more frequently.
+# endure decades while GUIs change more frequently.
 #
 #
 # ### Static Memory ###
@@ -162,7 +163,7 @@
 # stage 3 discovery string "3;gbt;0x0;0x0;<mem_size>". Then, the configured
 # reverse stack offsets are ignored. But the game may crash with SIGSEGV if it
 # hits a NULL pointer while backtracing and it is slower as it has to iterate
-# through the stack frames. This is why we limit the depth to 3 code addresses.
+# through the stack frames. This is why we limit the depth to 4 code addresses.
 # You see, it makes sense to use the reverse stack offset.
 #
 # Please read 'TODO' for further information.
