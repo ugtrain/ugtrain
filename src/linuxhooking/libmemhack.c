@@ -265,15 +265,14 @@ void __attribute ((constructor)) memhack_init (void)
 			goto err;
 		SET_IBUF_OFFS(1, j);
 
-		pr_dbg("config: %p, cfg_offs: %zd\n", config, cfg_offs);
+		pr_dbg("config: %p, cfg_offs: %u\n", config, cfg_offs);
 
 		/* set the address of the mem addrs array */
 		ptr_t addrarr = (ptr_t) config + cfg_offs + num_cfg *
 				sizeof(cfg_s) + i * max_obj * sizeof(ptr_t);
 
 		/* debug alignment before dereferencing */
-		pr_dbg("setting mem addr array to " PRI_PTR ", pos: %lu\n",
-			addrarr, addrarr_pos);
+		pr_dbg("setting mem addr array to " PRI_PTR "\n", addrarr);
 
 		/* put stored memory addresses behind all cfg_s stuctures */
 		config[i]->max_obj = max_obj - 1;
