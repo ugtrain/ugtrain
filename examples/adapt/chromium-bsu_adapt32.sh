@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Tested with: chromium-bsu 0.9.14.1, 0.9.15, 0.9.15.1
 
@@ -14,7 +14,7 @@ APP_PATH="$1"
 RC=0
 MSIZE="0x110"
 
-. _common_adapt.sh
+. ./_common_adapt.sh
 
 get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE," 3 3 3
 if [ $RC -ne 0 ]; then exit 1; fi

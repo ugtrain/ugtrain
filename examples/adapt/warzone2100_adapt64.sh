@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Tested with: Warzone 2100 2.3.8, 2.3.9, 3.1~rc2, 3.1.0, 3.1.1
 
@@ -16,9 +16,9 @@ MSIZE12="0x360"
 MSIZE21="0x160"
 MSIZE22="0x1a8"
 
-. _common_adapt.sh
+. ./_common_adapt.sh
 
-if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
+if [ "$APP_VERS" = "2.3.8" -o "$APP_VERS" = "2.3.9" ]; then
     get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE11," 3 3 3
     if [ $RC -ne 0 ]; then exit 1; fi
     MSIZE1="$MSIZE11"
@@ -35,7 +35,7 @@ CODE_ADDR1="$CODE_ADDR"
 
 ############################################
 
-if [ "$APP_VERS" == "2.3.8" -o "$APP_VERS" == "2.3.9" ]; then
+if [ "$APP_VERS" = "2.3.8" -o "$APP_VERS" = "2.3.9" ]; then
     get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE21," 3 7 7
     if [ $RC -ne 0 ]; then exit 1; fi
     MSIZE2="$MSIZE21"

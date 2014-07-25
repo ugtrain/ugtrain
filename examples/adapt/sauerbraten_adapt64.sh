@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Tested with: sauerbraten 0.0.20100728.dfsg, 0.0.20130203.dfsg
 
@@ -15,7 +15,7 @@ RC=0
 MSIZE1="0x598"
 MSIZE2="0x5b0"
 
-. _common_adapt.sh
+. ./_common_adapt.sh
 
 # try 0.0.20100728.dfsg
 get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE1," 5 15 11
