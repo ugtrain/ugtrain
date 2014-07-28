@@ -1,9 +1,9 @@
 === Dynamic Memory Cheating ===
 
-Before we start: You should read the static memory doc.
+Before we start: You should have read the static memory doc.
 
-Cheating dynamic memory always requires a preloader which loads a memory
-hacking library into the game process. The ugtrain has a preloader feature and
+Dynamic memory cheating always requires a preloader which loads a memory
+hacking library into the game process. Ugtrain has a preloader feature and
 "libmemhack" for that. The library gets the unique code addresses of unique
 "malloc()" calls and their reverse stack offsets as a config through a FIFO.
 The lib reports back through another FIFO which objects have been allocated
@@ -11,8 +11,8 @@ to which memory addresses. It also keeps track of these memory addresses and
 sends the information about the freeing of these memory objects through the
 output FIFO. This is required for stability.
 You can call this "dynamic memory spying" if you will. This is completely
-different from the method of Cheat Engine. They follow access pointers to
-an access pointer on static memory.
+different from the default method of Cheat Engine. They follow access pointers
+to one on static memory. But static memory is difficult to adapt.
 
 == Details ==
 
@@ -23,7 +23,7 @@ game cheating video. It is only important that this preloader also appends to
 "LD_PRELOAD". The ugtrain sets an environment variable with the game process
 name. This way libmemhack/disc knows when to activate itself (not in another
 preloader, not in a shell, etc.). This also works for pure static memory.
-See the "--pre-cmd" and "--glc" ugtrain options.
+See the "--pre-cmd" and "--glc" options of ugtrain.
 
 The lib has a constructor function, a malloc() and a free() hook. It wraps
 these functions. In the constructor the lib opens the input and the output
@@ -52,7 +52,7 @@ All this is quite hacky but it's the most flexible way with performance in
 mind.
 
 Note: The constructor tells the user of how many memory objects per memory
-class libmemhack can keep track of. The more classes you cheat, the less it
+class libmemhack can keep track of. The more classes you configure, the less it
 gets. And don't worry: libmemhack gets an own independent memory area for its
 config data. So static memory cheating works no matter if libmemhack is
 preloaded or not.
@@ -62,8 +62,8 @@ preloaded or not.
 The command-line option '-P' is recommended for dynamic memory cheating. With
 that libmemhack is preloaded, the libraries are configured with the game
 process name and the game is started automatically. The advantage compared to
-manually preloading and separate starting is that root permissions aren't
-required (for ptrace) - same process group!
+manually preloading and separately starting is that root permissions aren't
+required (for ptrace). They are in the same process group!
 
 Required config options: "dynmemstart", "dynmemend", >= 1 value inside
 Related config options: "checko"
@@ -81,17 +81,36 @@ is increased or decreased. In case you need a snapshot/dump of all objects, use
 the '>' key.
 
 We can use a special check ("checko") if the allocated object belongs to us or
-otherwise an opponent. If it fails, it removes the object from the active
+otherwise to an opponent. If it fails, it removes the object from the active
 ugtrain in-memory config by setting its memory address to NULL. Following
 values in that object are not processed anymore. After leaving the critical
-section, the object is cleaned up in the vectors and the user is informed. This
-behaves very similar like having received a free() from libmemhack.
+section, the object is removed from the vectors and freed. Afterwards the user
+is informed. This behaves very similar like having received a free() from
+libmemhack.
 
 But keep in mind: libmemhack doesn't know about that. It still tracks kicked-
 out objects and will send a free() for these.
 
 The rest works the same way as with static memory.
 
+== Hardened Security ==
+
+With a PIE (position independent executable) and ASLR the code addresses on
+the stack are randomized. Ugtrain determines the load address of the executable
+from /proc/$pid/maps and sends it to libmemhack. Libmemhack adds it to the
+configured code addresses afterwards.
+
+== Alternative to LD_PRELOAD ==
+
+There are high security environments like MeeGo 1.2 Harmattan on the Nokia
+N9/N900 smart phone with a security kernel module. On these a regular user
+is not allowed to use LD_PRELOAD. In this case make a backup of the original
+ELF binary and use "patchelf --add-needed <lib> <filename>" to add libmemhack/
+disc directly into the .dynsym and .dynamic sections in front of all other
+libraries. Run ugtrain with '-P -' to tell it that LD_PRELOAD is not available
+and that the library will be loaded anyways.
+
+The other functionality like with LD_PRELOAD is exactly the same.
 
 === Dynamic Memory Discovery ===
 
