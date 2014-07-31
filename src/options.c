@@ -59,6 +59,7 @@ PROG_NAME " is the universal elite game trainer for the CLI\n"
 "Usage: " PROG_NAME " [opts] <config_path>\n"
 "\n"
 "--help, -h:		show this information\n"
+"--version, -V:		show version information and exit\n"
 "\n"
 "Trainer Options\n"
 "--preload, -P [lib]:	start the game preloaded with the given lib -\n"
@@ -84,6 +85,8 @@ PROG_NAME " is the universal elite game trainer for the CLI\n"
 "			- it is only important that it appends to LD_PRELOAD\n"
 "--glc[=str]:		run \'" GLC_PRELOADER "\' with the given options for\n"
 "			video recording while cheating - assumes \'-P\'\n"
+"\n"
+"Report bugs to and ask " PACKAGE_BUGREPORT " for more help!\n"
 ;
 
 static void usage()
@@ -98,9 +101,10 @@ enum {
 	Glc,
 };
 
-static const char short_options[] = "-hAD:P::S";
+static const char short_options[] = "-hVAD:P::S";
 static struct option long_options[] = {
 	{"help",           0, 0, 'h'},
+	{"version",        0, 0, 'V'},
 	{"adapt",          0, 0, 'A'},
 	{"discover",       1, 0, 'D'},
 	{"preload",        2, 0, 'P'},
@@ -142,6 +146,11 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 		case 'h':
 			usage();
 			break;
+		case 'V':
+			printf(PACKAGE_STRING " (%s %s)\n\nPlease report "
+				"bugs to " PACKAGE_BUGREPORT "!\n",
+				__DATE__, __TIME__);
+			exit(0);
 		case 'A':
 			opt->do_adapt = true;
 			break;
