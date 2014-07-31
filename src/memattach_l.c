@@ -5,7 +5,7 @@
  *    All rights reserved.     <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
- * based on libgcheater by Alf <h980501427@hotmail.com>
+ * inspired by libgcheater by Alf <h980501427@hotmail.com>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 2, or any later version
