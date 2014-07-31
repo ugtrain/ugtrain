@@ -154,7 +154,7 @@ See examples/README for the complete config syntax.
 
 $ ugtrain -P test.conf
 ...
-code_offs: 0x7fcddc0e6000
+exe_offs: 0x7fcddc0e6000
 PIE (position independent executable) detected!
 Power at 0x7fcddcd22d44, Data: 0x0 (0)
 Power at 0x7fcddcd22d44, Data: 0x514 (1300)

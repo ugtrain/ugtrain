@@ -129,7 +129,7 @@ we need are the following stage parameters for the '-D' option:
 
 1. "StageNr[;HeapStartOffs;HeapEndOffs]"
 2. "StageNr[;HeapStartOffs;HeapEndOffs;MemSize]"
-3. "StageNr;HeapStartOffs;HeapEndOffs;MemSize[;CodeStart;CodeEnd]"
+3. "StageNr[;gbt];HeapStartOffs;HeapEndOffs;MemSize[;CodeStart;CodeEnd]"
 4. "StageNr;HeapStartOffs;HeapEndOffs;MemSize[;CodeStart;CodeEnd][;CodeAddr]"
 
 Examples:
@@ -158,8 +158,9 @@ the object, 's' is the size in bytes
 --> 'o' is the reverse stack offset of the code address
 
 The results are written with caching directly from /tmp/memhack_out into the
-file /tmp/memhack_file. After ending the game ugtrain asks you for a memory
-address from parallel static memory search. Enter it and ugtrain will search
+file /tmp/memhack_file. There is a flush each second in case that there is only
+a small amount of data. After ending the game ugtrain asks you for a memory
+address from static memory search in parallel. Enter it and ugtrain will search
 for the matching malloc calls. It is very likely that interesting objects
 are kept until game end. So they should be at the end of that list. But as in
 stages 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
@@ -172,7 +173,7 @@ Discovery preparation:
 
 Write the process name of the game into a config file. The PID is determined
 from that and it must be located in the first line. We use the game Chromium
-B.S.U. 64-bit as an example here.
+B.S.U. 64 bit as an example here.
 
 $ echo "chromium-bsu" > test.conf
 
@@ -195,7 +196,7 @@ m0x87acd0;s344 contains 0x87ad8c, offs: 0xbc, heap offs: 0x2257f0
 ...
 
 This shows us that the malloc size is 288 bytes and the offset in the object
-is 0xbc (used the lives in the HeroAircraft object in Chromium B.S.U. 64-bit).
+is 0xbc (used the lives in the HeroAircraft object in Chromium B.S.U. 64 bit).
 We also get to know the heap offset.
 
 Example stage 4:
@@ -212,7 +213,8 @@ c0x404be6;o0x78
 
 Only <*@plt> direct library calls are displayed and "_Znwm" on the first
 position is exactly what we are looking for. It is a GNU C++ internal function
-which calls "malloc" internally. On 32-bit systems it is called "_Znwj".
+(part of the "new" operator) which calls "malloc" internally. On 32 bit systems
+it is called "_Znwj".
 We can see the reverse stack offset is 0x28. It would be lower if "malloc"
 would have been called directly from the game binary (e.g. 0x8). We also
 get to know the jump-back code address 0x40f4e7.
@@ -222,7 +224,7 @@ start with a watcher in order to verify that our findings are correct. It
 is often better to use the smallest possible data type. Later it can be
 possibly discovered that a larger type is used. E.g. here when letting
 too many enemies through, the lives are set to -1 (0xffffffff). When hex
-dumping this, we see that we actually have a 32-bit signed integer here.
+dumping this, we see that we actually have a 32 bit signed integer here.
 
 chromium-bsu
 dynmemstart HeroAircraft 288 0x40f4e7 0x28
@@ -248,6 +250,27 @@ With the keys '1' and '0' we can toggle the activation of this value. The
 ugtrain uses non-blocking getchar just like the Linux command "top". In the
 last column the 'a' means that this is activated at trainer start.
 
+$ ugtrain -P test.conf
+...
+Starting game with libmemhack64.so preloaded..
+...
+[memhack] Using max. 4088 objects per class.
+[memhack] config[0]: mem_size: 288; code_addr: 0x40f4e7; stack_offs: 0x28
+...
+exe_offs: 0
+===> Obj. HeroAircraft created 1 time(s); now: 1
+*HeroAircraft[0] = 0x288dd70, 1 obj.
+Lives at 0x288de2c, Data: 0x4 (4)
+*HeroAircraft[0] = 0x288dd70, 1 obj.
+Lives at 0x288de2c, Data: 0x9 (9)
+...
+===> Obj. HeroAircraft freed 1 time(s); remaining: 0
+
+This is without PIE as the load address of the executable is always at 0x400000
+on x86_64 without PIE. We can also see it when looking at the configured code
+address. It is greater than that and it would be much lower with PIE. So there
+is no need to add an offset to the code addresses here.
+
 
 === Finding more Values in Dynamic Memory ===
 
@@ -255,8 +278,8 @@ In the game we can use the object dump now by pressing the '>' key. For our
 example there should be the HeroAircraft object dumped as "0_000.dump". Before
 the '_' there is the class index and after it the object index. Just compare
 two dumps: when you are low on everything and when you are high on everything.
-This way you can easily find other values like ammo and shields. A zero is also
-with a float a zero in hex. The .dump files are binary files so either you use
+This way you can easily find other values like ammo and shields. Zero is also
+with a float zero in hex. The .dump files are binary files so either you use
 a binary diff tool or you convert them into text first and use a text diff tool
 like e.g. "meld". Conversion can be done as follows:
 
@@ -297,8 +320,9 @@ difficult to retain full shields very long but from here we can guess that
 1000.0 is the maximum. We can also work with the dynamic wish value 'max' in
 the config to verify. The next value at 0xf4 seems to be a float as well. It
 is a transition from 5150.0 to 7250.0. This must be the score. It took a
-little longer to acquire the weapons and shields. Strange that they store it
-as float! Cheating it doesn't make much sense, so we ignore or just watch it.
+little longer to acquire the weapons and shields - so there is higher score.
+Strange that they store it as float! Modifying it doesn't make much sense, so
+we ignore or just watch it.
 
 == Multiple Objects ==
 
@@ -320,7 +344,8 @@ fidx: 0x22
 
 The campaign starts with 7 own Droids and 40 enemies in Warzone 2100. From the
 name string we know that these files are exactly these 7 own Droids. We have
-player ID 0 and the AI has ID 6 and ID 7. So at offset 0x22 is our player ID.
+player ID 0 and the AI has ID 6 and ID 7. So our player ID is located at offset
+0x22.
 
 
 === Dynamic Memory Adaption ===
@@ -336,12 +361,16 @@ Run the adaption script, now (y/n)? : y
 
 If you're not sure here, just take a look at the adaption shell script. It
 searches for an unique call to "_Znwm", "_Znwj" or "malloc" in the disassembly
-(objdump -D) of the game binary. If it fails, it doesn't return anything. Then,
-you have to try to set the option "DEBUG=1" in examples/adapt/_common_adapt.sh
-and to run the adaption script alone. If you still can't fix adaption, then
-you have to do full discovery.
+(objdump -D) of the game binary. If it fails, it doesn't return anything. Then
+you have to try to run it manually with the game binary path and "DEBUG" as
+parameters:
 
-$ examples/adapt/chromium-bsu_adapt64.sh `which chromium-bsu`
+$ examples/adapt/chromium-bsu_adapt64.sh `which chromium-bsu` DEBUG
+
+Please report the output to the ugtrain-devel mailing list to get help how to
+fix the adaption.
+If it is still not possible to fix the adaption, then you have to do full
+discovery.
 
 In our case adaption succeeds:
 ...
