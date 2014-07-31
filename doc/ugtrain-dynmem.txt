@@ -100,17 +100,6 @@ the stack are randomized. Ugtrain determines the load address of the executable
 from /proc/$pid/maps and sends it to libmemhack. Libmemhack adds it to the
 configured code addresses afterwards.
 
-== Alternative to LD_PRELOAD ==
-
-There are high security environments like MeeGo 1.2 Harmattan on the Nokia
-N9/N900 smart phone with a security kernel module. On these a regular user
-is not allowed to use LD_PRELOAD. In this case make a backup of the original
-ELF binary and use "patchelf --add-needed <lib> <filename>" to add libmemhack/
-disc directly into the .dynsym and .dynamic sections in front of all other
-libraries. Run ugtrain with '-P -' to tell it that LD_PRELOAD is not available
-and that the library will be loaded anyways.
-
-The other functionality like with LD_PRELOAD is exactly the same.
 
 === Dynamic Memory Discovery ===
 
@@ -439,3 +428,21 @@ Remove the set-group-ID bit for them and add yourself into the related group
 ("games" here) if required.
 
 $ sudo chmod g-s /usr/games/mahjongg /usr/games/gnomine
+
+===
+
+Issue:
+LD_PRELOAD not effective (not allowed for regular user)
+
+There are high security environments like MeeGo 1.2 Harmattan on the Nokia
+N9/N900 smart phone with a security kernel module. On these a regular user
+is not allowed to use LD_PRELOAD.
+
+Solution:
+In this case make a backup of the original ELF binary and use
+"patchelf --add-needed <lib> <filename>" to add libmemhack/disc directly into
+the .dynsym and .dynamic sections in front of all other libraries.
+Run ugtrain with '-P -' to tell it that LD_PRELOAD is not available and that
+the library will be loaded anyways.
+
+The other functionality like with LD_PRELOAD is exactly the same.
