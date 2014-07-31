@@ -29,6 +29,7 @@
 #include "adaption.h"
 #include "system.h"
 #include "getch.h"
+#include "commont.cpp"
 
 
 static i32 write_config_vect (char *path, vector<string> *lines)
