@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([ugtrain], [0.2.0-pre], [ugtrain-devel@lists.sourceforge.net])
+AC_INIT([ugtrain], [0.2.0], [ugtrain-devel@lists.sourceforge.net])
 
 AC_CONFIG_MACRO_DIR(m4)
 AC_CANONICAL_SYSTEM
@@ -11,13 +11,6 @@ AM_MAINTAINER_MODE
 
 AC_PROG_LIBTOOL
 AC_SUBST(LIBTOOL_DEPS)
-
-LIB_CURRENT=0
-LIB_REVERSION=0
-LIB_AGE=0
-
-VERSION_INFO="$LIB_CURRENT:$LIB_REVERSION:$LIB_AGE"
-AC_SUBST(VERSION_INFO)
 
 # --enable-XX options
 AC_ARG_ENABLE([multilib],

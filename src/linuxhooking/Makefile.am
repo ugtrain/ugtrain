@@ -1,5 +1,7 @@
 if LINUX
 
+LIB_VERSION="0:0:0"
+
 if BITS_64
 if MULTILIB
 lib_LTLIBRARIES = libmemdisc32.la libmemhack32.la \
@@ -30,8 +32,8 @@ if HAVE_M32
 libmemdisc32_la_CFLAGS += -m32
 libmemhack32_la_CFLAGS += -m32
 endif
-libmemdisc32_la_LDFLAGS = -ldl
-libmemhack32_la_LDFLAGS = -ldl
+libmemdisc32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
+libmemhack32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
 endif
 
 if BITS_64
@@ -51,8 +53,8 @@ if HAVE_M64
 libmemdisc64_la_CFLAGS += -m64
 libmemhack64_la_CFLAGS += -m64
 endif
-libmemdisc64_la_LDFLAGS = -ldl
-libmemhack64_la_LDFLAGS = -ldl
+libmemdisc64_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
+libmemhack64_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
 endif
 
 endif
