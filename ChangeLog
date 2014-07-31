@@ -1,4 +1,5 @@
-0.2.0 (Dietmar release)
+0.2.0 (Dietmar release, 2014-08-01)
+* several autotools improvements
 * getting the game PID with 'pidof -s'
 * running the game ourselves support (option '-P')
 * added game call, game path, game binary path support
@@ -11,14 +12,17 @@
 * implemented dynmem discovery, object dump and adaption
 * implemented multiple object cheating support
 * added Chromium B.S.U. and Warzone 2100 examples
+* added Cube 2: Sauerbraten example (experimental)
 * integrated 'scanmem' into discovery run
 * added hacks so that scanmem and ptrace don't require root
 * added logo, drawings, tools and more doc
 * added pointer following support
 * added 'or' and 'equals' checks support
-* faster reaction to user input (sleep_sec_unless_input())
+* faster reaction on user input (sleep_sec_unless_input())
+* position independent executable (PIE) support
+* experimental GLIB (e.g. g_malloc) support
 
-0.1.0 (basic release)
+0.1.0 (basic release, 2012-06-01)
 * implemented compilation by autotools
 * config parsing implemented
 * lookup PID by process name implemented
