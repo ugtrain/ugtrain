@@ -174,6 +174,27 @@ static inline i32 read_input (char ibuf[], size_t size)
 	return ret;
 }
 
+/* clean up upon library unload */
+void __attribute ((destructor)) memdisc_exit (void)
+{
+	if (ifd >= 0) {
+		close(ifd);
+		ifd = -1;
+	}
+	if (ofile) {
+		fflush(ofile);
+		fclose(ofile);
+		ofile = NULL;
+	}
+#if USE_DEBUG_LOG
+	if (DBG_FILE_VAR) {
+		fflush(DBG_FILE_VAR);
+		fclose(DBG_FILE_VAR);
+		DBG_FILE_VAR = NULL;
+	}
+#endif
+}
+
 /* prepare memory discovery upon library load */
 void __attribute ((constructor)) memdisc_init (void)
 {
@@ -395,7 +416,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		break;
 	/* stage 0: static memory search: do nothing */
 	default:
-		break;
+		goto stage_unknown;
 	}
 
 	if (heap_eaddr <= heap_saddr)
@@ -404,7 +425,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		bt_eaddr = UINTPTR_MAX;
 
 	/* Read new backtrace filter config (might be PIC/PIE) */
-	if (stage >= 3 && stage <= 5) {
+	if (stage >= 3) {
 		ptr_t code_offs = 0;
 		fprintf(ofile, "ready\n");
 		fflush(ofile);
@@ -431,35 +452,26 @@ void __attribute ((constructor)) memdisc_init (void)
 #ifdef WRITE_UNCACHED
 	fflush(ofile);
 #endif
-
-	if (stage > 0 && stage <= 5)
-		active = true;
+	active = true;
 
 	signal(SIGALRM, flush_output);
 	alarm(FLUSH_INTERVAL);
 out:
+	/* don't need the input FIFO anymore */
+	if (ifd >= 0) {
+		close(ifd);
+		ifd = -1;
+	}
 	return;
 read_err:
 	pr_err("Can't read config, disabling output.\n");
+	memdisc_exit();
 	return;
 parse_err:
 	pr_err("Error while discovery input parsing! Ignored.\n");
+stage_unknown:
+	memdisc_exit();
 	return;
-}
-
-/* clean up upon library unload */
-void __attribute ((destructor)) memdisc_exit (void)
-{
-	if (ofile) {
-		fflush(ofile);
-		fclose(ofile);
-	}
-#if USE_DEBUG_LOG
-	if (DBG_FILE_VAR) {
-		fflush(DBG_FILE_VAR);
-		fclose(DBG_FILE_VAR);
-	}
-#endif
 }
 
 /*
