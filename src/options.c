@@ -99,7 +99,6 @@ static void usage()
 enum {
 	PreCmd = 300,
 	Glc,
-	Dietmar,
 };
 
 static const char short_options[] = "-hVAD:P::S";
@@ -112,7 +111,6 @@ static struct option long_options[] = {
 	{"scanmem",        0, 0, 'S'},
 	{"pre-cmd",        1, 0, PreCmd },
 	{"glc",            2, 0, Glc },
-	{"dietmar",        0, 0, Dietmar },
 	{0, 0, 0, 0}
 };
 
@@ -179,13 +177,6 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			else
 				opt->pre_cmd = optarg;
 			opt->use_glc = true;
-			break;
-		case Dietmar:
-			printf(PACKAGE_STRING " is dedicated to Dietmar.\n"
-				"He could have used some extra health.\n"
-				"Died: 2013-08-01 at the age of 63 in his "
-				"car.\nWe miss you!\n");
-			exit(0);
 			break;
 		default:  /* unknown option */
 			if (optind != argc) {
