@@ -27,15 +27,15 @@
 #include "../common.h"
 
 #define DEBUG 0
-#if !DEBUG
-	#define printf(...) do { } while (0);
-#endif
 #define DEBUG_MEM 0    /* much output */
 
 #define USE_DEBUG_LOG 0
 #define DBG_FILE_NAME "libmem_dbg.txt"
 #define DBG_FILE_VAR  dfile
 
+#if !DEBUG && !USE_DEBUG_LOG
+	#define printf(...) do { } while (0);
+#endif
 
 #define pr_fmt(fmt) PFX fmt
 #if USE_DEBUG_LOG
