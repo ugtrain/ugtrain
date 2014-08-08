@@ -34,6 +34,7 @@
 #define PFX "[privacy] "
 #define HOOK_SOCKET 1
 #define HOOK_SOCKETPAIR 1
+#define HOOK_GETADDRINFO 1
 
 
 /* ask libc for our process name as 'argv[0]' and 'getenv("_")'
@@ -56,6 +57,8 @@ static const char *type_strings[] = { "SOCK_UNKNOWN", "SOCK_STREAM",
 
 /* int socket(int domain, int type, int protocol); */
 /* int socketpair(int domain, int type, int protocol, int sv[2]); */
+/* int getaddrinfo(const char *node, const char *service,
+       const struct addrinfo *hints, struct addrinfo **res); */
 
 /* prepare memory discovery upon library load */
 void __attribute ((constructor)) privacy_init (void)
@@ -116,6 +119,24 @@ int socketpair(int domain, int type, int protocol, int sv[2])
 				dlsym(RTLD_NEXT, "socketpair");
 		ret = orig_socketpair(domain, type, protocol, sv);
 	}
+	return ret;
+}
+#endif
+
+#ifdef HOOK_GETADDRINFO
+int getaddrinfo (const char *node, const char *service,
+		 const struct addrinfo *hints, struct addrinfo **res)
+{
+	int ret;
+	static int (*orig_getaddrinfo)(const char *node, const char *service,
+		const struct addrinfo *hints, struct addrinfo **res) = NULL;
+
+	if (!orig_getaddrinfo)
+		*(void **) (&orig_getaddrinfo) =
+			dlsym(RTLD_NEXT, "getaddrinfo");
+
+	pr_out("%s: node = %s, service = %s\n", __func__, node, service);
+	ret = orig_getaddrinfo(node, service, hints, res);
 	return ret;
 }
 #endif
