@@ -14,7 +14,7 @@
    height="1024"
    id="svg2999"
    version="1.1"
-   inkscape:version="0.48.3.1 r9886"
+   inkscape:version="0.48.4 r9939"
    sodipodi:docname="ugtrain_examples_inkscape.svg">
   <defs
      id="defs3001" />
@@ -32,10 +32,10 @@
      showgrid="true"
      inkscape:grid-bbox="true"
      inkscape:document-units="px"
-     inkscape:window-width="1855"
-     inkscape:window-height="1056"
-     inkscape:window-x="65"
-     inkscape:window-y="24"
+     inkscape:window-width="1920"
+     inkscape:window-height="1025"
+     inkscape:window-x="-2"
+     inkscape:window-y="-3"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata3004">
@@ -112,23 +112,23 @@
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="14"
-       y="-88"
+       x="62"
+       y="-86"
        id="text2993"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan2995"
-         x="14"
-         y="-88"
+         x="62"
+         y="-86"
          style="font-weight:bold;-inkscape-font-specification:Sans Bold">https://github.com/sriemer/ugtrain</tspan><tspan
          sodipodi:role="line"
-         x="14"
-         y="-38"
-         id="tspan2999"
-         style="font-weight:bold;-inkscape-font-specification:Sans Bold">https://developer.berlios.de/projects/ugtrain</tspan><tspan
+         x="62"
+         y="-36"
+         style="font-weight:bold;-inkscape-font-specification:Sans Bold"
+         id="tspan3079">https://sourceforge.net/projects/ugtrain</tspan><tspan
          sodipodi:role="line"
-         x="14"
-         y="12"
+         x="62"
+         y="14"
          id="tspan2997" /></text>
   </g>
 </svg>
