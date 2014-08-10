@@ -137,6 +137,7 @@ int getaddrinfo (const char *node, const char *service,
 		 const struct addrinfo *hints, struct addrinfo **res)
 {
 	int ret;
+	struct addrinfo *rp;
 	static int (*orig_getaddrinfo)(const char *node, const char *service,
 		const struct addrinfo *hints, struct addrinfo **res) = NULL;
 
@@ -145,7 +146,19 @@ int getaddrinfo (const char *node, const char *service,
 			dlsym(RTLD_NEXT, "getaddrinfo");
 
 	pr_out("%s: node = %s, service = %s\n", __func__, node, service);
+	node = "127.0.0.1";
+	pr_out("new node = %s\n", node);
 	ret = orig_getaddrinfo(node, service, hints, res);
+	for (rp = *res; rp != NULL; rp = rp->ai_next) {
+		struct sockaddr *sa = rp->ai_addr;
+		pr_out("addr info: %d %d %d %d %d %d %d %d %d %d %d %d "
+		       "%d %d\n", sa->sa_data[0], sa->sa_data[1],
+		       sa->sa_data[2], sa->sa_data[3], sa->sa_data[4],
+		       sa->sa_data[5], sa->sa_data[6], sa->sa_data[7],
+		       sa->sa_data[8], sa->sa_data[9], sa->sa_data[10],
+		       sa->sa_data[11], sa->sa_data[12], sa->sa_data[13]);
+	}
+
 	return ret;
 }
 #endif
