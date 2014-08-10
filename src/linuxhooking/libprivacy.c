@@ -66,6 +66,15 @@ void __attribute ((constructor)) privacy_init (void)
 	int num_domains = sizeof(domain_strings) / sizeof(const char *);
 	int num_types = sizeof(type_strings) / sizeof(const char *);
 
+#if USE_DEBUG_LOG
+	if (!DBG_FILE_VAR) {
+		DBG_FILE_VAR = fopen(DBG_FILE_NAME, "a+");
+		if (!DBG_FILE_VAR) {
+			perror(PFX "fopen debug log");
+			exit(1);
+		}
+	}
+#endif
 	pr_out("Knowing %d AF_* and %d SOCK_*.\n", num_domains, num_types);
 }
 

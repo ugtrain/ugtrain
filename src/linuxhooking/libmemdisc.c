@@ -209,7 +209,7 @@ void __attribute ((constructor)) memdisc_init (void)
 
 #if USE_DEBUG_LOG
 	if (!DBG_FILE_VAR) {
-		DBG_FILE_VAR = fopen(DBG_FILE_NAME, "w");
+		DBG_FILE_VAR = fopen(DBG_FILE_NAME, "a+");
 		if (!DBG_FILE_VAR) {
 			perror(PFX "fopen debug log");
 			exit(1);

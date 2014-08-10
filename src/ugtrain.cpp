@@ -638,6 +638,12 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 
 skip_memhack:
 #ifdef __linux__
+	// Remove debug log
+	if (unlink(DBG_FILE_NAME) && errno != ENOENT) {
+		perror("unlink debug file");
+		return 1;
+	}
+
 	// Remove FIFOs first for empty FIFOs
 	if ((unlink(DYNMEM_IN) && errno != ENOENT) ||
 	    (unlink(DYNMEM_OUT) && errno != ENOENT)) {
