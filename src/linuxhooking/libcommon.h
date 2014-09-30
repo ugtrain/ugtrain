@@ -50,30 +50,40 @@ static FILE *dfile = NULL;
 	}
 
 #if USE_BOTH_DBG
+#if DEBUG
 #define printf(...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__); \
 	fprintf(stdout, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_dbg(fmt, ...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__); \
 	fprintf(stdout, pr_fmt(fmt), ##__VA_ARGS__)
+#else
+#define printf(...) do { } while (0);
+#define pr_dbg(...) do { } while (0);
+#endif
 #define pr_out(fmt, ...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__); \
 	fprintf(stdout, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_err(fmt, ...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__); \
 	fprintf(stderr, pr_fmt(fmt), ##__VA_ARGS__)
-#else
+#else  /* !USE_BOTH_DBG */
+#if DEBUG
 #define printf(...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__)
 #define pr_dbg(fmt, ...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__)
+#else
+#define printf(...) do { } while (0);
+#define pr_dbg(...) do { } while (0);
+#endif
 #define pr_out(fmt, ...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...) \
 	pr_dbg_file(fmt, ##__VA_ARGS__)
-#endif
+#endif  /* USE_BOTH_DBG */
 
-#else
+#else  /* !USE_DEBUG_LOG */
 
 #define pr_dbg(fmt, ...) \
 	printf(pr_fmt(fmt), ##__VA_ARGS__)
@@ -82,7 +92,8 @@ static FILE *dfile = NULL;
 #define pr_err(fmt, ...) \
 	fprintf(stderr, pr_fmt(fmt), ##__VA_ARGS__)
 
-#endif
+#endif  /* USE_DEBUG_LOG */
+
 
 
 void rm_from_env (char *env_name, char *pattern, char separator);

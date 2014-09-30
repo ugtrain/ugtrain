@@ -13,7 +13,7 @@ else
 lib_LTLIBRARIES = libmemdisc32.la libmemhack32.la libprivacy32.la
 endif
 
-include_HEADERS =
+include_HEADERS = list.h
 
 if BITS_32
 libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c
