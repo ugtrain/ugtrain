@@ -338,8 +338,8 @@ child_err:
 /*
  * Get the pid of a process name.
  *
- * We always get the first pid we find in case
- * of multiple instances.
+ * We always get the most recently created pid we
+ * find in case of multiple instances.
  *
  * Parameters: the process name
  * Returns: the pid or -1
@@ -349,20 +349,20 @@ pid_t proc_to_pid (char *proc_name)
 	pid_t pid;
 	char pbuf[PIPE_BUF] = { 0 };
 	const char *cmd = (const char *) "pidof";
-	char *cmdv[4];
+	char *cmdv[3];
+	char *token;
 
 	cmdv[0] = (char *) "pidof";
-	cmdv[1] = (char *) "-s";
-	cmdv[2] = proc_name;
-	cmdv[3] = NULL;
+	cmdv[1] = proc_name;
+	cmdv[2] = NULL;
 
 	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)
 		goto err;
 
 	if (!isdigit(pbuf[0]))
 		goto err;
-
-	pid = atoi(pbuf);
+	token = strtok(pbuf, " ");
+	pid = atoi(token);
 	if (pid <= 1)
 		goto err;
 

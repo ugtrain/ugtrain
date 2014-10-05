@@ -540,7 +540,8 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 			restore_getch();
 
 			cout << "$ " << pcmdv[0] << " " << pcmdv[1]
-			     << " `pidof -s " << opt->proc_name << "` & --> "
+			     << " `pidof " << opt->proc_name
+			     << " | cut -d \' \' -f 1` & --> "
 			     << "$ " << cmd_str << " &" << endl;
 
 			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
