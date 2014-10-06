@@ -692,6 +692,8 @@ skip_memhack:
 			*pid = -1;
 		else if (*pid < 0)
 			return 1;
+	} else {
+		return 1;
 	}
 
 	cout << "Waiting for preloaded library.." << endl;
@@ -828,25 +830,22 @@ prepare_dynmem:
 	}
 
 	pid = proc_to_pid(opt->proc_name);
-	if (pid < 0) {
-		if (call_pid >= 0)
-			goto pid_err;
+	if (pid < 0 && (call_pid >= 0 || !opt->pure_statmem ||
+	    !opt->preload_lib)) {
+		goto pid_err;
+	} else if (opt->pure_statmem && opt->preload_lib) {
 		/* Run the game but not as root */
-		if (opt->pure_statmem && opt->preload_lib) {
 #ifdef __linux__
-			if (getuid() == 0)
-				return -1;
+		if (getuid() == 0)
+			return -1;
 #endif
-			cout << "Starting the game.." << endl;
-			call_pid = run_game(opt, NULL);
-			if (call_pid < 0)
-				goto pid_err;
-			pid = proc_to_pid(opt->proc_name);
-			if (pid < 0)
-				goto pid_err;
-		} else {
+		cout << "Starting the game.." << endl;
+		call_pid = run_game(opt, NULL);
+		if (call_pid < 0)
 			goto pid_err;
-		}
+		pid = proc_to_pid(opt->proc_name);
+		if (pid < 0)
+			goto pid_err;
 	}
 	if (call_pid < 0)
 		use_wait = false;
