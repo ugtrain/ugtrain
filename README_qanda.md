@@ -24,10 +24,14 @@ You can search for the memory values e.g. with the CLI tool "scanmem".
 
 See doc/ugtrain-statmem.txt for details!
 
-**There are also GUI tools which can freeze found memory values.
-Where is the difference?**
+### Where is the difference compared to other tools?
 
-Well, this tool is for the CLI and has much more trainer features. It will
+At the moment ugtrain is the only game trainer for the CLI on Linux. Most
+other tools are GUI tools, have their own static memory search and can only
+freeze just found memory values. This is lame!
+**A REAL game trainer doesn't require own static memory search and works
+each game run reliably!**
+Ugtrain is an elite tool and has much more trainer features. It will
 become multi-platform and the simple config files give you a lot of
 flexibility.
 
@@ -35,22 +39,21 @@ There are universal checks implemented. These prevent changing values e.g.
 while being in the game main menu or making an opponent immortal by accident
 in an array. This makes static memory freezing a lot safer.
 
-It is also planned to provide static memory adaption. This can be quite
+It is also planned to provide static memory adaption. But this can be quite
 difficult as memory is accessed directly and we have to use a debugger to
 find the related code part in the game binary. The goal is that static memory
 search has to be done only once.
 
-Furthermore, a REAL game trainer doesn't require own static memory search. If
-the memory location changes between game runs, then either the binary is a
-position independent executable (PIE) or this memory value is not static at
+If the memory location changes between game runs, then either the binary is a
+**position independent executable (PIE)** or this memory value is not static at
 all (e.g. stored on the heap) and dynamic memory cheating is required.
 
 The ugtrain has PIE support since version 0.2.0. Its trick is to determine
 the load address of the executable from /proc/$pid/maps and to add it to the
 static memory addresses from the config. So your config must be aware of PIE.
 The reason for the load address being different each execution is a security
-measure called address space layout randomization (ASLR). Also libraries are
-loaded at random location as these are position independent code (PIC).
+measure called **address space layout randomization (ASLR)**. Also libraries
+are loaded at random location as these are **position independent code (PIC)**.
 There is a special scanmem version which supports PIC, PIE and ASLR as well
 (merged upstream 2014-05-16).
 
