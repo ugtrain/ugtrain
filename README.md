@@ -70,6 +70,12 @@ variables is distribution-specific. See "man ld.so".
 
 "objdump" and "scanmem" should be installed as well.
 
+Special configure options: <br/>
+Compile hooking libs as 32 and 64 bit (EXPERIMENTAL): <br/>
+`./configure --enable-multilib` <br/>
+Compile hooking libs with GLIB function hooking (EXPERIMENTAL): <br/>
+`./configure --enable-glib`
+
 ## How to Use
 
 Use the compiled tool as follows: <br/>
