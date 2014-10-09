@@ -350,7 +350,8 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	char *iptr, *main_part;
 	i32 i, ret, ioffs = 0;
 	list<CfgEntry>::iterator it;
-	ptr_t heap_soffs, heap_eoffs, bt_saddr, bt_eaddr, code_addr = 0;
+	ptr_t heap_soffs = 0, heap_eoffs = 0;
+	ptr_t bt_saddr = 0, bt_eaddr = 0, code_addr = 0;
 	ulong mem_size;
 	char pbuf[PIPE_BUF] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
@@ -374,11 +375,28 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		opt->disc_offs = 0;
 		break;
 	case '1':
+		// fall through
 	case '2':
 		if (strlen(main_part) == 1) {
 			disc_str = opt->disc_str;
 			disc_str += ";0x0;0x0;0";
 			opt->disc_str = to_c_str(&disc_str);
+		} else {
+			ret = sscanf(&main_part[1] + ioffs, ";" SCN_PTR ";"
+				SCN_PTR ";%lu;", &heap_soffs, &heap_eoffs,
+				&mem_size);
+			if (ret == 0 && main_part[0] == '2') {
+				ret = sscanf(&main_part[1] + ioffs, ";%lu;",
+					&mem_size);
+				if (ret == 1)
+					ret += 2;
+			}
+			if (ret < 2) {
+				cerr << "Syntax error in discovery string!"
+				     << endl;
+				cerr << "disc_str: " << opt->disc_str << endl;
+				goto err;
+			}
 		}
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
@@ -389,17 +407,25 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			use_gbt = true;
 			ioffs = sizeof(GBT_CMD);
 		}
+		// fall through
 	case '4':
 		ret = sscanf(&main_part[1] + ioffs, ";" SCN_PTR ";" SCN_PTR
 			     ";%lu;" SCN_PTR ";" SCN_PTR ";" SCN_PTR,
 			     &heap_soffs, &heap_eoffs, &mem_size, &bt_saddr,
 			     &bt_eaddr, &code_addr);
+		if (ret == 0) {
+			ret = sscanf(&main_part[1] + ioffs, ";%lu;" SCN_PTR ";"
+				     SCN_PTR ";" SCN_PTR, &mem_size, &bt_saddr,
+				     &bt_eaddr, &code_addr);
+			if (ret >= 1)
+				ret += 2;
+		}
 		opt->code_addr = code_addr;
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
 				"stage " << main_part[0] << "!" << endl;
 			cerr << "Use at least \'" << main_part[0]
-			     << ";0x0;0x0;<size>\'" << endl;
+			     << ";<size>\'" << endl;
 			goto err;
 		}
 		if (mem_size == 0) {

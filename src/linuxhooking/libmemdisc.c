@@ -200,7 +200,7 @@ void __attribute ((constructor)) memdisc_init (void)
 {
 	char *proc_name = NULL, *expected = NULL;
 	ssize_t rbytes;
-	i32 ioffs = 0;
+	i32 ioffs = 0, scanned;
 	char *iptr;
 	char ibuf[128] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
@@ -300,13 +300,14 @@ void __attribute ((constructor)) memdisc_init (void)
 	 * stage 1: Find malloc size  (together with static memory search)
 	 *	There are lots of mallocs and frees - we need to filter the
 	 *	output for a distinct memory area (on the heap) determined
-	 *	by static memory search. The interesting bit is a malloc
-	 *	without a free where (mem_addr <= found_addr < mem_addr+size).
+	 *	by static memory search. The interesting bit is the last malloc
+	 *	to that area where (mem_addr <= found_addr < mem_addr+size).
 	 */
 	case '1':
 		ioffs += 1;
-		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR, &heap_soffs,
-		    &heap_eoffs) == 2) {
+		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR,
+			&heap_soffs, &heap_eoffs);
+		if (scanned == 0 || scanned == 2) {
 			heap_saddr += heap_soffs;
 			heap_eaddr += heap_eoffs;
 			stage = 1;
@@ -328,8 +329,15 @@ void __attribute ((constructor)) memdisc_init (void)
 	 */
 	case '2':
 		ioffs += 1;
-		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd",
-		    &heap_soffs, &heap_eoffs, &malloc_size) == 3) {
+		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd",
+			&heap_soffs, &heap_eoffs, &malloc_size);
+		if (scanned == 0) {
+			scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
+			if (scanned != 1)
+				goto parse_err;
+			scanned += 2;
+		}
+		if (scanned == 3) {
 			heap_saddr += heap_soffs;
 			heap_eaddr += heap_eoffs;
 			stage = 2;
@@ -362,9 +370,17 @@ void __attribute ((constructor)) memdisc_init (void)
 			use_gbt = true;
 			ioffs += sizeof(GBT_CMD);
 		}
-		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
-		    SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
-		    &malloc_size, &bt_saddr, &bt_eaddr) == 5) {
+		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
+			SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
+			&malloc_size, &bt_saddr, &bt_eaddr);
+		if (scanned == 0) {
+			scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR ";"
+				SCN_PTR, &malloc_size, &bt_saddr, &bt_eaddr);
+			if (scanned != 3)
+				goto parse_err;
+			scanned += 2;
+		}
+		if (scanned == 5) {
 			heap_saddr += heap_soffs;
 			heap_eaddr += heap_eoffs;
 			if (malloc_size < 1)
@@ -399,10 +415,19 @@ void __attribute ((constructor)) memdisc_init (void)
 	case '4':
 	case '5':
 		ioffs += 1;
-		if (sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
-		    SCN_PTR ";" SCN_PTR ";" SCN_PTR, &heap_soffs,
-		    &heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr,
-		    &code_addr) >= 5) {
+		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
+			SCN_PTR ";" SCN_PTR ";" SCN_PTR, &heap_soffs,
+			&heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr,
+			&code_addr);
+		if (scanned == 0) {
+			scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR ";"
+				SCN_PTR ";" SCN_PTR, &malloc_size, &bt_saddr,
+				&bt_eaddr, &code_addr);
+			if (scanned < 3)
+				goto parse_err;
+			scanned += 2;
+		}
+		if (scanned >= 5) {
 			heap_saddr += heap_soffs;
 			heap_eaddr += heap_eoffs;
 			stage = 4;
