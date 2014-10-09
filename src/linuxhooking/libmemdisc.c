@@ -28,6 +28,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>     /* sigignore */
+#include <time.h>       /* time */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
@@ -55,6 +56,7 @@
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 //#define WRITE_UNCACHED 1
+//#define FLUSH_SIGALRM 1
 #define FLUSH_INTERVAL 1	/* in seconds */
 #define MAX_BT 11		/* for reverse stack search only */
 
@@ -140,6 +142,14 @@ static cfg_s ptr_cfg;
 		return; \
 	}
 
+static inline void _flush_output (void)
+{
+	flockfile(ofile);
+	fflush_unlocked(ofile);
+	funlockfile(ofile);
+}
+
+#ifdef FLUSH_SIGALRM
 /*
  * flush the output FIFO periodically
  *
@@ -149,11 +159,10 @@ static cfg_s ptr_cfg;
 static void flush_output (int signum)
 {
 	pr_dbg("fflush(ofile) triggered by SIGALRM\n");
-	flockfile(ofile);
-	fflush_unlocked(ofile);
-	funlockfile(ofile);
+	_flush_output();
 	alarm(FLUSH_INTERVAL);
 }
+#endif
 
 static inline i32 read_input (char ibuf[], size_t size)
 {
@@ -479,8 +488,10 @@ void __attribute ((constructor)) memdisc_init (void)
 #endif
 	active = true;
 
+#ifdef FLUSH_SIGALRM
 	signal(SIGALRM, flush_output);
 	alarm(FLUSH_INTERVAL);
+#endif
 out:
 	/* don't need the input FIFO anymore */
 	if (ifd >= 0) {
@@ -721,12 +732,27 @@ static inline void preprocess_free (ptr_t mem_addr)
 {
 	i32 wbytes;
 	char obuf[BUF_SIZE + 1] = { 0 };
+#ifndef FLUSH_SIGALRM
+	static time_t prev_time = 0;
+	time_t cur_time;
+#endif
 
-	if (active && mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
-		wbytes = snprintf(obuf, BUF_SIZE, "f" PRI_PTR "\n", mem_addr);
-		if (wbytes < 0)
-			perror(PFX "snprintf");
-		write_obuf(obuf);
+	if (active) {
+		if (mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
+			wbytes = snprintf(obuf, BUF_SIZE, "f" PRI_PTR "\n",
+				mem_addr);
+			if (wbytes < 0)
+				perror(PFX "snprintf");
+			write_obuf(obuf);
+		}
+#ifndef FLUSH_SIGALRM
+		/* flush every second upon free() */
+		cur_time = time(NULL);
+		if (cur_time > prev_time) {
+			_flush_output();
+			prev_time = cur_time;
+		}
+#endif
 	}
 }
 
