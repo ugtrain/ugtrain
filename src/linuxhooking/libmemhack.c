@@ -108,15 +108,14 @@ struct cfg {
 	u32 max_obj;
 	ptr_t *mem_addrs;  /* filled by malloc for free */
 };
-typedef struct cfg cfg_s;
 
 
 /*
- * cfg_s pointers followed by cfg structs
+ * struct cfg pointers followed by cfg structs
  * followed by tracked memory addresses
  * (hacky but aligned to page size)
  */
-cfg_s *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(cfg_s *)] = { NULL };
+struct cfg *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(struct cfg *)] = { NULL };
 
 
 #define SET_IBUF_OFFS(count, i) \
@@ -216,12 +215,13 @@ void __attribute ((constructor)) memhack_init (void)
 		pr_out("Using GNU backtrace(). "
 			"This might crash with SIGSEGV!\n");
 	}
-	cfg_offs = (num_cfg + 1) * sizeof(cfg_s *);  /* NULL for cfg_s* end */
-	if (cfg_offs + num_cfg * sizeof(cfg_s) > sizeof(config) ||
+	cfg_offs = (num_cfg + 1) * sizeof(struct cfg *);  /* NULL for end */
+	if (cfg_offs + num_cfg * sizeof(struct cfg) > sizeof(config) ||
 	    num_cfg == 0) {
 		max_obj = 0;
 	} else {
-		max_obj = sizeof(config) - cfg_offs - num_cfg * sizeof(cfg_s);
+		max_obj = sizeof(config) - cfg_offs - num_cfg *
+			sizeof(struct cfg);
 		max_obj /= sizeof(ptr_t) * num_cfg;
 	}
 	if (max_obj <= 1) {
@@ -233,22 +233,22 @@ void __attribute ((constructor)) memhack_init (void)
 	}
 
 	pr_dbg("sizeof(config) = %zu\n", sizeof(config));
-	pr_dbg("sizeof(cfg_s) = %zu\n", sizeof(cfg_s));
+	pr_dbg("sizeof(struct cfg) = %zu\n", sizeof(struct cfg));
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
-		config[i] = PTR_ADD2(cfg_s *, config, cfg_offs,
-			i * sizeof(cfg_s));
+		config[i] = PTR_ADD2(struct cfg *, config, cfg_offs,
+			i * sizeof(struct cfg));
 
 		pr_dbg("&config[%u] pos = %lu\n", i,
 			(ulong) ((ptr_t) &config[i] - (ptr_t) config));
 		pr_dbg("config[%u] pos = %lu\n", i,
 			(ulong) ((ptr_t) config[i] - (ptr_t) config));
 		pr_dbg("config[%u] end pos = %lu\n", i,
-			(ulong) ((ptr_t) config[i] + sizeof(cfg_s) -
+			(ulong) ((ptr_t) config[i] + sizeof(struct cfg) -
 				 (ptr_t) config));
 
-		if ((ptr_t) config[i] + sizeof(cfg_s) - (ptr_t) config
+		if ((ptr_t) config[i] + sizeof(struct cfg) - (ptr_t) config
 		    > sizeof(config) || ibuf_offs >= BUF_SIZE) {
 			/* config doesn't fit */
 			pr_err("Config buffer too small!\n");
@@ -269,12 +269,12 @@ void __attribute ((constructor)) memhack_init (void)
 
 		/* set the address of the mem addrs array */
 		ptr_t addrarr = (ptr_t) config + cfg_offs + num_cfg *
-				sizeof(cfg_s) + i * max_obj * sizeof(ptr_t);
+				sizeof(struct cfg) + i * max_obj * sizeof(ptr_t);
 
 		/* debug alignment before dereferencing */
 		pr_dbg("setting mem addr array to " PRI_PTR "\n", addrarr);
 
-		/* put stored memory addresses behind all cfg_s stuctures */
+		/* put stored memory addresses behind all cfg stuctures */
 		config[i]->max_obj = max_obj - 1;
 		config[i]->mem_addrs = (ptr_t *) addrarr;
 
