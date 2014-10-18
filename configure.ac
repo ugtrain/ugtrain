@@ -30,6 +30,16 @@ AC_PROG_CC
 AM_PROG_CC_STDC
 AM_PROG_CC_C_O
 
+# Check pthread lib
+HAVE_PTHREADS="no"
+AX_PTHREAD([HAVE_PTHREADS="yes"],[exit 1])
+if test "$HAVE_PTHREADS" != "no"; then
+    CC="$PTHREAD_CC"
+    CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+    LIBS="$LIBS $PTHREAD_LIBS"
+    AC_SUBST(PTHREAD_LIBS)
+fi
+
 # check compiler flags
 AC_LANG_PUSH([C++])
 CXXFLAGS="-m32"

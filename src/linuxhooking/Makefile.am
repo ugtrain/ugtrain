@@ -37,7 +37,7 @@ libmemhack32_la_CFLAGS += -m32
 libprivacy32_la_CFLAGS += -m32
 endif
 libmemdisc32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
-libmemhack32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION) -lpthread
+libmemhack32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION) $(PTHREAD_LIBS)
 libprivacy32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
 endif
 
@@ -63,7 +63,7 @@ libmemhack64_la_CFLAGS += -m64
 libprivacy64_la_CFLAGS += -m64
 endif
 libmemdisc64_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
-libmemhack64_la_LDFLAGS = -ldl -version-info $(LIB_VERSION) -lpthread
+libmemhack64_la_LDFLAGS = -ldl -version-info $(LIB_VERSION) $(PTHREAD_LIBS)
 libprivacy64_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
 endif
 
