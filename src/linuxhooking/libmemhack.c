@@ -31,6 +31,7 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
+#include <pthread.h>    /* pthread_mutex_lock */
 #ifdef HAVE_GLIB
 #include <glib.h>       /* g_malloc */
 #endif
@@ -56,7 +57,6 @@
 #define DYNMEM_OUT "/tmp/memhack_out"
 
 #define ADDR_INVAL 1
-#define NUM_CFG_PAGES sizeof(ptr_t) * 1
 #define MAX_CFG 5
 
 /*
@@ -105,17 +105,16 @@ struct cfg {
 	size_t mem_size;
 	ptr_t code_addr;
 	ptr_t stack_offs;
-	u32 max_obj;
 	ptr_t *mem_addrs;  /* filled by malloc for free */
+	u32 max_obj;       /* currently allocated memory addresses */
+	u32 insert_idx;    /* lowest mem_addrs index for insertion */
+	pthread_mutex_t mutex;  /* protects mem_addrs, max_obj, insert_idx */
 };
 
-
 /*
- * struct cfg pointers followed by cfg structs
- * followed by tracked memory addresses
- * (hacky but aligned to page size)
+ * struct cfg pointers array
  */
-struct cfg *config[NUM_CFG_PAGES * PIPE_BUF / sizeof(struct cfg *)] = { NULL };
+static struct cfg **config = NULL;
 
 
 #define SET_IBUF_OFFS(count, i) \
@@ -148,11 +147,11 @@ void __attribute ((constructor)) memhack_init (void)
 {
 	char *proc_name = NULL, *expected = NULL;
 	char ibuf[BUF_SIZE] = { 0 };
-	u32 i, j, k, ibuf_offs = 0, num_cfg = 0, cfg_offs = 0;
-	u32 max_obj;
+	u32 i, j, k, ibuf_offs = 0, num_cfg = 0;
 	i32 wbytes, scanned = 0;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	ptr_t code_offs[MAX_CFG] = { 0 };
+	struct cfg *cfg_sa = NULL;  /* struct cfg array */
 
 #if USE_DEBUG_LOG
 	if (!DBG_FILE_VAR) {
@@ -205,7 +204,7 @@ void __attribute ((constructor)) memhack_init (void)
 		goto read_err;
 
 	scanned = sscanf(ibuf + ibuf_offs, "%u", &num_cfg);
-	if (scanned != 1)
+	if (scanned != 1 || num_cfg <= 0)
 		goto err;
 	SET_IBUF_OFFS(1, j);
 	if (sscanf(ibuf + ibuf_offs, "%3s;", gbt_buf) == 1 &&
@@ -215,90 +214,63 @@ void __attribute ((constructor)) memhack_init (void)
 		pr_out("Using GNU backtrace(). "
 			"This might crash with SIGSEGV!\n");
 	}
-	cfg_offs = (num_cfg + 1) * sizeof(struct cfg *);  /* NULL for end */
-	if (cfg_offs + num_cfg * sizeof(struct cfg) > sizeof(config) ||
-	    num_cfg == 0) {
-		max_obj = 0;
-	} else {
-		max_obj = sizeof(config) - cfg_offs - num_cfg *
-			sizeof(struct cfg);
-		max_obj /= sizeof(ptr_t) * num_cfg;
+	if (num_cfg > MAX_CFG) {
+		pr_err("Error: Too many classes configured!\n");
+		num_cfg = MAX_CFG;
 	}
-	if (max_obj <= 1) {
-		pr_err("Error: No space for memory addresses!\n");
+	config = (struct cfg **) calloc(num_cfg + 1, sizeof(struct cfg *));
+		/* NULL for end */
+	if (!config) {
+		pr_err("Error: No space for struct cfg addresses!\n");
 		goto err;
-	} else {
-		pr_out("Using max. %u objects per class.\n",
-			max_obj - 1);
+	}
+	cfg_sa = (struct cfg *) calloc(num_cfg, sizeof(struct cfg));
+	if (!cfg_sa) {
+		pr_err("Error: No space for cfg structures!\n");
+		goto err;
 	}
 
-	pr_dbg("sizeof(config) = %zu\n", sizeof(config));
+	pr_dbg("sizeof(config) = %zu\n", (num_cfg + 1) * sizeof(struct cfg *));
 	pr_dbg("sizeof(struct cfg) = %zu\n", sizeof(struct cfg));
+	pr_dbg("sizeof(pthread_mutex_t) = %zu\n", sizeof(pthread_mutex_t));
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
-		config[i] = PTR_ADD2(struct cfg *, config, cfg_offs,
+		config[i] = PTR_ADD(struct cfg *, cfg_sa,
 			i * sizeof(struct cfg));
 
-		pr_dbg("&config[%u] pos = %lu\n", i,
-			(ulong) ((ptr_t) &config[i] - (ptr_t) config));
-		pr_dbg("config[%u] pos = %lu\n", i,
-			(ulong) ((ptr_t) config[i] - (ptr_t) config));
-		pr_dbg("config[%u] end pos = %lu\n", i,
-			(ulong) ((ptr_t) config[i] + sizeof(struct cfg) -
-				 (ptr_t) config));
-
-		if ((ptr_t) config[i] + sizeof(struct cfg) - (ptr_t) config
-		    > sizeof(config) || ibuf_offs >= BUF_SIZE) {
-			/* config doesn't fit */
-			pr_err("Config buffer too small!\n");
-			goto err;
-		}
 		scanned = sscanf(ibuf + ibuf_offs, "%zd;" SCN_PTR,
 			&config[i]->mem_size, &config[i]->code_addr);
 		if (scanned != 2)
 			goto err;
 		SET_IBUF_OFFS(2, j);
 		scanned = sscanf(ibuf + ibuf_offs, SCN_PTR,
-				 &config[i]->stack_offs);
+			&config[i]->stack_offs);
 		if (scanned != 1)
 			goto err;
 		SET_IBUF_OFFS(1, j);
 
-		pr_dbg("config: %p, cfg_offs: %u\n", config, cfg_offs);
+		pr_dbg("config: %p\n", config);
 
-		/* set the address of the mem addrs array */
-		ptr_t addrarr = (ptr_t) config + cfg_offs + num_cfg *
-				sizeof(struct cfg) + i * max_obj * sizeof(ptr_t);
-
-		/* debug alignment before dereferencing */
-		pr_dbg("setting mem addr array to " PRI_PTR "\n", addrarr);
-
-		/* put stored memory addresses behind all cfg stuctures */
-		config[i]->max_obj = max_obj - 1;
-		config[i]->mem_addrs = (ptr_t *) addrarr;
-
-		/* debug mem_addrs pointer */
-		pr_dbg("config[%u]->mem_addrs pos = %lu\n", i,
-			(ulong) ((ptr_t) config[i]->mem_addrs -
-				 (ptr_t) config));
-		pr_dbg("config[%u]->mem_addrs end pos = %lu\n", i,
-			(ulong) ((ptr_t) config[i]->mem_addrs -
-				 (ptr_t) config + max_obj * sizeof(ptr_t)));
-
-		if (((ptr_t) config[i]->mem_addrs - (ptr_t) config +
-		    (ptr_t) (max_obj * sizeof(ptr_t))) > sizeof(config))
+		/* allocate the mem addrs array to store one object */
+		config[i]->mem_addrs = (ptr_t *) calloc(2, sizeof(ptr_t));
+		if (!config[i]->mem_addrs) {
+			pr_err("Error: No space for memory addresses!\n");
 			goto err;
+		}
+		config[i]->max_obj = 1;
 
 		/* fill with invalid pointers to detect end */
-		for (k = 0; k < max_obj; k++)
+		for (k = 0; k <= config[i]->max_obj; k++)
 			config[i]->mem_addrs[k] = ADDR_INVAL;
+
+		pthread_mutex_init(&config[i]->mutex, NULL);
 	}
 	if (i != num_cfg)
 		goto err;
 
 	/* debug config */
-	pr_dbg("num_cfg: %u, cfg_offs: %u\n", num_cfg, cfg_offs);
+	pr_dbg("num_cfg: %u\n", num_cfg);
 	for (i = 0; config[i] != NULL; i++) {
 		pr_out("config[%u]: mem_size: %zd; "
 			"code_addr: " PRI_PTR "; stack_offs: " PRI_PTR "\n", i,
@@ -337,12 +309,56 @@ err:
 /* clean up upon library unload */
 void __attribute ((destructor)) memhack_exit (void)
 {
+	u32 i;
 #if USE_DEBUG_LOG
 	if (DBG_FILE_VAR) {
 		fflush(DBG_FILE_VAR);
 		fclose(DBG_FILE_VAR);
 	}
 #endif
+	if (!active || !config)
+		return;
+	for (i = 0; config[i] != NULL; i++)
+		pthread_mutex_destroy(&config[i]->mutex);
+}
+
+static inline void store_mem_addr (struct cfg *cfg, ptr_t mem_addr)
+{
+	u32 j;
+
+	if (pthread_mutex_lock(&cfg->mutex) < 0) {
+		perror("pthread_mutex_lock");
+		goto out;
+	}
+	if (!cfg->mem_addrs) {
+		cfg->max_obj = 0;
+		goto out_unlock;
+	}
+	/* size doubling allocator */
+	if (cfg->mem_addrs[cfg->max_obj - 1] != ADDR_INVAL) {
+		cfg->mem_addrs = realloc(cfg->mem_addrs,
+			((cfg->max_obj << 1) + 1) * sizeof(ptr_t));
+		if (!cfg->mem_addrs) {
+			cfg->max_obj = 0;
+			goto out_unlock;
+		}
+		for (j = cfg->max_obj + 1; j <= cfg->max_obj << 1; j++)
+			cfg->mem_addrs[j] = ADDR_INVAL;
+		cfg->max_obj <<= 1;
+	}
+	/* actual storing */
+	for (j = cfg->insert_idx; j < cfg->max_obj; j++) {
+		if (cfg->mem_addrs[j] <= ADDR_INVAL) {
+			cfg->mem_addrs[j] = mem_addr;
+			cfg->insert_idx = j;
+			break;
+		}
+	}
+out_unlock:
+	if (pthread_mutex_unlock(&cfg->mutex) < 0)
+		perror("pthread_mutex_unlock");
+out:
+	return;
 }
 
 static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
@@ -351,78 +367,88 @@ static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 	i32 i, j, wbytes, num_taddr = 0;
 	void *trace[MAX_GNUBT] = { NULL };
 
-	if (active) {
-		for (i = 0; config[i] != NULL; i++) {
-			if (size != config[i]->mem_size)
-				continue;
+	if (!active)
+		return;
 
-			if (use_gbt) {
-				num_taddr = backtrace(trace, MAX_GNUBT);
-				if (num_taddr < 2)
-					continue;
-				/* skip the first code addr (our own one) */
-				for (j = 1; j < num_taddr; j++) {
-					if ((ptr_t) trace[j] == config[i]->code_addr)
-						goto found;
-				}
+	for (i = 0; config[i] != NULL; i++) {
+		if (size != config[i]->mem_size)
+			continue;
+
+		/* rarely used GNU backtrace method (unstable, slow) */
+		if (use_gbt) {
+			num_taddr = backtrace(trace, MAX_GNUBT);
+			if (num_taddr < 2)
 				continue;
+			/* skip the first code addr (our own one) */
+			for (j = 1; j < num_taddr; j++) {
+				if ((ptr_t) trace[j] == config[i]->code_addr)
+					goto found;
 			}
+			continue;
+		}
 
-			/* reverse stack offset method */
-			stack_addr = ffp + config[i]->stack_offs;
+		/* reverse stack offset method */
+		stack_addr = ffp + config[i]->stack_offs;
 
-			if (stack_addr > stack_end - sizeof(ptr_t) ||
-			    *(ptr_t *) stack_addr != config[i]->code_addr)
-				continue;
+		if (stack_addr > stack_end - sizeof(ptr_t) ||
+		    *(ptr_t *) stack_addr != config[i]->code_addr)
+			continue;
 found:
 #if DEBUG_MEM
-			pr_out("malloc: mem_addr: " PRI_PTR ", code_addr: "
-				PRI_PTR "\n", mem_addr, config[i]->code_addr);
+		pr_out("malloc: mem_addr: " PRI_PTR ", code_addr: "
+			PRI_PTR "\n", mem_addr, config[i]->code_addr);
 #endif
-			wbytes = sprintf(obuf, "m" PRI_PTR ";c" PRI_PTR "\n",
-				mem_addr, config[i]->code_addr);
+		wbytes = sprintf(obuf, "m" PRI_PTR ";c" PRI_PTR "\n",
+			mem_addr, config[i]->code_addr);
 
-			wbytes = write(ofd, obuf, wbytes);
-			if (wbytes < 0) {
-				perror("write");
-			} else if (config[i]->mem_addrs) {
-				for (j = 0; j < config[i]->max_obj; j++) {
-					if (config[i]->mem_addrs[j] <= ADDR_INVAL) {
-						config[i]->mem_addrs[j] = mem_addr;
-						break;
-					}
-				}
-			}
-			break;
-		}
+		wbytes = write(ofd, obuf, wbytes);
+		if (wbytes < 0)
+			perror("write");
+		else
+			store_mem_addr(config[i], mem_addr);
+		break;
 	}
 }
 
 static inline void preprocess_free (ptr_t mem_addr)
 {
-	i32 i, j, wbytes;
+	i32 wbytes;
+	u32 i, j;
 
-	if (active && mem_addr) {
-		for (i = 0; config[i] != NULL; i++) {
-			if (!config[i]->mem_addrs)
-				continue;
-			for (j = 0; config[i]->mem_addrs[j] != ADDR_INVAL; j++) {
-				if (config[i]->mem_addrs[j] == mem_addr)
-					goto found;
-			}
-			continue;
-found:
-#if DEBUG_MEM
-			pr_out("free: mem_addr: " PRI_PTR "\n", mem_addr);
-#endif
-			wbytes = sprintf(obuf, "f" PRI_PTR "\n", mem_addr);
+	if (!active || !mem_addr)
+		return;
 
-			wbytes = write(ofd, obuf, wbytes);
-			if (wbytes < 0)
-				perror("write");
-			config[i]->mem_addrs[j] = 0;
-			break;
+	for (i = 0; config[i] != NULL; i++) {
+		if (pthread_mutex_lock(&config[i]->mutex) < 0) {
+			perror("pthread_mutex_lock");
+			goto cont;
 		}
+		if (!config[i]->mem_addrs)
+			goto unlock_cont;
+		for (j = 0; config[i]->mem_addrs[j] != ADDR_INVAL; j++) {
+			if (config[i]->mem_addrs[j] == mem_addr)
+				goto found;
+		}
+unlock_cont:
+		if (pthread_mutex_unlock(&config[i]->mutex) < 0)
+			perror("pthread_mutex_unlock");
+cont:
+		continue;
+found:
+		config[i]->mem_addrs[j] = 0;
+		if (j < config[i]->insert_idx)
+			config[i]->insert_idx = j;
+		if (pthread_mutex_unlock(&config[i]->mutex) < 0)
+			perror("pthread_mutex_unlock");
+#if DEBUG_MEM
+		pr_out("free: mem_addr: " PRI_PTR "\n", mem_addr);
+#endif
+		wbytes = sprintf(obuf, "f" PRI_PTR "\n", mem_addr);
+
+		wbytes = write(ofd, obuf, wbytes);
+		if (wbytes < 0)
+			perror("write");
+		break;
 	}
 }
 
