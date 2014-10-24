@@ -69,6 +69,12 @@ static void toggle_cfg (list<CfgEntry*> *key_cfg, list<CfgEntry*> *cfg_act)
 	}
 }
 
+/*
+ * handles input char by performing related action
+ *
+ * ATTENTION: ch has to be checked before calling this function!
+ *            It must fit into cfgp_map!
+ */
 void handle_input_char (char ch, list<CfgEntry*> *cfgp_map[], pid_t pid,
 			list<CfgEntry> *cfg, list<CfgEntry*> *cfg_act)
 {
@@ -85,7 +91,7 @@ void handle_input_char (char ch, list<CfgEntry*> *cfgp_map[], pid_t pid,
 		change_mvec_pridx(cfg, DECREMENT);
 		break;
 	default:
-		if (ch_idx >= 0 && cfgp_map[ch_idx])
+		if (cfgp_map[ch_idx])
 			toggle_cfg(cfgp_map[ch_idx], cfg_act);
 		break;
 	}

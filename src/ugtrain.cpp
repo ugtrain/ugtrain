@@ -735,7 +735,8 @@ i32 main (i32 argc, char **argv, char **env)
 	struct app_options __opt, *opt = &__opt;
 	list<CfgEntry> __cfg, *cfg = &__cfg;
 	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
-	list<CfgEntry*> *cfgp_map[128] = { NULL };
+#define CFGP_MAP_SIZE 128
+	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
 	string input_str;
 	pid_t pid, call_pid = -1, worker_pid;
 	char def_home[] = "~";
@@ -928,7 +929,8 @@ prepare_dynmem:
 	while (true) {
 		sleep_sec_unless_input(1, ifd, STDIN_FILENO);
 		ch = do_getch();
-		handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
+		if (ch >= 0 && ch < CFGP_MAP_SIZE)
+			handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		if (!opt->pure_statmem) {
