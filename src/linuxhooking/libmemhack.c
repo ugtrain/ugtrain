@@ -117,11 +117,11 @@ struct cfg {
 static struct cfg **config = NULL;
 
 
-#define SET_IBUF_OFFS(count, i) \
-	for (i = 0; i < count; ibuf_offs++) { \
-		if (ibuf[ibuf_offs] == ';') \
-			i++; \
-	}
+#define SET_IBUF_OFFS() {				\
+	char *pos = strchr(&ibuf[ibuf_offs], ';');	\
+	if (pos)					\
+		ibuf_offs = pos - ibuf + 1;		\
+}
 
 static inline i32 read_input (char ibuf[], size_t size)
 {
@@ -132,6 +132,7 @@ static inline i32 read_input (char ibuf[], size_t size)
 	for (read_tries = 5; ; --read_tries) {
 		rbytes = read(ifd, ibuf, size);
 		if (rbytes > 0) {
+			ibuf[rbytes] = 0;
 			ret = 0;
 			break;
 		}
@@ -200,17 +201,17 @@ void __attribute ((constructor)) memhack_init (void)
 	}
 	pr_dbg("ofd: %d\n", ofd);
 
-	if (read_input(ibuf, sizeof(ibuf)) != 0)
+	if (read_input(ibuf, sizeof(ibuf) - 1) != 0)
 		goto read_err;
 
-	scanned = sscanf(ibuf + ibuf_offs, "%u", &num_cfg);
+	scanned = sscanf(ibuf + ibuf_offs, "%u;", &num_cfg);
 	if (scanned != 1 || num_cfg <= 0)
 		goto err;
-	SET_IBUF_OFFS(1, j);
+	SET_IBUF_OFFS();
 	if (sscanf(ibuf + ibuf_offs, "%3s;", gbt_buf) == 1 &&
 	    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
 		use_gbt = true;
-		SET_IBUF_OFFS(1, j);
+		SET_IBUF_OFFS();
 		pr_out("Using GNU backtrace(). "
 			"This might crash with SIGSEGV!\n");
 	}
@@ -239,16 +240,13 @@ void __attribute ((constructor)) memhack_init (void)
 		config[i] = PTR_ADD(struct cfg *, cfg_sa,
 			i * sizeof(struct cfg));
 
-		scanned = sscanf(ibuf + ibuf_offs, "%zd;" SCN_PTR,
-			&config[i]->mem_size, &config[i]->code_addr);
-		if (scanned != 2)
-			goto err;
-		SET_IBUF_OFFS(2, j);
-		scanned = sscanf(ibuf + ibuf_offs, SCN_PTR,
+		scanned = sscanf(ibuf + ibuf_offs, "%zd;" SCN_PTR ";" SCN_PTR,
+			&config[i]->mem_size, &config[i]->code_addr,
 			&config[i]->stack_offs);
-		if (scanned != 1)
+		if (scanned != 3)
 			goto err;
-		SET_IBUF_OFFS(1, j);
+		for (j = 3; j > 0; --j)
+			SET_IBUF_OFFS();
 
 		pr_dbg("config: %p\n", config);
 
@@ -281,7 +279,7 @@ void __attribute ((constructor)) memhack_init (void)
 	wbytes = write(ofd, "ready\n", sizeof("ready\n"));
 	if (wbytes < 0)
 		perror("write");
-	if (read_input(ibuf, sizeof(ibuf)) != 0) {
+	if (read_input(ibuf, sizeof(ibuf) - 1) != 0) {
 		pr_err("Couldn't read code offset!\n");
 	} else {
 		if (sscanf(ibuf, SCN_PTR ";" SCN_PTR ";" SCN_PTR ";" SCN_PTR
