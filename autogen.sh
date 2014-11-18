@@ -186,9 +186,6 @@ autoconf || {
   echo "autoconf failed"
   exit 1
 }
-if [ ! -f "/usr/share/aclocal/ax_pthread.m4" ]; then
-  echo "Can't find ax_pthread.m4. You should install the \"autoconf-archive\" package!"
-fi
 echo "+ running automake ... "
 automake -a -c --foreign || {
   echo
