@@ -27,6 +27,15 @@
 #endif
 
 
+/* states returned by check_process() */
+enum pstate {
+	PROC_RUNNING,
+	PROC_ERR,  /* handled like running */
+	PROC_DEAD,
+	PROC_WRONG,
+	PROC_ZOMBIE
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,8 +49,7 @@ extern "C" {
 			     const char *ccmd, char *const ccmdv[],
 			     char *const pid_cmd, char *proc_name,
 			     u32 delay, bool do_wait, char *preload_lib);
-	bool    pid_is_running (pid_t call_pid, pid_t pid,
-				char *proc_name, bool use_wait);
+	enum pstate check_process (pid_t pid, char *proc_name);
 	pid_t   fork_proc (void (*task) (void *), void *argp);
 #ifdef __cplusplus
 };
@@ -62,6 +70,11 @@ static inline i32 rm_file (const char *path)
 static inline void sleep_sec (u32 sec)
 {
 	sleep(sec);
+}
+
+static inline void sleep_msec (u32 msec)
+{
+	usleep(msec * 1000);
 }
 
 /*
@@ -109,6 +122,11 @@ static inline i32 rm_file (const char *path)
 static inline void sleep_sec (u32 sec)
 {
 	Sleep(sec * 1000);
+}
+
+static inline void sleep_msec (u32 msec)
+{
+	Sleep(msec);
 }
 
 #ifndef STDIN_FILENO

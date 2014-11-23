@@ -297,11 +297,13 @@ out:
 void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
 		      ptr_t code_offs)
 {
+	enum pstate pstate;
 	while (true) {
 		sleep_sec_unless_input(1, ifd, -1);
 		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, code_offs,
 				process_disc5_output, NULL);
-		if (!pid_is_running(pid, pid, NULL, true))
+		pstate = check_process(pid, NULL);
+		if (pstate == PROC_DEAD || pstate == PROC_ZOMBIE)
 			break;
 	}
 }

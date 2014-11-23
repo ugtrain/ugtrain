@@ -61,30 +61,22 @@ err:
 }
 
 /*
- * If requested, we detect if a child process is running
- * with the waitpid() option WNOHANG.
+ * We check if a process is running in /proc directly.
+ * Also zombies and loader processes are detected.
  *
- * Otherwise, we check if a process is running in /proc directly
- * and we handle zombies as if the process is not running.
+ * waitpid() with option WNOHANG would also be possible but
+ * is quite unreliable.
  *
  * Assumption: (pid > 0)  --> Please check your PID before!
  */
-bool pid_is_running (pid_t call_pid, pid_t pid, char *proc_name, bool use_wait)
+enum pstate check_process (pid_t pid, char *proc_name)
 {
 	char pbuf[PIPE_BUF] = { 0 };
-	i32 status;
 	DIR *dir;
 	const char *cmd;
 	char *pname;
 	char cmd_str[1024] = "/proc/";
 	i32 pr_len, cmd_len = sizeof("/proc/") - 1;
-
-	if (use_wait) {
-		if (waitpid(call_pid, &status, WNOHANG|WUNTRACED|WCONTINUED) !=
-		    call_pid)
-			return true;
-		return !(WIFEXITED(status) || WIFSIGNALED(status));
-	}
 
 	/* append pid and check if dir exists */
 	pr_len = sprintf((cmd_str + cmd_len), "%d", pid);
@@ -92,11 +84,14 @@ bool pid_is_running (pid_t call_pid, pid_t pid, char *proc_name, bool use_wait)
 		goto err;
 	cmd_len += pr_len;
 	dir = opendir(cmd_str);
-	if (!dir)
-		return (errno == ENOENT) ? false : true;
-	else
+	if (!dir) {
+		if (errno != ENOENT)
+			goto err;
+		else
+			return PROC_DEAD;
+	} else {
 		closedir(dir);
-
+	}
 	/* check process name from 'exe' symlink */
 	pr_len = sprintf((cmd_str + cmd_len), "/exe");
 	if (pr_len <= 0)
@@ -106,8 +101,8 @@ bool pid_is_running (pid_t call_pid, pid_t pid, char *proc_name, bool use_wait)
 	pname = basename(pbuf);
 	if (!pname)
 		goto err;
-	if (strcmp(pname, proc_name) != 0)
-		return false;
+	if (proc_name && strcmp(pname, proc_name) != 0)
+		return PROC_WRONG;
 
 skip_exe_check:
 	/* remove '/exe', insert 'cat ', append '/status' + shell cmds */
@@ -131,9 +126,10 @@ skip_exe_check:
 
 	/* zombies are not running - parent doesn't wait */
 	if (pbuf[0] == 'Z')
-		return false;
+		return PROC_ZOMBIE;
+	return PROC_RUNNING;
 err:
-	return true;  /* In error case we expect the process still running. */
+	return PROC_ERR;
 }
 
 /*

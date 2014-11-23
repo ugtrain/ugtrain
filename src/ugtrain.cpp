@@ -466,8 +466,10 @@ static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
  */
 static void wait_orphan (pid_t pid, char *proc_name)
 {
+	enum pstate pstate;
 	while (true) {
-		if (!pid_is_running(pid, pid, proc_name, false))
+		pstate = check_process(pid, proc_name);
+		if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 			return;
 		sleep_sec(1);
 	}
@@ -498,6 +500,10 @@ static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
 static pid_t run_game (struct app_options *opt, char *preload_lib)
 {
 	pid_t pid = -1;
+	pid_t old_game_pid = proc_to_pid(opt->proc_name);
+	pid_t game_pid;
+	u32 i;
+	enum pstate pstate;
 	string cmd_str;
 	vector<string> cmd_vec;
 
@@ -521,7 +527,6 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 	} else {
 		const char *cmd = cmd_vec[0].c_str();
 		char *cmdv[cmd_vec.size() + 1];
-		u32 i;
 
 		for (i = 0; i < cmd_vec.size(); i++)
 			cmdv[i] = to_c_str(&cmd_vec[i]);
@@ -558,10 +563,16 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 	if (pid < 0)
 		goto err;
 
-	sleep_sec(1);
-	if (!pid_is_running(pid, pid, NULL, true))
-		pid = 0;    // The game process has been forked by a loader?!
-
+	for (i = 0; i < 100; i++) {
+		sleep_msec(50);
+		pstate = check_process(pid, opt->proc_name);
+		if (pstate == PROC_RUNNING)
+			break;
+		// handling of a loader which may end very late after forking
+		game_pid = proc_to_pid(opt->proc_name);
+		if (game_pid != old_game_pid)
+			pid = game_pid;
+	}
 	return pid;
 err:
 	cerr << "Error while running the game!" << endl;
@@ -688,9 +699,7 @@ skip_memhack:
 		cout << "Starting game with " << opt->preload_lib
 		     << " preloaded.." << endl;
 		*pid = run_preloader(opt);
-		if (*pid == 0)
-			*pid = -1;
-		else if (*pid < 0)
+		if (*pid <= 0)
 			return 1;
 	} else {
 		return 1;
@@ -745,7 +754,7 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ifd = -1, ofd = -1;
 	bool allow_empty_cfg = false;
 	ssize_t rbytes;
-	bool use_wait = true;
+	enum pstate pstate;
 	list<struct region> rlist;
 
 	atexit(restore_getch);
@@ -848,8 +857,6 @@ prepare_dynmem:
 		if (pid < 0)
 			goto pid_err;
 	}
-	if (call_pid < 0)
-		use_wait = false;
 	cout << "PID: " << pid << endl;
 
 	if (opt->disc_str) {
@@ -862,8 +869,6 @@ prepare_dynmem:
 				// Have you closed scanmem before the game?
 				wait_orphan(pid, opt->proc_name);
 			} else {
-				if (use_wait)
-					wait_proc(call_pid);
 				// handle a loader that forks and exits
 				wait_orphan(pid, opt->proc_name);
 			}
@@ -878,8 +883,6 @@ prepare_dynmem:
 				// Have you closed scanmem before the game?
 				wait_orphan(pid, opt->proc_name);
 			} else {
-				if (use_wait)
-					wait_proc(call_pid);
 				// handle a loader that forks and exits
 				wait_orphan(pid, opt->proc_name);
 			}
@@ -946,7 +949,8 @@ prepare_dynmem:
 
 		// check for active config
 		if (cfg_act->empty()) {
-			if (!pid_is_running(call_pid, pid, opt->proc_name, use_wait))
+			pstate = check_process(pid, opt->proc_name);
+			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 				return 0;
 			continue;
 		}
@@ -960,7 +964,8 @@ prepare_dynmem:
 		}
 
 		if (memattach(pid) != 0) {
-			if (!pid_is_running(call_pid, pid, opt->proc_name, use_wait))
+			pstate = check_process(pid, opt->proc_name);
+			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 				return 0;
 			// coming here often when endling the game
 			memattach_err_once(pid);
