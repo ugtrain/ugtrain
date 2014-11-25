@@ -886,6 +886,7 @@ prepare_dynmem:
 				// handle a loader that forks and exits
 				wait_orphan(pid, opt->proc_name);
 			}
+			sleep_msec(250);  // chance to read the final flush
 			kill_proc(worker_pid);
 			if (worker_pid < 0)
 				return -1;

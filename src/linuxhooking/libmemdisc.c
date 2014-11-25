@@ -28,7 +28,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>     /* sigignore */
-#include <time.h>       /* time */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
@@ -56,8 +55,6 @@
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 //#define WRITE_UNCACHED 1
-//#define FLUSH_SIGALRM 1
-#define FLUSH_INTERVAL 1	/* in seconds */
 #define MAX_BT 11		/* for reverse stack search only */
 
 /*
@@ -142,27 +139,21 @@ static cfg_s ptr_cfg;
 		return; \
 	}
 
-static inline void _flush_output (void)
+/*
+ * To be registered with atexit() to flush the output FIFO cache.
+ *
+ * The flush is especially needed if there is only a
+ * small amount of data in the FIFO cache which would
+ * never be written otherwise. We only need to do it
+ * once upon exit and we do it with atexit() as it
+ * doesn't work in the library destructor.
+ */
+static void flush_output (void)
 {
 	flockfile(ofile);
 	fflush_unlocked(ofile);
 	funlockfile(ofile);
 }
-
-#ifdef FLUSH_SIGALRM
-/*
- * flush the output FIFO periodically
- *
- * A fork() doesn't work here. Must be the same
- * process. Hopefully the game doesn't use SIGALRM.
- */
-static void flush_output (int signum)
-{
-	pr_dbg("fflush(ofile) triggered by SIGALRM\n");
-	_flush_output();
-	alarm(FLUSH_INTERVAL);
-}
-#endif
 
 static inline i32 read_input (char ibuf[], size_t size)
 {
@@ -274,6 +265,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		perror(PFX "fopen output");
 		exit(1);
 	}
+	atexit(flush_output);
 	pr_dbg("ofile: %p\n", ofile);
 
 	if (read_input(ibuf, 1) != 0)
@@ -488,10 +480,6 @@ void __attribute ((constructor)) memdisc_init (void)
 #endif
 	active = true;
 
-#ifdef FLUSH_SIGALRM
-	signal(SIGALRM, flush_output);
-	alarm(FLUSH_INTERVAL);
-#endif
 out:
 	/* don't need the input FIFO anymore */
 	if (ifd >= 0) {
@@ -728,14 +716,13 @@ out:
 	return;
 }
 
+/*
+ * Write the memory address to be freed to the output FIFO.
+ */
 static inline void preprocess_free (ptr_t mem_addr)
 {
 	i32 wbytes;
 	char obuf[BUF_SIZE + 1] = { 0 };
-#ifndef FLUSH_SIGALRM
-	static time_t prev_time = 0;
-	time_t cur_time;
-#endif
 
 	if (active) {
 		if (mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
@@ -745,14 +732,6 @@ static inline void preprocess_free (ptr_t mem_addr)
 				perror(PFX "snprintf");
 			write_obuf(obuf);
 		}
-#ifndef FLUSH_SIGALRM
-		/* flush every second upon free() */
-		cur_time = time(NULL);
-		if (cur_time > prev_time) {
-			_flush_output();
-			prev_time = cur_time;
-		}
-#endif
 	}
 }
 
