@@ -21,15 +21,16 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#include <fstream>
 #include <cstring>
+#include <fstream>
 #include <stdio.h>
 
 // local includes
-#include "adaption.h"
-#include "system.h"
-#include "getch.h"
-#include "commont.cpp"
+#include <lib/getch.h>
+#include <lib/system.h>
+#include <adaption.h>
+#include <common.h>
+#include <commont.cpp>
 
 
 static i32 write_config_vect (char *path, vector<string> *lines)

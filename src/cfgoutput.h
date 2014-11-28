@@ -18,8 +18,10 @@
 #define CFGOUTPUT_H
 
 #include <list>
-#include "common.h"
-#include "cfgentry.h"
+
+// local includes
+#include <cfgentry.h>
+#include <common.h>
 
 void output_config (list<CfgEntry> *cfg);
 void output_configp (list<CfgEntry*> *cfg);

@@ -18,13 +18,15 @@
 #include <vector>
 #include <cstring>
 #include <stdlib.h>
-#include "common.h"
-#include "cfgparser.h"
-using namespace std;
 
+// local includes
+#include <cfgparser.h>
+#include <common.h>
+using namespace std;
 
 #define CFG_DIR "~/.ugtrain/"
 #define CFG_EXT ".conf"
+
 
 typedef enum {
 	NAME_GAME_PATH,

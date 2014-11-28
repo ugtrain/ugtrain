@@ -14,8 +14,9 @@
  * GNU General Public License for more details.
  */
 
-#include "control.h"
-#include "dump.h"
+// local includes
+#include <control.h>
+#include <dump.h>
 
 
 typedef enum {

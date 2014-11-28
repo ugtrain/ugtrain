@@ -14,11 +14,11 @@
  * GNU General Public License for more details.
  */
 
-#include <vector>
 #include <cstring>
+#include <vector>
 
 // local includes
-#include "valoutput.h"
+#include <valoutput.h>
 
 
 static void output_mem_val (CfgEntry *cfg_en, ptr_t mem_offs, bool is_dynmem)

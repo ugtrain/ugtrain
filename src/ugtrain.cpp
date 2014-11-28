@@ -21,38 +21,38 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
+#include <cstring>
 #include <fstream>
 #include <list>
 #include <vector>
-#include <cstring>
 
-#include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/stat.h>
 
 // local includes
-#include "common.h"
+#include <common.h>
 // input
-#include "options.h"
-#include "cfgentry.h"
-#include "cfgparser.h"
-#include "getch.h"
-#include "fifoparser.h"
+#include <lib/getch.h>
+#include <cfgentry.h>
+#include <cfgparser.h>
+#include <fifoparser.h>
+#include <options.h>
 // processing
-#include "system.h"
-#include "preload.h"
-#include "control.h"
-#include "memmgmt.h"
-#include "memattach.h"
+#include <lib/memattach.h>
+#include <lib/preload.h>
+#include <lib/system.h>
+#include <control.h>
+#include <memmgmt.h>
 // output
-#include "cfgoutput.h"
-#include "valoutput.h"
+#include <cfgoutput.h>
+#include <valoutput.h>
 // special features
-#include "discovery.h"
-#include "adaption.h"
+#include <adaption.h>
+#include <discovery.h>
 
 #define HOME_VAR   "HOME"
 #define DYNMEM_IN  "/tmp/memhack_out"

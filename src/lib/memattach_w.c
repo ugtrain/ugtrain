@@ -1,4 +1,5 @@
-/* preload.h:    preloader functions to hook a lib into the game
+/* memattach_w.c:    functions to attach/read/write victim proc. memory
+ * This file is for Windows only.
  *
  * Copyright (c) 2012..14, by:  Sebastian Parschauer
  *    All rights reserved.     <s.parschauer@gmx.de>
@@ -21,21 +22,35 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#ifndef PRELOAD_H
-#define PRELOAD_H
+#if defined(__WINNT__) || defined (__WIN32__)
 
-#include "common.h"
-#include "options.h"
+/* local includes */
+#include "memattach.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef __linux__
-	i32 preload_library (char *lib_path);
-	void configure_libmem (struct app_options *opt);
-#endif
-#ifdef __cplusplus
-};
-#endif
+
+i32 memattach_test (pid_t pid)
+{
+	return -1;
+}
+
+i32 memattach (pid_t pid)
+{
+	return -1;
+}
+
+i32 memdetach (pid_t pid)
+{
+	return -1;
+}
+
+i32 memread (pid_t pid, ptr_t addr, void *buf, ulong buf_len)
+{
+	return -1;
+}
+
+i32 memwrite (pid_t pid, ptr_t addr, void *buf, ulong buf_len)
+{
+	return -1;
+}
 
 #endif

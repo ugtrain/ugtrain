@@ -29,14 +29,15 @@
 #include <errno.h>
 #include <limits.h>
 
-#include "common.h"
-#include "commont.cpp"
-#include "getch.h"
-#include "cfgparser.h"
-#include "fifoparser.h"
-#include "system.h"
-#include "discovery.h"
-#include "adaption.h"
+// local includes
+#include <lib/getch.h>
+#include <lib/system.h>
+#include <adaption.h>
+#include <cfgparser.h>
+#include <common.h>
+#include <commont.cpp>
+#include <discovery.h>
+#include <fifoparser.h>
 
 #define DISASM_FILE "/tmp/memhack_disasm"
 #define MAX_BT 11

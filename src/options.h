@@ -17,7 +17,8 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "common.h"
+/* local includes */
+#include <common.h>
 
 #define PROG_NAME  "ugtrain"
 #define GLC_PRELOADER "glc-capture"

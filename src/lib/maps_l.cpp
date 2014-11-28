@@ -21,8 +21,6 @@
 #define _GNU_SOURCE
 #endif
 
-#include "common.h"
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <stddef.h>
@@ -34,6 +32,8 @@
 #include <list>
 using namespace std;
 
+/* local includes */
+#include <common.h>
 #include "maps.h"
 
 /* buffer size for reading symbolic links */

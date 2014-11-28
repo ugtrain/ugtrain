@@ -1,44 +1,48 @@
 SUBDIRS = linuxhooking tools
 
 bin_PROGRAMS = ugtrain
-ugtrain_SOURCES = common.h \
-                  options.h \
-                  cfgentry.h \
-                  getch.h \
-                  preload.h \
-                  system.h \
-                  cfgparser.h \
-                  cfgoutput.h \
-                  fifoparser.h \
-                  control.h \
-                  dump.h \
-                  memmgmt.h \
-                  valoutput.h \
-                  discovery.h \
-                  adaption.h \
-                  maps.h \
-                  commont.cpp \
-                  common.cpp \
-                  ugtrain.cpp \
-                  options.c \
-                  cfgparser.cpp \
-                  cfgoutput.cpp \
-                  getch_l.c \
-                  getch_w.c \
-                  preload_l.c \
-                  system_l.c \
-                  system_w.c \
-                  memattach_l.c \
-                  memattach_w.c \
-                  fifoparser.cpp \
-                  control.cpp \
-                  dump.cpp \
-                  memmgmt.cpp \
-                  valoutput.cpp \
-                  discovery.cpp \
-                  adaption.cpp \
-                  maps_l.cpp
+
+# use "ls -1 *.h; ls -1 *.c*" for an ordered list
+ugtrain_SOURCES = \
+	lib/getch.h \
+	lib/maps.h \
+	lib/memattach.h \
+	lib/preload.h \
+	lib/system.h \
+	lib/getch_l.c \
+	lib/getch_w.c \
+	lib/maps_l.cpp \
+	lib/memattach_l.c \
+	lib/memattach_w.c \
+	lib/preload_l.c \
+	lib/system_l.c \
+	lib/system_w.c \
+	adaption.h \
+	cfgentry.h \
+	cfgoutput.h \
+	cfgparser.h \
+	common.h \
+	control.h \
+	discovery.h \
+	dump.h \
+	fifoparser.h \
+	memmgmt.h \
+	options.h \
+	valoutput.h \
+	adaption.cpp \
+	cfgoutput.cpp \
+	cfgparser.cpp \
+	common.cpp \
+	commont.cpp \
+	control.cpp \
+	discovery.cpp \
+	dump.cpp \
+	fifoparser.cpp \
+	memmgmt.cpp \
+	options.c \
+	ugtrain.cpp \
+	valoutput.cpp
 
 ugtrain_LDADD = $(DEPS_LIBS)
 AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
-              -Wall -g -O2
+              -Wall -g -O2 -I .

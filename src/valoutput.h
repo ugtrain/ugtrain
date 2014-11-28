@@ -18,8 +18,10 @@
 #define VALOUTPUT_H
 
 #include <list>
-#include "common.h"
-#include "cfgentry.h"
+
+// local includes
+#include <cfgentry.h>
+#include <common.h>
 
 void output_mem_values (list<CfgEntry*> *cfg_act);
 

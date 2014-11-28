@@ -16,7 +16,8 @@
 
 #if defined(__WINNT__) || defined (__WIN32__)
 
-#include "common.h"
+/* local includes */
+#include <common.h>
 #include "system.h"
 
 

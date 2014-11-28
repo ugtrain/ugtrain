@@ -21,7 +21,9 @@
 #define MAPS_H
 
 #include <list>
-#include "common.h"
+
+/* local includes */
+#include <common.h>
 
 enum region_type {
 	REGION_TYPE_MISC,

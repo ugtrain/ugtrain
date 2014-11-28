@@ -15,10 +15,12 @@
  */
 
 #include <cstring>
-#include <stdio.h>
 #include <limits.h>
+#include <stdio.h>
 #include <unistd.h>
-#include "fifoparser.h"
+
+// local includes
+#include <fifoparser.h>
 
 #define REVERSE_FST -2  // reverse file read start
 #define REVERSE_EOF -3  // reverse file read end

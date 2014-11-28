@@ -15,7 +15,10 @@
  */
 
 #include <sstream>
-#include "common.h"
+
+// local includes
+#include <common.h>
+
 
 /* cpp file needs to be included */
 template <class T>

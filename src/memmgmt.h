@@ -18,9 +18,11 @@
 #define MEMMGMT_H
 
 #include <list>
-#include "common.h"
-#include "cfgentry.h"
-#include "fifoparser.h"
+
+// local includes
+#include <cfgentry.h>
+#include <common.h>
+#include <fifoparser.h>
 
 void alloc_dynmem_addr (MF_PARAMS);
 void clear_dynmem_addr (FF_PARAMS);

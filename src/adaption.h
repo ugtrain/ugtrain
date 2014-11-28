@@ -18,9 +18,11 @@
 #define ADAPTION_H
 
 #include <list>
-#include "common.h"
-#include "cfgentry.h"
-#include "options.h"
+
+// local includes
+#include <cfgentry.h>
+#include <common.h>
+#include <options.h>
 
 i32 process_adaption (struct app_options *opt, list<CfgEntry> *cfg,
 		      vector<string> *lines);

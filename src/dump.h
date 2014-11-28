@@ -18,8 +18,10 @@
 #define DUMP_H
 
 #include <list>
-#include "common.h"
-#include "cfgentry.h"
+
+// local includes
+#include <cfgentry.h>
+#include <common.h>
 
 void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg);
 

@@ -17,7 +17,7 @@
 #include <cstring>
 
 // local includes
-#include "cfgoutput.h"
+#include <cfgoutput.h>
 
 
 static void output_val (struct type *type, value_t value, const char *suffix)

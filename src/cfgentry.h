@@ -19,7 +19,9 @@
 
 #include <vector>
 #include <list>
-#include "common.h"
+
+// local includes
+#include <common.h>
 
 
 class CfgEntry;

@@ -18,9 +18,11 @@
 #define CFGPARSER_H
 
 #include <list>
-#include "common.h"
-#include "options.h"
-#include "cfgentry.h"
+
+// local includes
+#include <cfgentry.h>
+#include <common.h>
+#include <options.h>
 
 void read_config (struct app_options *opt,
 		  list<CfgEntry> *cfg,

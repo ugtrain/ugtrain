@@ -15,7 +15,9 @@
  */
 
 #include <vector>
-#include "memmgmt.h"
+
+// local includes
+#include <memmgmt.h>
 
 
 static void alloc_ptrmem (CfgEntry *cfg_en)

@@ -15,9 +15,12 @@
  */
 
 #include <cstring>
-#include "common.h"
 
-char *to_c_str(string *str)
+// local includes
+#include <common.h>
+
+
+char *to_c_str (string *str)
 {
 	char *cstr = new char[str->size() + 1];
 

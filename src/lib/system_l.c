@@ -26,7 +26,9 @@
 #include <dirent.h>
 #include <libgen.h>
 #include <errno.h>
-#include "common.h"
+
+/* local includes */
+#include <common.h>
 #include "system.h"
 #include "preload.h"
 

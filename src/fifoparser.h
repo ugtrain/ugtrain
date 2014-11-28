@@ -18,9 +18,11 @@
 #define FIFOPARSER_H
 
 #include <list>
-#include "common.h"
-#include "cfgentry.h"
-#include "system.h"
+
+// local includes
+#include <lib/system.h>
+#include <cfgentry.h>
+#include <common.h>
 
 #define PARSE_M 1
 #define PARSE_S 2

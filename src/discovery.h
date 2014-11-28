@@ -24,10 +24,12 @@
 #ifndef DISCOVERY_H
 #define DISCOVERY_H
 
-#include "options.h"
-#include "cfgentry.h"
-#include "common.h"
-#include "maps.h"
+// local includes
+#include <lib/maps.h>
+#include <lib/system.h>
+#include <cfgentry.h>
+#include <common.h>
+#include <options.h>
 
 #define DISC_EXIT	0
 #define DISC_NEXT	1

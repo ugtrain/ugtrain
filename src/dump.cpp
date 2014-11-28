@@ -14,13 +14,14 @@
  * GNU General Public License for more details.
  */
 
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 // local includes
-#include "dump.h"
-#include "memattach.h"
-#include "commont.cpp"
+#include <lib/memattach.h>
+#include <common.h>
+#include <commont.cpp>
+#include <dump.h>
 
 
 static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,

@@ -18,13 +18,15 @@
 #define SYSTEM_H
 
 #include <unistd.h>
-#include "common.h"
 #ifdef __linux__
 #include <sys/wait.h>
 #include <sys/select.h>
 #else
 #include <windows.h>
 #endif
+
+/* local includes */
+#include <common.h>
 
 
 /* states returned by check_process() */

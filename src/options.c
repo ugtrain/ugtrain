@@ -14,11 +14,13 @@
  * GNU General Public License for more details.
  */
 
+#include <getopt.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <getopt.h>
 #include <string.h>
-#include "options.h"
+
+/* local includes */
+#include <options.h>
 
 
 #define DYNMEM_FILE "/tmp/memhack_file"

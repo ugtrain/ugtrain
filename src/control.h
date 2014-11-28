@@ -18,8 +18,10 @@
 #define CONTROL_H
 
 #include <list>
-#include "common.h"
-#include "cfgentry.h"
+
+// local includes
+#include <cfgentry.h>
+#include <common.h>
 
 void handle_input_char (char ch, list<CfgEntry*> *cfgp_map[], pid_t pid,
 			list<CfgEntry> *cfg, list<CfgEntry*> *cfg_act);
