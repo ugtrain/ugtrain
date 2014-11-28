@@ -9,6 +9,7 @@ ugtrain_SOURCES = \
 	lib/memattach.h \
 	lib/preload.h \
 	lib/system.h \
+	lib/types.h \
 	lib/getch_l.c \
 	lib/getch_w.c \
 	lib/maps_l.cpp \

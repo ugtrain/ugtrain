@@ -19,9 +19,9 @@ if BITS_32
 libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c
 libmemhack32_la_SOURCES = libmemhack.c libcommon.c
 libprivacy32_la_SOURCES = libprivacy.c
-libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall
-libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -Wall
-libprivacy32_la_CFLAGS = $(DEPS_CFLAGS) -Wall
+libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
+libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
+libprivacy32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemdisc32_la_LIBADD = $(DEPS_LIBS)
 libmemhack32_la_LIBADD = $(DEPS_LIBS)
 libprivacy32_la_LIBADD = $(DEPS_LIBS)
@@ -45,9 +45,9 @@ if BITS_64
 libmemdisc64_la_SOURCES = libmemdisc.c libcommon.c
 libmemhack64_la_SOURCES = libmemhack.c libcommon.c
 libprivacy64_la_SOURCES = libprivacy.c
-libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall
-libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -Wall
-libprivacy64_la_CFLAGS = $(DEPS_CFLAGS) -Wall
+libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
+libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
+libprivacy64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemdisc64_la_LIBADD = $(DEPS_LIBS)
 libmemhack64_la_LIBADD = $(DEPS_LIBS)
 libprivacy64_la_LIBADD = $(DEPS_LIBS)
