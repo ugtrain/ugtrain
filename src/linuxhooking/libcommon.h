@@ -24,7 +24,8 @@
 #ifndef LIBCOMMON_H
 #define LIBCOMMON_H
 
-#include "../common.h"
+#include <lib/preload.h>
+#include <common.h>
 
 #define DEBUG 0
 #define DEBUG_MEM 0    /* much output */

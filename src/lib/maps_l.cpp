@@ -33,7 +33,6 @@
 using namespace std;
 
 /* local includes */
-#include <common.h>
 #include "maps.h"
 
 /* buffer size for reading symbolic links */

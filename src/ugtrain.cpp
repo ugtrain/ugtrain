@@ -584,7 +584,7 @@ static pid_t run_preloader (struct app_options *opt)
 {
 	pid_t pid;
 
-	configure_libmem(opt);
+	setenv(UGT_GAME_PROC_NAME, opt->proc_name, 1);
 
 	pid = run_game(opt, opt->preload_lib);
 	return pid;

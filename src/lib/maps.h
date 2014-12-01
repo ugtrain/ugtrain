@@ -20,10 +20,18 @@
 #ifndef MAPS_H
 #define MAPS_H
 
+#include <iostream>
 #include <list>
+#include <string>
+using namespace std;
 
 /* local includes */
-#include <common.h>
+#include "types.h"
+
+#ifndef list_for_each
+#define list_for_each(list, it) \
+	for (it = list->begin(); it != list->end(); ++it)
+#endif
 
 enum region_type {
 	REGION_TYPE_MISC,

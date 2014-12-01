@@ -26,7 +26,7 @@
 #endif
 
 /* local includes */
-#include <common.h>
+#include "types.h"
 
 
 /* states returned by check_process() */

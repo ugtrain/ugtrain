@@ -28,7 +28,6 @@
 #include <errno.h>
 
 /* local includes */
-#include <common.h>
 #include "system.h"
 #include "preload.h"
 

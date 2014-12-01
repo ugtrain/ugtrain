@@ -25,7 +25,7 @@
 #define MEMATTACH_H
 
 /* local includes */
-#include <common.h>
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C" {

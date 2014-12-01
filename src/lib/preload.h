@@ -25,15 +25,15 @@
 #define PRELOAD_H
 
 /* local includes */
-#include <common.h>
-#include <options.h>
+#include "types.h"
+
+#define PRELOAD_VAR "LD_PRELOAD"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 #ifdef __linux__
 	i32 preload_library (char *lib_path);
-	void configure_libmem (struct app_options *opt);
 #endif
 #ifdef __cplusplus
 };

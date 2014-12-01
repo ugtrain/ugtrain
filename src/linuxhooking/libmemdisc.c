@@ -35,7 +35,6 @@
 #include <glib.h>       /* g_malloc */
 #endif
 
-#include <lib/types.h>
 #include "libcommon.h"
 
 #define PFX "[memdisc] "

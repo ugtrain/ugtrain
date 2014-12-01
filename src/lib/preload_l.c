@@ -71,11 +71,6 @@ err:
 	return -1;
 }
 
-void configure_libmem (struct app_options *opt)
-{
-	setenv(UGT_GAME_PROC_NAME, opt->proc_name, 1);
-}
-
 i32 preload_library (char *lib_path)
 {
 	i32 ret = 0;

@@ -29,7 +29,6 @@
 /* Common defines */
 #define GBT_CMD     "gbt"  /* GNU backtrace() activation cmd */
 #define MAX_GNUBT   4      /* for GNU backtrace() */
-#define PRELOAD_VAR "LD_PRELOAD"
 #define UGT_GAME_PROC_NAME     "UGT_GAME_PROC_NAME"
 #define DBG_FILE_NAME "/tmp/lib_dbg.txt"
 
