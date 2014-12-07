@@ -18,6 +18,43 @@ debug ()
   fi
 }
 
+machine_check ()
+# check which debian directory is required and set a symlink to it
+{
+  DEB="debian"
+  DEB_HARMATTAN="debian_harmattan"
+  MACHINE="`uname -m`"
+  if [ -z "$MACHINE" ]; then
+    echo "not found."
+  else
+    if [ "$MACHINE" = "arm" ]; then
+      AEGIS_MANIFEST="`which aegis-manifest`"
+      if [ -z "$AEGIS_MANIFEST" ]; then
+        echo "$MACHINE."
+      else
+        echo "Meego 1.2 Harmattan."
+        echo -n "+ setting symlink $DEB/ to $DEB_HARMATTAN/ ... "
+        ln -sfT "$DEB_HARMATTAN" "$DEB" 2>/dev/null
+        if [ ! -d "$DEB" ]; then
+          echo "failed."
+        else
+          cd "$DEB" 2>/dev/null
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            rm "$DEB"
+            echo "failed."
+          else
+            cd ..
+            echo "ok."
+          fi
+        fi
+      fi
+    else
+      echo "$MACHINE."
+    fi
+  fi
+}
+
 version_check ()
 # check the version of a package
 # first argument : complain ('1') or not ('0')
@@ -40,7 +77,7 @@ version_check ()
   if [ ! -z "$MICRO" ]; then VERSION=$VERSION.$MICRO; else MICRO=0; fi
 
   debug "version $VERSION"
-  echo "+ checking for $PACKAGE >= $VERSION ... " | tr -d '\n'
+  echo -n "+ checking for $PACKAGE >= $VERSION ... "
 
   ($PACKAGE --version) < /dev/null > /dev/null 2>&1 ||
   {
@@ -106,7 +143,7 @@ not_version ()
   if [ ! -z "$MICRO" ]; then VERSION=$VERSION.$MICRO; else MICRO=0; fi
 
   debug "version $VERSION"
-  echo "+ checking for $PACKAGE != $VERSION ... " | tr -d '\n'
+  echo -n "+ checking for $PACKAGE != $VERSION ... "
 
   ($PACKAGE --version) < /dev/null > /dev/null 2>&1 ||
   {
@@ -150,6 +187,9 @@ not_version ()
 
 # Chdir to the srcdir, then run auto* tools.
 cd "$SRCDIR"
+
+echo -n "+ checking machine type ... "
+machine_check
 
 version_check 1 "autoconf" "ftp://ftp.gnu.org/pub/gnu/autoconf/" 2 56 || DIE=1
 version_check 1 "automake" "ftp://ftp.gnu.org/pub/gnu/automake/" 1 8 || DIE=1
