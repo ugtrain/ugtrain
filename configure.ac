@@ -19,6 +19,9 @@ AC_ARG_ENABLE([multilib],
 AC_ARG_ENABLE([glib],
   [  --enable-glib  enable GLIB (g_malloc hooking) support],
   [], [enable_glib=no])
+AC_ARG_ENABLE([libprivacy],
+  [  --enable-libprivacy  enable libprivacy (network blocking) support],
+  [], [enable_libprivacy=no])
 
 # Checks for programs.
 AC_PROG_CXX([g++])
@@ -84,6 +87,7 @@ AS_IF([test "$enable_glib" != "no"], [
 AM_CONDITIONAL([LINUX], test `echo "$target_os" | grep -o "linux"` = "linux")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
+AM_CONDITIONAL([PRIVACY], test "$enable_libprivacy" != "no")
 AM_CONDITIONAL([BITS_32], test "$bits64" = "no" -o "$enable_multilib" != "no")
 AM_CONDITIONAL([BITS_64], test "$bits64" != "no")
 AM_CONDITIONAL([HAVE_M32], test "$has_m32" != "no")

@@ -3,14 +3,22 @@ if LINUX
 LIB_VERSION="0:0:0"
 
 if BITS_64
+lib_LTLIBRARIES = libmemdisc64.la libmemhack64.la
 if MULTILIB
-lib_LTLIBRARIES = libmemdisc32.la libmemhack32.la libprivacy32.la \
-		  libmemdisc64.la libmemhack64.la libprivacy64.la
-else
-lib_LTLIBRARIES = libmemdisc64.la libmemhack64.la libprivacy64.la
+lib_LTLIBRARIES += libmemdisc32.la libmemhack32.la
+if PRIVACY
+lib_LTLIBRARIES += libprivacy64.la libprivacy32.la
 endif
 else
-lib_LTLIBRARIES = libmemdisc32.la libmemhack32.la libprivacy32.la
+if PRIVACY
+lib_LTLIBRARIES += libprivacy64.la
+endif
+endif
+else
+lib_LTLIBRARIES = libmemdisc32.la libmemhack32.la
+if PRIVACY
+lib_LTLIBRARIES += libprivacy32.la
+endif
 endif
 
 include_HEADERS = list.h
