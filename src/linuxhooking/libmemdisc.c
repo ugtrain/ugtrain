@@ -40,6 +40,7 @@
 #define PFX "[memdisc] "
 #define HOOK_MALLOC 1
 #define HOOK_CALLOC 1
+#define HOOK_REALLOC 1
 #define HOOK_FREE 1
 /* GLIB hooks */
 #define HOOK_G_MALLOC 1
@@ -817,6 +818,32 @@ void *calloc (size_t nmemb, size_t size)
 	mem_addr = orig_calloc(nmemb, size);
 
 	postprocess_malloc(ffp, full_size, (ptr_t) mem_addr);
+	no_hook = false;
+
+	return mem_addr;
+}
+#endif
+
+#ifdef HOOK_REALLOC
+void *realloc (void *ptr, size_t size)
+{
+	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
+	void *mem_addr;
+	static void *(*orig_realloc)(void *ptr, size_t size) = NULL;
+
+	if (no_hook)
+		return orig_realloc(ptr, size);
+
+	no_hook = true;
+	if (stage == 1)
+		preprocess_free((ptr_t) ptr);
+	/* get the libc realloc function */
+	if (!orig_realloc)
+		*(void **) (&orig_realloc) = dlsym(RTLD_NEXT, "realloc");
+
+	mem_addr = orig_realloc(ptr, size);
+
+	postprocess_malloc(ffp, size, (ptr_t) mem_addr);
 	no_hook = false;
 
 	return mem_addr;
