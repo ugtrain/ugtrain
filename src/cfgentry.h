@@ -24,6 +24,23 @@
 #include <common.h>
 
 
+enum grow_type {
+	GROW_ADD
+};
+
+class GrowEntry {
+public:
+	size_t size_min;
+	size_t size_max;
+	enum grow_type type;
+	u32 add;
+	ptr_t code_addr;
+	ptr_t stack_offs;
+
+	// later determined values
+	vector<size_t> v_msize;    // set by malloc/realloc calls
+};
+
 class CfgEntry;
 
 class DynMemEntry {
@@ -32,6 +49,7 @@ public:
 	size_t mem_size;
 	ptr_t code_addr;
 	ptr_t stack_offs;
+	GrowEntry *grow;
 
 	// later determined values
 	vector<ptr_t> v_maddr;    // set by malloc calls

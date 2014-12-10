@@ -39,6 +39,7 @@ typedef enum {
 	NAME_CHECK,
 	NAME_CHECK_OBJ,
 	NAME_DYNMEM_START,
+	NAME_DYNMEM_GROW,
 	NAME_DYNMEM_END,
 	NAME_DYNMEM_FILE,
 	NAME_PTRMEM_START,
@@ -139,6 +140,8 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 	if (ret.substr(0, 6) == "dynmem") {
 		if (ret.substr(6, string::npos) == "start")
 			*name_type = NAME_DYNMEM_START;
+		else if (ret.substr(6, string::npos) == "grow")
+			*name_type = NAME_DYNMEM_GROW;
 		else if (ret.substr(6, string::npos) == "end")
 			*name_type = NAME_DYNMEM_END;
 		else if (ret.substr(6, string::npos) == "file")
@@ -216,7 +219,7 @@ static ptr_t parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
 	if (lidx + 2 > line->length())
 		cfg_parse_err(line, lnr, --lidx);
 	if (line->at(lidx) != '0' || line->at(lidx + 1) != 'x') {
-		if (!chk_en)
+		if (!cfg || !chk_en)
 			cfg_parse_err(line, lnr, lidx);
 		// So you want a cfg value reference?
 		tmp_str = parse_value_name(line, lnr, start, NULL);
@@ -468,6 +471,65 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 	}
 }
 
+static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
+			   u32 *start)
+{
+	GrowEntry *grow_enp = new GrowEntry();
+	u32 lidx = *start;
+
+	// get minimum and maximum size
+	grow_enp->size_min = parse_u32_value(line, lnr, start);
+	if (grow_enp->size_min == 0)
+		cfg_parse_err(line, lnr, --lidx);
+	grow_enp->size_max = parse_u32_value(line, lnr, start);
+	if (grow_enp->size_max <= grow_enp->size_min)
+		cfg_parse_err(line, lnr, --lidx);
+
+	// parse type of growing
+	lidx = *start;
+	if (lidx + 2 > line->length())
+		cfg_parse_err(line, lnr, --lidx);
+	if (line->at(lidx) == '+') {
+		grow_enp->type = GROW_ADD;
+		*start = ++lidx;
+		grow_enp->add = parse_u32_value(line, lnr, start);
+		if (grow_enp->add == 0 ||
+		    grow_enp->add > grow_enp->size_max -
+		    grow_enp->size_min)
+			cfg_parse_err(line, lnr, --lidx);
+	} else {
+		cfg_parse_err(line, lnr, --lidx);
+	}
+	// parse backtracing
+	grow_enp->code_addr =
+		parse_address(NULL, NULL, line, lnr, start);
+	grow_enp->stack_offs =
+		parse_address(NULL, NULL, line, lnr, start);
+	grow_enp->v_msize.clear();
+	dynmem_enp->grow = grow_enp;
+}
+
+static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
+			  u32 lnr, u32 *start)
+{
+	dynmem_enp->name = parse_value_name(line, lnr, start, NULL);
+	if (from_grow) {
+		dynmem_enp->mem_size = 0;
+		dynmem_enp->code_addr = 0;
+		dynmem_enp->stack_offs = 0;
+		dynmem_enp->cfg_line = 0;
+	} else {
+		dynmem_enp->mem_size = parse_u32_value(line, lnr, start);
+		dynmem_enp->code_addr =
+			parse_address(NULL, NULL, line, lnr, start);
+		dynmem_enp->stack_offs =
+			parse_address(NULL, NULL, line, lnr, start);
+		dynmem_enp->cfg_line = lnr;
+	}
+	dynmem_enp->grow = NULL;
+	dynmem_enp->v_maddr.clear();
+}
+
 static void read_config_vect (string *path, char *home, vector<string> *lines)
 {
 	ifstream cfg_file;
@@ -565,17 +627,24 @@ void read_config (struct app_options *opt,
 			break;
 
 		case NAME_DYNMEM_START:
-			if (in_ptrmem)
+			if (in_ptrmem || in_dynmem)
 				cfg_parse_err(&line, lnr, start);
 			in_dynmem = true;
 			dynmem_enp = new DynMemEntry();
-			dynmem_enp->name = parse_value_name(&line, lnr,
-				&start, NULL);
-			dynmem_enp->mem_size = parse_u32_value(&line, lnr, &start);
-			dynmem_enp->code_addr = parse_address(cfg, NULL, &line, lnr, &start);
-			dynmem_enp->stack_offs = parse_address(cfg, NULL, &line, lnr, &start);
-			dynmem_enp->v_maddr.clear();
-			dynmem_enp->cfg_line = lnr;
+			parse_dynmem(dynmem_enp, false, &line, lnr, &start);
+			break;
+
+		case NAME_DYNMEM_GROW:
+			if (in_ptrmem)
+				cfg_parse_err(&line, lnr, start);
+			if (!in_dynmem) {
+				in_dynmem = true;
+				dynmem_enp = new DynMemEntry();
+				parse_dynmem(dynmem_enp, true, &line, lnr, &start);
+			}
+			if (!dynmem_enp || dynmem_enp->grow)
+				cfg_parse_err(&line, lnr, start);
+			parse_growing(dynmem_enp, &line, lnr, &start);
 			break;
 
 		case NAME_DYNMEM_END:
