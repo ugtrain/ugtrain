@@ -192,6 +192,20 @@ void output_configp (list<CfgEntry*> *cfg)
 	}
 }
 
+static void output_grow_method (GrowEntry *grow)
+{
+	enum grow_type type = grow->type;
+
+	switch (type) {
+	case GROW_ADD:
+		cout << "+" << grow->add;
+		break;
+	default:
+		cout << "unknown";
+		break;
+	}
+}
+
 void output_config (list<CfgEntry> *cfg)
 {
 	if (!cfg || cfg->empty()) {
@@ -205,16 +219,28 @@ void output_config (list<CfgEntry> *cfg)
 	list_for_each (cfg, it) {
 		cfg_en = *it;
 		// headline
-		if (cfg_en.dynmem)
-			cout << "dynmem: " << cfg_en.dynmem->name << " "
-				<< cfg_en.dynmem->mem_size << " 0x"
-				<< hex << cfg_en.dynmem->code_addr << " 0x"
-				<< cfg_en.dynmem->stack_offs << dec << endl;
-		else if (cfg_en.ptrmem)
-			cout << "ptrmem: " << cfg_en.ptrmem->name << " "
-				<<  cfg_en.ptrmem->mem_size << endl;
-		else
+		if (cfg_en.dynmem) {
+			DynMemEntry *dynmem = cfg_en.dynmem;
+			GrowEntry *grow = dynmem->grow;
+			cout << "dynmem: " << dynmem->name << " "
+			     << dynmem->mem_size << " 0x" << hex
+			     << dynmem->code_addr << " 0x" << dynmem->stack_offs
+			     << dec;
+			if (grow) {
+				cout << " growing " << grow->size_min
+				     << " " << grow->size_max << " ";
+				output_grow_method(grow);
+				cout << " 0x" << hex << grow->code_addr << " 0x"
+				     << grow->stack_offs << dec;
+			}
+			cout << endl;
+		} else if (cfg_en.ptrmem) {
+			PtrMemEntry *ptrmem = cfg_en.ptrmem;
+			cout << "ptrmem: " << ptrmem->name << " "
+				<<  ptrmem->mem_size << endl;
+		} else {
 			cout << "static: " << endl;
+		}
 
 		// value line
 		output_config_en(&cfg_en);
