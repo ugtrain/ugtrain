@@ -131,28 +131,33 @@ void output_dynmem_changes (list<CfgEntry> *cfg)
 {
 	list<CfgEntry>::iterator it;
 	CfgEntry *cfg_en;
+	DynMemEntry *dynmem = NULL;
 	DynMemEntry *old_dynmem = NULL;
 	vector<ptr_t> *mvec;
 
 	old_dynmem = NULL;
 	list_for_each (cfg, it) {
 		cfg_en = &(*it);
-		if (!cfg_en->dynmem || cfg_en->dynmem == old_dynmem)
+		dynmem = cfg_en->dynmem;
+		if (!dynmem || dynmem == old_dynmem)
 			continue;
-		mvec = &cfg_en->dynmem->v_maddr;
-		if (cfg_en->dynmem->num_alloc > 0)
-			cout << "===> Obj. " << cfg_en->dynmem->name
-			     << " created " << cfg_en->dynmem->num_alloc
-			     << " time(s); now: " << mvec->size() -
-				cfg_en->dynmem->num_freed << endl;
-		if (cfg_en->dynmem->num_freed > 0)
-			cout << "===> Obj. " << cfg_en->dynmem->name
-			     << " freed " << cfg_en->dynmem->num_freed
+		mvec = &dynmem->v_maddr;
+		if (dynmem->num_alloc > 0) {
+			cout << "===> Obj. " << dynmem->name
+			     << " created " << dynmem->num_alloc
+			     << " time(s)";
+			if (dynmem->num_freed == 0)
+				cout << "; now: " << mvec->size();
+			cout << endl;
+		}
+		if (dynmem->num_freed > 0)
+			cout << "===> Obj. " << dynmem->name
+			     << " freed " << dynmem->num_freed
 			     << " time(s); remaining: " << mvec->size() -
-				cfg_en->dynmem->num_freed << endl;
-		cfg_en->dynmem->num_alloc = 0;
-		cfg_en->dynmem->num_freed = 0;
-		old_dynmem = cfg_en->dynmem;
+				dynmem->num_freed << endl;
+		dynmem->num_alloc = 0;
+		dynmem->num_freed = 0;
+		old_dynmem = dynmem;
 	}
 }
 
