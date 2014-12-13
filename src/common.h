@@ -26,6 +26,11 @@
 /* local includes */
 #include <lib/types.h>
 
+/* common types */
+enum grow_type {
+	GROW_ADD
+};
+
 /* Common defines */
 #define GBT_CMD     "gbt"  /* GNU backtrace() activation cmd */
 #define MAX_GNUBT   4      /* for GNU backtrace() */

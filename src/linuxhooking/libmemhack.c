@@ -100,6 +100,16 @@ extern char *__progname;
  */
 static bool use_gbt = false;
 
+/* Grow structure */
+struct grow {
+	size_t size_min;
+	size_t size_max;
+	enum grow_type type;
+	u32 add;
+	ptr_t code_addr;
+	ptr_t stack_offs;
+};
+
 /* Config structure */
 struct cfg {
 	size_t mem_size;
@@ -109,6 +119,7 @@ struct cfg {
 	u32 max_obj;       /* currently allocated memory addresses */
 	u32 insert_idx;    /* lowest mem_addrs index for insertion */
 	pthread_mutex_t mutex;  /* protects mem_addrs, max_obj, insert_idx */
+	struct grow *grow;
 };
 
 /*
@@ -153,6 +164,7 @@ void __attribute ((constructor)) memhack_init (void)
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	ptr_t code_offs[MAX_CFG] = { 0 };
 	struct cfg *cfg_sa = NULL;  /* struct cfg array */
+	struct grow *grow = NULL;
 
 #if USE_DEBUG_LOG
 	if (!DBG_FILE_VAR) {
@@ -237,6 +249,7 @@ void __attribute ((constructor)) memhack_init (void)
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
+		char op_ch = -1;
 		config[i] = PTR_ADD(struct cfg *, cfg_sa,
 			i * sizeof(struct cfg));
 
@@ -263,6 +276,29 @@ void __attribute ((constructor)) memhack_init (void)
 			config[i]->mem_addrs[k] = ADDR_INVAL;
 
 		pthread_mutex_init(&config[i]->mutex, NULL);
+
+		/* handle growing config */
+		if (strncmp(ibuf + ibuf_offs, "grow;", 5) != 0)
+			continue;
+		SET_IBUF_OFFS();
+		grow = (struct grow *) calloc(1, sizeof(struct grow));
+		if (!grow) {
+			pr_err("Error: No space for grow structure, "
+				"ignoring it!\n");
+			continue;
+		}
+		scanned = sscanf(ibuf + ibuf_offs, "%zd;%zd;%c%u;" SCN_PTR ";"
+			SCN_PTR, &grow->size_min, &grow->size_max, &op_ch,
+			&grow->add, &grow->code_addr, &grow->stack_offs);
+		if (scanned != 6 || op_ch != '+') {
+			pr_err("Error: Grow parsing failed!\n");
+			free(grow);
+			goto err;
+		}
+		grow->type = GROW_ADD;
+		for (j = 5; j > 0; --j)
+			SET_IBUF_OFFS();
+		config[i]->grow = grow;
 	}
 	if (i != num_cfg)
 		goto err;
@@ -270,10 +306,19 @@ void __attribute ((constructor)) memhack_init (void)
 	/* debug config */
 	pr_dbg("num_cfg: %u\n", num_cfg);
 	for (i = 0; config[i] != NULL; i++) {
+		struct grow *grow = config[i]->grow;
 		pr_out("config[%u]: mem_size: %zd; "
 			"code_addr: " PRI_PTR "; stack_offs: " PRI_PTR "\n", i,
 			config[i]->mem_size, config[i]->code_addr,
 			config[i]->stack_offs);
+		if (grow) {
+			pr_out("config[%u] growing: size_min: %zd; size_max: "
+				"%zd; add: %u; code_addr: " PRI_PTR
+				"; stack_offs: " PRI_PTR "\n", i,
+				grow->size_min, grow->size_max, grow->add,
+				grow->code_addr, grow->stack_offs);
+		}
+
 	}
 
 	wbytes = write(ofd, "ready\n", sizeof("ready\n"));

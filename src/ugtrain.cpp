@@ -623,14 +623,29 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 
 	// Fill the output buffer with the dynmem cfg
 	list_for_each (cfg, it) {
-		if (it->dynmem && it->dynmem->code_addr != old_code_addr) {
+		DynMemEntry *dynmem = it->dynmem;
+		GrowEntry *grow;
+		if (!dynmem)
+			continue;
+		grow = dynmem->grow;
+		if ((dynmem->code_addr != old_code_addr) ||
+		    (grow && (grow->code_addr != old_code_addr))) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-				";%lu;" SCN_PTR, (ulong) it->dynmem->mem_size,
-				it->dynmem->code_addr);
+				";%lu;" SCN_PTR ";" SCN_PTR, (ulong)
+				dynmem->mem_size, dynmem->code_addr,
+				dynmem->stack_offs);
+			if (grow) {
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-					";" SCN_PTR, it->dynmem->stack_offs);
-			old_code_addr = it->dynmem->code_addr;
+					";grow;%lu;%lu;+%u;" SCN_PTR ";" SCN_PTR,
+					(ulong) grow->size_min,	(ulong)
+					grow->size_max, grow->add,
+					grow->code_addr,
+					grow->stack_offs);
+				old_code_addr = grow->code_addr;
+			} else {
+				old_code_addr = dynmem->code_addr;
+			}
 		}
 	}
 	// Put the number of cfgs to the end

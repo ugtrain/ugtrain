@@ -24,10 +24,6 @@
 #include <common.h>
 
 
-enum grow_type {
-	GROW_ADD
-};
-
 class GrowEntry {
 public:
 	size_t size_min;
