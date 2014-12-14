@@ -764,7 +764,7 @@ i32 main (i32 argc, char **argv, char **env)
 	string input_str;
 	pid_t pid, call_pid = -1, worker_pid;
 	char def_home[] = "~";
-	i32 ret, pmask = PARSE_M | PARSE_C;
+	i32 ret, pmask = PARSE_M | PARSE_S | PARSE_C;
 	char ch;
 	i32 ifd = -1, ofd = -1;
 	bool allow_empty_cfg = false;
@@ -917,7 +917,7 @@ prepare_dynmem:
 			goto discover_next;
 			break;
 		case DISC_OKAY:
-			pmask = PARSE_M | PARSE_C;
+			pmask = PARSE_M | PARSE_S | PARSE_C;
 			goto prepare_dynmem;
 			break;
 		case DISC_EXIT:

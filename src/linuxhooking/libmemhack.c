@@ -406,7 +406,7 @@ out:
 
 static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 {
-	ptr_t stack_addr;
+	ptr_t code_addr, stack_offs, stack_addr;
 	i32 i, j, wbytes, num_taddr = 0;
 	void *trace[MAX_GNUBT] = { NULL };
 
@@ -414,9 +414,19 @@ static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 		return;
 
 	for (i = 0; config[i] != NULL; i++) {
-		if (size != config[i]->mem_size)
+		struct grow *grow = config[i]->grow;
+		if (size == config[i]->mem_size) {
+			code_addr = config[i]->code_addr;
+			stack_offs = config[i]->stack_offs;
+		} else if (grow && size <= grow->size_max &&
+		    size >= grow->size_min) {
+			if (size % grow->add != 0)
+				continue;
+			code_addr = grow->code_addr;
+			stack_offs = grow->stack_offs;
+		} else {
 			continue;
-
+		}
 		/* rarely used GNU backtrace method (unstable, slow) */
 		if (use_gbt) {
 			num_taddr = backtrace(trace, MAX_GNUBT);
@@ -424,25 +434,26 @@ static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 				continue;
 			/* skip the first code addr (our own one) */
 			for (j = 1; j < num_taddr; j++) {
-				if ((ptr_t) trace[j] == config[i]->code_addr)
+				if ((ptr_t) trace[j] == code_addr)
 					goto found;
 			}
 			continue;
 		}
 
 		/* reverse stack offset method */
-		stack_addr = ffp + config[i]->stack_offs;
-
-		if (stack_addr > stack_end - sizeof(ptr_t) ||
-		    *(ptr_t *) stack_addr != config[i]->code_addr)
+		stack_addr = ffp + stack_offs;
+		if (stack_addr > stack_end - sizeof(ptr_t))
 			continue;
+		if (*(ptr_t *) stack_addr == code_addr)
+			goto found;
+		continue;
 found:
 #if DEBUG_MEM
-		pr_out("malloc: mem_addr: " PRI_PTR ", code_addr: "
-			PRI_PTR "\n", mem_addr, config[i]->code_addr);
+		pr_out("malloc: mem_addr: " PRI_PTR ", size: %zu, code_addr: "
+			PRI_PTR "\n", mem_addr, size, code_addr);
 #endif
-		wbytes = sprintf(obuf, "m" PRI_PTR ";c" PRI_PTR "\n",
-			mem_addr, config[i]->code_addr);
+		wbytes = sprintf(obuf, "m" PRI_PTR ";s%zu;c" PRI_PTR "\n",
+			mem_addr, size, code_addr);
 
 		wbytes = write(ofd, obuf, wbytes);
 		if (wbytes < 0)
