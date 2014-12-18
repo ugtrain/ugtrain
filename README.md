@@ -102,7 +102,8 @@ adaption can be triggered explicitly as well: <br/>
 
 **CPU Architecture**
 
-* tested on x86 and x86\_64 only
+* PCs: tested on x86 and x86\_64 only
+* smartphones: tested on ARMv7 (OMAP3630 in Nokia N9) only
 
 **Operating System**
 
@@ -115,7 +116,7 @@ adaption can be triggered explicitly as well: <br/>
 
 **Dynamic Memory**
 
-* constructors-only (no growing objects/structures)
+* growing of objects/structures experimental, no documentation yet
 * no support for allocations in a library (PIC) yet
 * doesn't work with WINE yet
 
@@ -127,6 +128,10 @@ adaption can be triggered explicitly as well: <br/>
 **GUI**
 
 * can't serve as a backend yet
+
+**Packaging**
+
+* only Debian packaging for MeeGo 1.2 Harmattan (Nokia N9)
 
 # How to Contribute
 

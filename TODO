@@ -17,7 +17,7 @@ External control (using ugtrain as backend):
 + support config from stdin or command line
 
 Multi-arch support:
-+ support ARM as well
++ support more architectures than x86, x86_64 and ARM
 
 Multi-platform support:
 + support Windows as well
