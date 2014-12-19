@@ -14,13 +14,13 @@ AC_SUBST(LIBTOOL_DEPS)
 
 # --enable-XX options
 AC_ARG_ENABLE([multilib],
-  [  --enable-multilib  enable multilib support],
+  [  --enable-multilib       build 32 bit hooking libs on a 64 bit system],
   [], [enable_multilib=no])
 AC_ARG_ENABLE([glib],
-  [  --enable-glib  enable GLIB (g_malloc hooking) support],
+  [  --enable-glib           build hooking libs with e.g. g_malloc() support],
   [], [enable_glib=no])
 AC_ARG_ENABLE([libprivacy],
-  [  --enable-libprivacy  enable libprivacy (network blocking) support],
+  [  --enable-libprivacy     build a hooking lib for network blocking],
   [], [enable_libprivacy=no])
 
 # Checks for programs.
