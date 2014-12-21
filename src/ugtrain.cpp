@@ -423,15 +423,26 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 		if (cfg_en->dynmem) {
 			DynMemEntry *dynmem = cfg_en->dynmem;
 			vector<ptr_t> *mvec = &dynmem->v_maddr;
+			struct type *type = &cfg_en->type;
 			for (mem_idx = 0;
 			     mem_idx < mvec->size();
 			     mem_idx++) {
+				size_t mem_size;
 				mem_offs = mvec->at(mem_idx);
 				if (!mem_offs)
 					continue;
+				// check for out of bounds access
+				if (dynmem->grow) {
+					GrowEntry *grow = dynmem->grow;
+					mem_size = grow->v_msize[mem_idx];
+				} else {
+					mem_size = dynmem->mem_size;
+				}
+				if (cfg_en->addr + type->size / 8 > mem_size)
+					continue;
 				dynmem->obj_idx = mem_idx;
 
-				mem_addr =  mem_offs + cfg_en->addr;
+				mem_addr = mem_offs + cfg_en->addr;
 				if (read_memory(pid, mem_addr, buf, "MEMORY"))
 					continue;
 				if (cfg_en->ptrtgt)
