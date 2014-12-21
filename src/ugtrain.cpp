@@ -118,39 +118,41 @@ static inline i32 check_mem_val (T read_val, T value, check_e check)
 static i32 check_memory (CheckEntry *chk_en, value_t *chk_buf, u32 i)
 {
 	struct type *type = &chk_en->type;
+	value_t *value = &chk_en->value[i];
+	check_e check = chk_en->check[i];
 
 	if (type->is_float) {
 		switch (type->size) {
 		case 64:
-			return check_mem_val(chk_buf->f64, chk_en->value[i].f64, chk_en->check[i]);
+			return check_mem_val(chk_buf->f64, value->f64, check);
 		case 32:
-			return check_mem_val(chk_buf->f32, chk_en->value[i].f32, chk_en->check[i]);
+			return check_mem_val(chk_buf->f32, value->f32, check);
 		default:
 			break;
 		}
 	} else if (type->is_signed) {
 		switch (type->size) {
 		case 64:
-			return check_mem_val(chk_buf->i64, chk_en->value[i].i64, chk_en->check[i]);
+			return check_mem_val(chk_buf->i64, value->i64, check);
 		case 32:
-			return check_mem_val(chk_buf->i32, chk_en->value[i].i32, chk_en->check[i]);
+			return check_mem_val(chk_buf->i32, value->i32, check);
 		case 16:
-			return check_mem_val(chk_buf->i16, chk_en->value[i].i16, chk_en->check[i]);
+			return check_mem_val(chk_buf->i16, value->i16, check);
 		case 8:
-			return check_mem_val(chk_buf->i8, chk_en->value[i].i8, chk_en->check[i]);
+			return check_mem_val(chk_buf->i8, value->i8, check);
 		default:
 			break;
 		}
 	} else {
 		switch (type->size) {
 		case 64:
-			return check_mem_val(chk_buf->u64, chk_en->value[i].u64, chk_en->check[i]);
+			return check_mem_val(chk_buf->u64, value->u64, check);
 		case 32:
-			return check_mem_val(chk_buf->u32, chk_en->value[i].u32, chk_en->check[i]);
+			return check_mem_val(chk_buf->u32, value->u32, check);
 		case 16:
-			return check_mem_val(chk_buf->u16, chk_en->value[i].u16, chk_en->check[i]);
+			return check_mem_val(chk_buf->u16, value->u16, check);
 		case 8:
-			return check_mem_val(chk_buf->u8, chk_en->value[i].u8, chk_en->check[i]);
+			return check_mem_val(chk_buf->u8, value->u8, check);
 		default:
 			break;
 		}
@@ -173,18 +175,20 @@ static inline i32 or_check_memory (CheckEntry *chk_en, value_t *chk_buf)
 
 static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, value_t *buf)
 {
-	DynMemEntry *dynmem;
+	PtrMemEntry* ptrmem = cfg_ref->ptrmem;
 
 	if (cfg_ref->dynmem) {
-		dynmem = cfg_ref->dynmem;
-		if (cfg_ref->v_oldval.size() <= 0)
+		DynMemEntry *dynmem = cfg_ref->dynmem;
+		vector<value_t> *vvec = &cfg_ref->v_oldval;
+		if (vvec->size() <= 0)
 			goto err;
-		*buf = cfg_ref->v_oldval[dynmem->obj_idx];
-	} else if (cfg_ref->ptrmem && cfg_ref->ptrmem->dynmem) {
-		dynmem = cfg_ref->ptrmem->dynmem;
-		if (cfg_ref->v_oldval.size() <= 0)
+		*buf = vvec->at(dynmem->obj_idx);
+	} else if (ptrmem && ptrmem->dynmem) {
+		DynMemEntry *dynmem = ptrmem->dynmem;
+		vector<value_t> *vvec = &cfg_ref->v_oldval;
+		if (vvec->size() <= 0)
 			goto err;
-		*buf = cfg_ref->v_oldval[dynmem->obj_idx];
+		*buf = vvec->at(dynmem->obj_idx);
 	} else {
 		*buf = cfg_ref->old_val;
 	}
@@ -305,64 +309,65 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 			   ptr_t mem_offs, value_t *old_val)
 {
 	struct type *type = &cfg_en->type;
+	value_t *value = &cfg_en->value;
 
 	if (type->is_float) {
 		switch (type->size) {
 		case 64:
 			old_val->f64 = buf->f64;
-			handle_dynval(pid, cfg_en, old_val->f64, &cfg_en->value.f64, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->f64, cfg_en->value.f64, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->f64, &value->f64, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->f64, value->f64, buf, mem_offs);
 			break;
 		case 32:
 			old_val->f32 = buf->f32;
-			handle_dynval(pid, cfg_en, old_val->f32, &cfg_en->value.f32, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->f32, cfg_en->value.f32, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->f32, &value->f32, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->f32, value->f32, buf, mem_offs);
 			break;
 		}
 	} else if (type->is_signed) {
 		switch (type->size) {
 		case 64:
 			old_val->i64 = buf->i64;
-			handle_dynval(pid, cfg_en, old_val->i64, &cfg_en->value.i64, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i64, cfg_en->value.i64, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i64, &value->i64, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i64, value->i64, buf, mem_offs);
 			break;
 		case 32:
 			old_val->i32 = buf->i32;
-			handle_dynval(pid, cfg_en, old_val->i32, &cfg_en->value.i32, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i32, cfg_en->value.i32, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i32, &value->i32, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i32, value->i32, buf, mem_offs);
 			break;
 		case 16:
 			old_val->i16 = buf->i16;
-			handle_dynval(pid, cfg_en, old_val->i16, &cfg_en->value.i16, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i16, cfg_en->value.i16, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i16, &value->i16, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i16, value->i16, buf, mem_offs);
 			break;
 		default:
 			old_val->i8 = buf->i8;
-			handle_dynval(pid, cfg_en, old_val->i8, &cfg_en->value.i8, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i8, cfg_en->value.i8, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i8, &value->i8, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i8, value->i8, buf, mem_offs);
 			break;
 		}
 	} else {
 		switch (type->size) {
 		case 64:
 			old_val->u64 = buf->u64;
-			handle_dynval(pid, cfg_en, old_val->u64, &cfg_en->value.u64, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u64, cfg_en->value.u64, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u64, &value->u64, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u64, value->u64, buf, mem_offs);
 			break;
 		case 32:
 			old_val->u32 = buf->u32;
-			handle_dynval(pid, cfg_en, old_val->u32, &cfg_en->value.u32, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u32, cfg_en->value.u32, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u32, &value->u32, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u32, value->u32, buf, mem_offs);
 			break;
 		case 16:
 			old_val->u16 = buf->u16;
-			handle_dynval(pid, cfg_en, old_val->u16, &cfg_en->value.u16, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u16, cfg_en->value.u16, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u16, &value->u16, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u16, value->u16, buf, mem_offs);
 			break;
 		default:
 			old_val->u8 = buf->u8;
-			handle_dynval(pid, cfg_en, old_val->u8, &cfg_en->value.u8, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u8, cfg_en->value.u8, buf, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u8, &value->u8, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u8, value->u8, buf, mem_offs);
 			break;
 		}
 	}
@@ -372,28 +377,33 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_idx)
 {
 	ptr_t mem_addr;
-	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
+	PtrMemEntry *ptrtgt = cfg_en->ptrtgt;
+	list<CfgEntry*> *cfg_act = &ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
+	vector<value_t> *vvec = &cfg_en->v_oldval;
+	value_t *value = &vvec->at(mem_idx);
 
-	if (buf->ptr == 0 || cfg_en->ptrtgt->v_state[mem_idx] == PTR_DONE)
+	if (buf->ptr == 0 || ptrtgt->v_state[mem_idx] == PTR_DONE)
 		return;
 
-	if (buf->ptr == cfg_en->v_oldval[mem_idx].ptr) {
+	if (buf->ptr == value->ptr) {
 		if (cfg_en->dynval == DYN_VAL_PTR_ONCE)
-			cfg_en->ptrtgt->v_state[mem_idx] = PTR_DONE;
+			ptrtgt->v_state[mem_idx] = PTR_DONE;
 		else
-			cfg_en->ptrtgt->v_state[mem_idx] = PTR_SETTLED;
-		cfg_en->ptrtgt->v_offs[mem_idx] = buf->ptr;
+			ptrtgt->v_state[mem_idx] = PTR_SETTLED;
+		ptrtgt->v_offs[mem_idx] = buf->ptr;
 		list_for_each (cfg_act, it) {
+			PtrMemEntry *ptrmem;
 			cfg_en = *it;
-			mem_addr = cfg_en->ptrmem->v_offs[mem_idx] + cfg_en->addr;
+			ptrmem = cfg_en->ptrmem;
+			mem_addr = ptrmem->v_offs[mem_idx] + cfg_en->addr;
 			if (read_memory(pid, mem_addr, buf, "PTR MEMORY"))
 				continue;
-			change_memory(pid, cfg_en, buf, cfg_en->ptrmem->v_offs[mem_idx],
+			change_memory(pid, cfg_en, buf, ptrmem->v_offs[mem_idx],
 				      &cfg_en->v_oldval[mem_idx]);
 		}
 	} else {
-		cfg_en->v_oldval[mem_idx].ptr = buf->ptr;
+		value->ptr = buf->ptr;
 	}
 }
 
@@ -411,13 +421,15 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
 		if (cfg_en->dynmem) {
+			DynMemEntry *dynmem = cfg_en->dynmem;
+			vector<ptr_t> *mvec = &dynmem->v_maddr;
 			for (mem_idx = 0;
-			     mem_idx < cfg_en->dynmem->v_maddr.size();
+			     mem_idx < mvec->size();
 			     mem_idx++) {
-				mem_offs = cfg_en->dynmem->v_maddr[mem_idx];
+				mem_offs = mvec->at(mem_idx);
 				if (!mem_offs)
 					continue;
-				cfg_en->dynmem->obj_idx = mem_idx;
+				dynmem->obj_idx = mem_idx;
 
 				mem_addr =  mem_offs + cfg_en->addr;
 				if (read_memory(pid, mem_addr, buf, "MEMORY"))
