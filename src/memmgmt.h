@@ -26,7 +26,7 @@
 
 void alloc_dynmem_addr (MF_PARAMS);
 void clear_dynmem_addr (FF_PARAMS);
-void output_dynmem_changes (list<CfgEntry> *cfg);
+int  output_dynmem_changes (list<CfgEntry> *cfg);
 void free_dynmem  (list<CfgEntry> *cfg, bool process_kicked);
 void alloc_dynmem (list<CfgEntry> *cfg);
 

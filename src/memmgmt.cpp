@@ -136,7 +136,7 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 	}
 }
 
-void output_dynmem_changes (list<CfgEntry> *cfg)
+int output_dynmem_changes (list<CfgEntry> *cfg)
 {
 	list<CfgEntry>::iterator it;
 	CfgEntry *cfg_en;
@@ -163,10 +163,17 @@ void output_dynmem_changes (list<CfgEntry> *cfg)
 			     << " freed " << dynmem->num_freed
 			     << " time(s); remaining: " << mvec->size() -
 				dynmem->num_freed << endl;
+		if (cout.fail())
+			goto err;
 		dynmem->num_alloc = 0;
 		dynmem->num_freed = 0;
 		old_dynmem = dynmem;
 	}
+	return 0;
+err:
+	// Output failed, terminal issue?
+	cout.clear();
+	return -1;
 }
 
 static i32 find_addr_idx (vector<ptr_t> *vec, ptr_t addr)

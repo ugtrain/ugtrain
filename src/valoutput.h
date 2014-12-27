@@ -23,6 +23,6 @@
 #include <cfgentry.h>
 #include <common.h>
 
-void output_mem_values (list<CfgEntry*> *cfg_act);
+int output_mem_values (list<CfgEntry*> *cfg_act);
 
 #endif

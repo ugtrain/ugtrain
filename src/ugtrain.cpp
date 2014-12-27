@@ -520,6 +520,16 @@ static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
 		cmd_vec->push_back(cmd_str->substr(start, pos - start));
 }
 
+static void reset_terminal (void)
+{
+	const char *cmd = "reset";
+	char *cmdv[2] = { (char *) "reset", NULL };
+
+	restore_getch();
+	run_cmd(cmd, cmdv);
+	prepare_getch_nb();
+}
+
 static pid_t run_game (struct app_options *opt, char *preload_lib)
 {
 	pid_t pid = -1;
@@ -983,7 +993,9 @@ prepare_dynmem:
 			} while (rbytes > 0);
 
 			// print allocated and freed object counts
-			output_dynmem_changes(cfg);
+			ret = output_dynmem_changes(cfg);
+			if (ret)
+				reset_terminal();
 		}
 
 		// check for active config
@@ -1024,7 +1036,9 @@ prepare_dynmem:
 			free_dynmem(cfg, true);
 
 		// output old values
-		output_mem_values(cfg_act);
+		ret = output_mem_values(cfg_act);
+		if (ret)
+			reset_terminal();
 	}
 
 	return 0;

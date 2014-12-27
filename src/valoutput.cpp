@@ -113,7 +113,7 @@ static void output_ptrmem_values (CfgEntry *cfg_en)
 	}
 }
 
-void output_mem_values (list<CfgEntry*> *cfg_act)
+int output_mem_values (list<CfgEntry*> *cfg_act)
 {
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
@@ -150,5 +150,12 @@ void output_mem_values (list<CfgEntry*> *cfg_act)
 		output_mem_val(cfg_en, mem_offs, is_dynmem);
 		if (cfg_en->ptrtgt)
 			output_ptrmem_values(cfg_en);
+		if (cout.fail())
+			goto err;
 	}
+	return 0;
+err:
+	// Output failed, terminal issue?
+	cout.clear();
+	return -1;
 }
