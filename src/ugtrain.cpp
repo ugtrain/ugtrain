@@ -407,7 +407,21 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 	}
 }
 
-// TIME CRITICAL! Process all activated config entries
+// TIME CRITICAL! Read the memory allocations and freeings from the input FIFO.
+// If the buffer fills, the game process hangs.
+static inline void read_dynmem_fifo (list<CfgEntry> *cfg, i32 ifd, i32 pmask,
+				     ptr_t code_offs)
+{
+	ssize_t rbytes;
+
+	do {
+		rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
+			code_offs, alloc_dynmem_addr, clear_dynmem_addr);
+	} while (rbytes > 0);
+}
+
+// TIME CRITICAL! Process all activated config entries.
+// Note: We are attached to the game process and it is frozen.
 static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 {
 	list<CfgEntry*>::iterator it;
@@ -801,7 +815,6 @@ i32 main (i32 argc, char **argv, char **env)
 	char ch;
 	i32 ifd = -1, ofd = -1;
 	bool allow_empty_cfg = false;
-	ssize_t rbytes;
 	enum pstate pstate;
 	list<struct region> rlist;
 
@@ -986,12 +999,7 @@ prepare_dynmem:
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		if (!opt->pure_statmem) {
-			do {
-				rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask,
-					false, opt->code_offs,
-					alloc_dynmem_addr, clear_dynmem_addr);
-			} while (rbytes > 0);
-
+			read_dynmem_fifo(cfg, ifd, pmask, opt->code_offs);
 			// print allocated and freed object counts
 			ret = output_dynmem_changes(cfg);
 			if (ret)
@@ -1023,6 +1031,14 @@ prepare_dynmem:
 			continue;
 		}
 
+		// read from the FIFO again
+		// R/W to invalid heap addresses crashes the game (SIGSEGV).
+		// There could have been free() calls before freezing the game.
+		if (!opt->pure_statmem) {
+			read_dynmem_fifo(cfg, ifd, pmask, opt->code_offs);
+			// We might also read mallocs. Can't ignore them!
+			alloc_dynmem(cfg);
+		}
 		// TIME CRITICAL! Process all activated config entries
 		process_act_cfg(pid, cfg_act);
 
@@ -1031,10 +1047,15 @@ prepare_dynmem:
 			return -1;
 		}
 
-		// free memory used for objects kicked out by object check
-		if (!opt->pure_statmem)
+		if (!opt->pure_statmem) {
+			// print allocated and freed object counts
+			ret = output_dynmem_changes(cfg);
+			if (ret)
+				reset_terminal();
+			/* free memory used for objects kicked out by object
+			   check or late free() */
 			free_dynmem(cfg, true);
-
+		}
 		// output old values
 		ret = output_mem_values(cfg_act);
 		if (ret)

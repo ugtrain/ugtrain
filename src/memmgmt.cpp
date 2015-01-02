@@ -128,10 +128,12 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 				mem_idx--;
 			}
 		}
+		num_kicked -= dynmem->num_freed;
 		if (process_kicked && num_kicked > 0)
 			cout << "===> Obj. " << dynmem->name
 			     << " kicked out " << num_kicked
 			     << " time(s); remaining: " << mvec->size() << endl;
+		dynmem->num_freed = 0;
 		old_dynmem = dynmem;
 	}
 }
@@ -166,7 +168,6 @@ int output_dynmem_changes (list<CfgEntry> *cfg)
 		if (cout.fail())
 			goto err;
 		dynmem->num_alloc = 0;
-		dynmem->num_freed = 0;
 		old_dynmem = dynmem;
 	}
 	return 0;
