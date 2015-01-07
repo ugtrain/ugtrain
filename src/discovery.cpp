@@ -350,28 +350,30 @@ void run_stage1234_loop (void *argp)
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str, cmd_str;
-	char *iptr, *main_part;
-	i32 i, ret, ioffs = 0;
+	char *pos, *disc_part;
+	char stage;
+	i32 i, ret;
 	list<CfgEntry>::iterator it;
 	ptr_t heap_soffs = 0, heap_eoffs = 0;
 	ptr_t bt_saddr = 0, bt_eaddr = 0, code_addr = 0;
 	ulong mem_size;
 	char pbuf[PIPE_BUF] = { 0 };
-	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	bool use_gbt = false;
 
 	if (!opt->disc_str)
 		return 0;
 
 	if (opt->disc_str[0] == 'p') {
-		iptr = strstr(opt->disc_str, ";;");
-		if (!iptr)
+		disc_part = opt->disc_str + 1;
+		pos = strstr(disc_part, ";;");
+		if (!pos)
 			goto err;
-		opt->disc_offs = iptr - opt->disc_str + 2;
+		opt->disc_offs = pos - opt->disc_str + 2;
 	}
 
-	main_part = opt->disc_str + opt->disc_offs;
-	switch (main_part[0]) {
+	disc_part = opt->disc_str + opt->disc_offs;
+	stage = disc_part[0];
+	switch (stage) {
 	case '0':
 		// just get stack end and heap start
 		opt->disc_str = (char *) "0";
@@ -380,17 +382,16 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	case '1':
 		// fall through
 	case '2':
-		if (strlen(main_part) == 1) {
+		disc_part++;
+		if (disc_part[0] == '\0') {
 			disc_str = opt->disc_str;
 			disc_str += ";0x0;0x0;0";
 			opt->disc_str = to_c_str(&disc_str);
 		} else {
-			ret = sscanf(&main_part[1] + ioffs, ";" SCN_PTR ";"
-				SCN_PTR ";%lu;", &heap_soffs, &heap_eoffs,
-				&mem_size);
-			if (ret == 0 && main_part[0] == '2') {
-				ret = sscanf(&main_part[1] + ioffs, ";%lu;",
-					&mem_size);
+			ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;",
+				&heap_soffs, &heap_eoffs, &mem_size);
+			if (ret == 0 && stage == '2') {
+				ret = sscanf(disc_part, ";%lu;", &mem_size);
 				if (ret == 1)
 					ret += 2;
 			}
@@ -404,30 +405,30 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '3':
-		ret = sscanf(&main_part[1], ";%3s;", gbt_buf);
-		if (ret == 1 &&
-		    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
+		ret = strncmp(&disc_part[1], ";" GBT_CMD ";",
+			sizeof(GBT_CMD) + 1);
+		if (ret == 0) {
 			use_gbt = true;
-			ioffs = sizeof(GBT_CMD);
+			disc_part += sizeof(GBT_CMD);
 		}
 		// fall through
 	case '4':
-		ret = sscanf(&main_part[1] + ioffs, ";" SCN_PTR ";" SCN_PTR
-			     ";%lu;" SCN_PTR ";" SCN_PTR ";" SCN_PTR,
-			     &heap_soffs, &heap_eoffs, &mem_size, &bt_saddr,
-			     &bt_eaddr, &code_addr);
+		disc_part++;
+		ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;" SCN_PTR
+			     ";" SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
+			     &mem_size, &bt_saddr, &bt_eaddr, &code_addr);
 		if (ret == 0) {
-			ret = sscanf(&main_part[1] + ioffs, ";%lu;" SCN_PTR ";"
-				     SCN_PTR ";" SCN_PTR, &mem_size, &bt_saddr,
-				     &bt_eaddr, &code_addr);
+			ret = sscanf(disc_part, ";%lu;" SCN_PTR ";" SCN_PTR ";"
+				     SCN_PTR, &mem_size, &bt_saddr, &bt_eaddr,
+				     &code_addr);
 			if (ret >= 1)
 				ret += 2;
 		}
 		opt->code_addr = code_addr;
 		if (ret < 3) {
 			cerr << "Error: Not enough arguments for discovery "
-				"stage " << main_part[0] << "!" << endl;
-			cerr << "Use at least \'" << main_part[0]
+				"stage " << stage << "!" << endl;
+			cerr << "Use at least \'" << stage
 			     << ";<size>\'" << endl;
 			goto err;
 		}
@@ -450,7 +451,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			if (sscanf(pbuf, SCN_PTR "\n" SCN_PTR, &bt_saddr, &bt_eaddr) != 2) {
 				goto err;
 			} else {
-				main_part[1] = '\0';
+				opt->disc_str[opt->disc_offs + 1] = '\0';
 				disc_str = opt->disc_str;
 				if (use_gbt)
 					disc_str += ";" GBT_CMD ";0x";
