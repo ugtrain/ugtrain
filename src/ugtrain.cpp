@@ -936,7 +936,7 @@ prepare_dynmem:
 			return 0;
 		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
 			struct disc_loop_pp dpp = { ifd, opt };
-			if (opt->disc_str[0] >= '3')
+			if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
 				handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 			worker_pid = fork_proc(run_stage1234_loop, &dpp);
 			if (opt->scanmem_pid > 0) {

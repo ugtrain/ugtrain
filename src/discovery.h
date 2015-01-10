@@ -114,7 +114,7 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 		return;
 	if (opt->disc_str) {
 		osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-			PRI_PTR "\n", exe_offs);
+			PRI_PTR ";" PRI_PTR "\n", exe_offs, exe_offs);
 	} else {
 		list_for_each (cfg, cfg_it) {
 			if (!cfg_it->dynmem || cfg_it->dynmem == old_dynmem)

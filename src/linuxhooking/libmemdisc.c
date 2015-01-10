@@ -451,21 +451,37 @@ void __attribute ((constructor)) memdisc_init (void)
 		bt_eaddr = UINTPTR_MAX;
 
 	/* Read new backtrace filter config (might be PIC/PIE) */
-	if (stage >= 3) {
-		ptr_t code_offs = 0;
+	if (stage >= 3 || ptr_cfg.code_addr != 0) {
+		ptr_t code_offs[2] = { 0 };
+		i32 ret;
 		fprintf(ofile, "ready\n");
 		fflush(ofile);
 		if (read_input(ibuf, sizeof(ibuf)) != 0) {
-			pr_err("Couldn't read code offset!\n");
+			pr_err("Couldn't read code offsets!\n");
 		} else {
-			if (sscanf(ibuf, SCN_PTR, &code_offs) < 1)
+			ret = sscanf(ibuf, SCN_PTR ";" SCN_PTR, &code_offs[0],
+				&code_offs[1]);
+			if (ret < 2)
 				pr_err("Code offset parsing error!\n");
-			if (bt_saddr <= UINTPTR_MAX - code_offs && bt_saddr)
-				bt_saddr += code_offs;
-			if (bt_eaddr <= UINTPTR_MAX - code_offs)
-				bt_eaddr += code_offs;
-			if (code_addr && code_addr <= UINTPTR_MAX - code_offs)
-				code_addr += code_offs;
+			/* pointer to heap obj. discovery PIE handling */
+			if (ptr_cfg.code_addr &&
+			    ptr_cfg.code_addr <= UINTPTR_MAX - code_offs[0]) {
+				ptr_cfg.code_addr += code_offs[0];
+				pr_dbg("new ptr cfg code addr: " PRI_PTR "\n",
+					ptr_cfg.code_addr);
+			} else if (ptr_cfg.ptr_offs &&
+			    ptr_cfg.ptr_offs <= UINTPTR_MAX - code_offs[0]) {
+				ptr_cfg.ptr_offs += code_offs[0];
+				pr_dbg("new ptr cfg ptr addr: " PRI_PTR "\n",
+					ptr_cfg.ptr_offs);
+			}
+			/* stage >= 3 PIE handling */
+			if (bt_saddr <= UINTPTR_MAX - code_offs[1] && bt_saddr)
+				bt_saddr += code_offs[1];
+			if (bt_eaddr <= UINTPTR_MAX - code_offs[1])
+				bt_eaddr += code_offs[1];
+			if (code_addr && code_addr <= UINTPTR_MAX - code_offs[1])
+				code_addr += code_offs[1];
 		}
 	}
 	pr_dbg("new cfg: %d;" PRI_PTR ";" PRI_PTR ";%zd;"
