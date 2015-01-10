@@ -515,7 +515,7 @@ static void get_ptr_to_heap (size_t size, ptr_t mem_addr, ptr_t ffp,
 		if (size == ptr_cfg.mem_size) {
 			stack_addr = ffp + ptr_cfg.stack_offs;
 			if (stack_addr <= stack_end - sizeof(ptr_t) &&
-			    stack_addr == ptr_cfg.code_addr)
+			    *(ptr_t *) stack_addr == ptr_cfg.code_addr)
 				ptr_cfg.mem_addr = mem_addr;
 		}
 		if (ptr_cfg.mem_addr) {
