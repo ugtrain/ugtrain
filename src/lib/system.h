@@ -21,6 +21,7 @@
 #ifdef __linux__
 #include <sys/wait.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #else
 #include <windows.h>
 #endif
@@ -64,6 +65,12 @@ static inline pid_t run_cmd (const char *cmd, char *const cmdv[])
 }
 
 #ifdef __linux__
+static inline bool file_exists (const char *path)
+{
+	struct stat buf;
+	return !(stat(path, &buf));
+}
+
 static inline i32 rm_file (const char *path)
 {
 	return unlink(path);
@@ -117,8 +124,14 @@ static inline void kill_proc (pid_t pid)
 
 #else
 
+static inline bool file_exists (const char *path)
+{
+	return false;
+}
+
 static inline i32 rm_file (const char *path)
 {
+	return -1;
 }
 
 static inline void sleep_sec (u32 sec)
