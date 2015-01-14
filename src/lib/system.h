@@ -76,6 +76,16 @@ static inline i32 rm_file (const char *path)
 	return unlink(path);
 }
 
+static inline i32 rm_files_by_pattern (char *pattern)
+{
+	const char *cmd = "rm";
+	char *cmdv[4] = { (char *) "rm", (char *) "-f", pattern, NULL };
+	if (run_cmd(cmd, cmdv) < 0)
+		return -1;
+	else
+		return 0;
+}
+
 static inline void sleep_sec (u32 sec)
 {
 	sleep(sec);
@@ -130,6 +140,11 @@ static inline bool file_exists (const char *path)
 }
 
 static inline i32 rm_file (const char *path)
+{
+	return -1;
+}
+
+static inline i32 rm_files_by_pattern (char *pattern)
 {
 	return -1;
 }
