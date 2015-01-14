@@ -39,7 +39,8 @@
 #include <discovery.h>
 #include <fifoparser.h>
 
-#define DISASM_FILE "/tmp/memhack_disasm"
+#define DASM_DIR "/tmp/"
+#define DASM_SUF "_dasm"
 #define MAX_BT 11
 #define DISC_DEBUG 0
 
@@ -100,11 +101,90 @@ out_wb:
 	return DISC_OKAY;
 }
 
+// read a text file with a disassembly included and
+// search for a library function call in front of the code address
+static inline ssize_t code_addr_to_func_name (ptr_t code_addr,
+					      string *dasm_fpath,
+					      char *pbuf,
+					      size_t buf_size)
+{
+	string cmd_str;
+	ssize_t rbytes;
+
+	cmd_str = "cat ";
+	cmd_str += *dasm_fpath;
+	cmd_str += " | grep -B 1 -e \"^[ ]\\+";
+	cmd_str += to_xstring(code_addr);
+	cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
+		   "| grep -o -e \"<.*@plt>\"";
+#if (DISC_DEBUG)
+	cout << "$ " << cmd_str << endl;
+#endif
+	rbytes = run_cmd_pipe(cmd_str.c_str(), NULL, pbuf, buf_size);
+	if (rbytes > 0) {
+		// remove trailing new line
+		if (pbuf[rbytes - 1] == '\n')
+			pbuf[rbytes - 1] = '\0';
+	}
+	return rbytes;
+}
+
+// disassemble a binary file and store the text output in another file
+static inline i32 disassemble_file (string *ipath, string *opath)
+{
+	string cmd_str;
+	i32 ret;
+
+	cmd_str = "objdump -D ";
+	cmd_str += *ipath;
+	cmd_str += " > ";
+	cmd_str += *opath;
+#if (DISC_DEBUG)
+	cout << "$ " << cmd_str << endl;
+#endif
+	ret = run_cmd(cmd_str.c_str(), NULL);
+	if (ret > 0)
+		ret = 0;
+	return ret;
+}
+
+// get the region name, its file path and subtract the load address
+static inline i32 code_addr_to_region (ptr_t *code_addr,
+				       list<struct region> *rlist,
+				       string *bin_path,
+				       string *bin_name,
+				       ptr_t exe_offs)
+{
+	list<struct region>::iterator it;
+	i32 ret = -1;
+
+	list_for_each (rlist, it) {
+		string *fpath = it->filename;
+		size_t pos;
+
+		if (!it->flags.exec || it->start + it->size < *code_addr ||
+		    fpath->empty() || fpath->at(0) != '/')
+			continue;
+		if (it->start > *code_addr)
+			break;
+		*bin_path = *fpath;
+		pos = bin_path->find_last_of('/');
+		*bin_name = bin_path->substr(pos + 1);
+		if (it->type == REGION_TYPE_EXE)
+			*code_addr -= exe_offs;
+		else
+			*code_addr -= it->load_addr;
+		ret = 0;
+		break;
+	}
+	return ret;
+}
+
 // parameter for process_disc1234_malloc()
 struct disc_pp {
 	ptr_t in_addr;
 	struct app_options *opt;
-	bool do_disasm;
+	list<struct region> *rlist;
 };
 
 // mf() callback for read_dynmem_buf()
@@ -113,15 +193,12 @@ static void process_disc1234_malloc (MF_PARAMS)
 	struct disc_pp *dpp = (struct disc_pp *) pp->argp;
 	ptr_t in_addr = dpp->in_addr;
 	struct app_options *opt = dpp->opt;
+	list<struct region> *rlist = dpp->rlist;
 	char stage = opt->disc_str[0];
-	bool *do_disasm = &dpp->do_disasm;
 	ptr_t codes[MAX_BT] = { 0 };
 	ptr_t soffs[MAX_BT] = { 0 };
 	char *sep_pos;
 	i32 i, ret, num_codes = 0;
-	string cmd_str, tmp_str;
-	char pbuf[PIPE_BUF] = { 0 };
-	ssize_t rbytes = 0;
 
 	if (in_addr >= mem_addr &&
 	    in_addr < mem_addr + mem_size) {
@@ -149,7 +226,6 @@ static void process_disc1234_malloc (MF_PARAMS)
 				     &codes[i], &soffs[i]);
 			if (ret >= 1) {
 				num_codes++;
-				codes[i] = codes[i] - opt->code_offs;
 
 				sep_pos = strchr(pp->ibuf + pp->ppos, ';');
 				if (!sep_pos)
@@ -167,45 +243,30 @@ static void process_disc1234_malloc (MF_PARAMS)
 		}
 
 		/* stage 3 and 4 post-processing */
-		// get disassembly only once
-		if (*do_disasm && opt->have_objdump) {
-			cmd_str = "objdump -D ";
-			cmd_str += opt->game_binpath;
-			cmd_str += " > " DISASM_FILE;
-#if (DISC_DEBUG)
-			cout << "$ " << cmd_str << endl;
-#endif
-			ret = run_cmd(cmd_str.c_str(), NULL);
-			if (ret < 0)
-				return;
-			*do_disasm = false;
-		}
 		for (i = 0; i < num_codes; i++) {
-			if (!opt->have_objdump)
-				goto skip_lookup;
-			// get the function call from disassembly
-			tmp_str = to_xstring(codes[i]);
-
-			cmd_str = "cat " DISASM_FILE " | grep -B 1 -e \"^[ ]\\+";
-			cmd_str += tmp_str;
-			cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
-				   "| grep -o -e \"<.*@plt>\"";
-#if (DISC_DEBUG)
-			cout << "$ " << cmd_str << endl;
-#endif
-			rbytes = run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
-					      sizeof(pbuf));
-			if (rbytes > 0) {
-				// remove trailing new line
-				if (pbuf[rbytes - 1] == '\n')
-					pbuf[rbytes - 1] = '\0';
+			string bin_path, bin_name;
+			char pbuf[PIPE_BUF] = { 0 };
+			ssize_t rbytes = 0;
+			// get the region name and subtract the load address
+			ret = code_addr_to_region(&codes[i], rlist,
+				&bin_path, &bin_name, opt->code_offs);
+			if (ret == 0 && opt->have_objdump) {
+				// get the function call from disassembly
+				string dasm_fpath;
+				dasm_fpath = DASM_DIR;
+				dasm_fpath += bin_name;
+				dasm_fpath += DASM_SUF;
+				// get disassembly only once
+				if (!file_exists(dasm_fpath.c_str()))
+					disassemble_file(&bin_path, &dasm_fpath);
+				rbytes = code_addr_to_func_name(codes[i],
+					&dasm_fpath, pbuf, sizeof(pbuf));
 			}
-skip_lookup:
 			// output one call from backtrace
 			cout << "c0x" << hex << codes[i];
 			if (stage == '4')
 				cout << ";o0x" << hex << soffs[i] << dec;
-			cout << " " << pbuf << endl;
+			cout << " " << bin_name << " " << pbuf << endl;
 
 			// cleanup pipe buffer
 			if (rbytes > 0)
@@ -214,7 +275,13 @@ skip_lookup:
 	}
 }
 
-static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
+static inline void rm_dasm_files (void)
+{
+	rm_files_by_pattern((char *) DASM_DIR "*" DASM_SUF);
+}
+
+static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
+			       list<struct region> *rlist)
 {
 	i32 ifd, pmask = PARSE_M | PARSE_S;
 	ptr_t mem_addr;
@@ -240,14 +307,15 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 
 	dpp.in_addr = mem_addr;
 	dpp.opt = opt;
-	dpp.do_disasm = true;
+	dpp.rlist = rlist;
 
+	rm_dasm_files();
 	while (true) {
 		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
 		    opt->code_offs, process_disc1234_malloc, NULL) < 0)
 			break;
 	}
-	rm_file(DISASM_FILE);
+	rm_dasm_files();
 
 	if (prepare_getch() != 0) {
 		cerr << "Error while terminal preparation!" << endl;
@@ -258,10 +326,10 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg)
 }
 
 i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
-			vector<string> *lines)
+			list<struct region> *rlist, vector<string> *lines)
 {
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
-		return postproc_stage1234(opt, cfg);
+		return postproc_stage1234(opt, cfg, rlist);
 	if (opt->disc_str[0] != '5')
 		return -1;
 	return postproc_stage5(opt, cfg, lines);

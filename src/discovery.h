@@ -46,7 +46,7 @@ void run_stage1234_loop (void *argp);
 void run_stage5_loop    (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
 			 ptr_t code_offs);
 i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
-			 vector<string> *lines);
+			 list<struct region> *rlist, vector<string> *lines);
 
 /* Some Linux distributions use the GCC options -pie and -fPIE
    by default for hardened security. Together with ASLR, the binary

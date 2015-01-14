@@ -957,7 +957,7 @@ prepare_dynmem:
 					opt->code_offs);
 		}
 		//list_regions(&rlist);
-		ret = postproc_discovery(opt, cfg, lines);
+		ret = postproc_discovery(opt, cfg, &rlist, lines);
 		switch (ret) {
 		case DISC_NEXT:
 			goto discover_next;
