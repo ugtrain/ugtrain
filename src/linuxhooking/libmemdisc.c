@@ -174,27 +174,6 @@ static inline i32 read_input (char ibuf[], size_t size)
 	return ret;
 }
 
-/* clean up upon library unload */
-void __attribute ((destructor)) memdisc_exit (void)
-{
-	if (ifd >= 0) {
-		close(ifd);
-		ifd = -1;
-	}
-	if (ofile) {
-		fflush(ofile);
-		fclose(ofile);
-		ofile = NULL;
-	}
-#if USE_DEBUG_LOG
-	if (DBG_FILE_VAR) {
-		fflush(DBG_FILE_VAR);
-		fclose(DBG_FILE_VAR);
-		DBG_FILE_VAR = NULL;
-	}
-#endif
-}
-
 /* prepare memory discovery upon library load */
 void __attribute ((constructor)) memdisc_init (void)
 {
@@ -505,12 +484,10 @@ out:
 	return;
 read_err:
 	pr_err("Can't read config, disabling output.\n");
-	memdisc_exit();
 	return;
 parse_err:
 	pr_err("Error while discovery input parsing! Ignored.\n");
 stage_unknown:
-	memdisc_exit();
 	return;
 }
 
