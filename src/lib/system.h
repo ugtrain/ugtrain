@@ -18,6 +18,7 @@
 #define SYSTEM_H
 
 #include <unistd.h>
+#include <stdio.h>
 #ifdef __linux__
 #include <sys/wait.h>
 #include <sys/select.h>
@@ -78,9 +79,11 @@ static inline i32 rm_file (const char *path)
 
 static inline i32 rm_files_by_pattern (char *pattern)
 {
-	const char *cmd = "rm";
-	char *cmdv[4] = { (char *) "rm", (char *) "-f", pattern, NULL };
-	if (run_cmd(cmd, cmdv) < 0)
+	char cmd_str[PIPE_BUF] = { 0 };
+
+	/* using the shell is required */
+	snprintf(cmd_str, PIPE_BUF - 1, "rm -f %s", pattern);
+	if (run_cmd(cmd_str, NULL) < 0)
 		return -1;
 	else
 		return 0;
