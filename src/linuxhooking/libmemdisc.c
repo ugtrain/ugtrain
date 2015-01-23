@@ -52,8 +52,9 @@
 #define HOOK_G_SLICE_ALLOC0 1
 #define HOOK_G_SLICE_FREE1 1
 #define BUF_SIZE PIPE_BUF
-#define DYNMEM_IN  "/tmp/memhack_in"
-#define DYNMEM_OUT "/tmp/memhack_out"
+#define DYNMEM_IN   "/tmp/memhack_in"
+#define DYNMEM_OUT  "/tmp/memhack_out"
+#define MEMDISC_OUT "/tmp/memdisc_out"
 //#define WRITE_UNCACHED 1
 #define MAX_BT 11		/* for reverse stack search only */
 
@@ -75,7 +76,7 @@
 static __thread bool no_hook = false;
 
 /* File descriptors and output buffer */
-static i32 ifd = -1;
+static i32 ifd = -1, ofd = -1;
 static FILE *ofile = NULL;  /* much data - we need caching */
 
 /* Output control */
@@ -260,11 +261,21 @@ void __attribute ((constructor)) memdisc_init (void)
 	if (ofile)
 		goto out;
 	pr_out("Waiting for output FIFO opener..\n");
-	ofile = fopen(DYNMEM_OUT, "w");
+	ofile = fopen(MEMDISC_OUT, "w");
 	if (!ofile) {
-		perror(PFX "fopen output");
+		perror(PFX "fopen discovery output");
 		exit(1);
 	}
+
+	if (ofd >= 0)
+		goto out;
+	ofd = open(DYNMEM_OUT, O_WRONLY);
+	if (ofd < 0) {
+		perror(PFX "open output");
+		exit(1);
+	}
+	pr_dbg("ofd: %d\n", ifd);
+
 	atexit(flush_output);
 	pr_dbg("ofile: %p\n", ofile);
 
@@ -454,8 +465,14 @@ void __attribute ((constructor)) memdisc_init (void)
 	if (stage >= 3 || ptr_cfg.code_addr != 0) {
 		ptr_t code_offs[2] = { 0 };
 		i32 ret;
-		fprintf(ofile, "ready\n");
-		fflush(ofile);
+		ssize_t wbytes;
+#define NOTIFY_STR "ready\n"
+		wbytes = write(ofd, NOTIFY_STR, sizeof(NOTIFY_STR));
+		if (wbytes != sizeof(NOTIFY_STR)) {
+			pr_err("PIE handling: Can't write notification.\n");
+			goto out;
+		}
+#undef NOTIFY_STR
 		if (read_input(ibuf, sizeof(ibuf)) != 0) {
 			pr_err("Couldn't read code offsets!\n");
 		} else {

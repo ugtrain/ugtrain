@@ -57,6 +57,7 @@
 #define HOME_VAR   "HOME"
 #define DYNMEM_IN  "/tmp/memhack_out"
 #define DYNMEM_OUT "/tmp/memhack_in"
+#define MEMDISC_IN "/tmp/memdisc_out"
 
 
 static inline void memattach_err_once (pid_t pid)
@@ -640,7 +641,7 @@ static pid_t run_preloader (struct app_options *opt)
 
 /* returns: 0: success, 1: error, 2: pure static memory detected */
 static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
-			   i32 *ifd, i32 *ofd, pid_t *pid)
+			   i32 *ifd, i32 *ofd, i32 *dfd, pid_t *pid)
 {
 	char obuf[PIPE_BUF] = { 0 };
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
@@ -656,7 +657,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 				opt->disc_str);
 		if (pos + 2 > sizeof(obuf)) {
 			fprintf(stderr, "Buffer overflow\n");
-			return 1;
+			goto err;
 		}
 		obuf[pos++] = '\n';  // add cfg end
 		obuf[pos++] = '\0';
@@ -700,7 +701,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 	pos += num_cfg_len;
 	if (pos + num_cfg_len + 2 > sizeof(obuf)) {
 		fprintf(stderr, "Buffer overflow\n");
-		return 1;
+		goto err;
 	}
 	memmove(obuf + num_cfg_len, obuf, pos);  // shift str in buffer right
 	memmove(obuf, obuf + pos, num_cfg_len);  // move the number of cfgs to the front
@@ -715,73 +716,91 @@ skip_memhack:
 	// Remove debug log
 	if (unlink(DBG_FILE_NAME) && errno != ENOENT) {
 		perror("unlink debug file");
-		return 1;
+		goto err;
 	}
 
 	// Remove FIFOs first for empty FIFOs
 	if ((unlink(DYNMEM_IN) && errno != ENOENT) ||
-	    (unlink(DYNMEM_OUT) && errno != ENOENT)) {
+	    (unlink(DYNMEM_OUT) && errno != ENOENT) ||
+	    (unlink(MEMDISC_IN) && errno != ENOENT)) {
 		perror("unlink FIFO");
-		return 1;
+		goto err;
 	}
-
 	// Set up and open FIFOs
 	if (mkfifo(DYNMEM_IN, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
 		perror("input mkfifo");
-		return 1;
+		goto err;
 	}
 	// security in Ubuntu: mkfifo ignores mode
 	if (chmod(DYNMEM_IN, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
 		perror("input chmod");
-		return 1;
+		goto err;
 	}
-
 	if (mkfifo(DYNMEM_OUT, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
 		perror("output mkfifo");
-		return 1;
+		goto err;
 	}
 	// security in Ubuntu: mkfifo ignores mode
 	if (chmod(DYNMEM_OUT, S_IRUSR | S_IWUSR |
 	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
 		perror("output chmod");
-		return 1;
+		goto err;
 	}
-
+	if (opt->disc_str) {
+		if (mkfifo(MEMDISC_IN, S_IRUSR | S_IWUSR |
+		    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 &&
+		    errno != EEXIST) {
+			perror("output mkfifo");
+			goto err;
+		}
+		// security in Ubuntu: mkfifo ignores mode
+		if (chmod(MEMDISC_IN, S_IRUSR | S_IWUSR |
+		    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
+			perror("output chmod");
+			goto err;
+		}
+		*dfd = open(MEMDISC_IN, O_RDONLY | O_NONBLOCK);
+		if (*dfd < 0) {
+			perror("open dfd");
+			goto err;
+		}
+	}
 	*ifd = open(DYNMEM_IN, O_RDONLY | O_NONBLOCK);
 	if (*ifd < 0) {
 		perror("open ifd");
-		return 1;
+		goto err;
 	}
 
-	// Run the preloaded game but not as root
+	// Run the game with a lib preloaded but not as root
 	if (opt->preload_lib && getuid() != 0) {
 		cout << "Starting game with " << opt->preload_lib
 		     << " preloaded.." << endl;
 		*pid = run_preloader(opt);
 		if (*pid <= 0)
-			return 1;
+			goto err;
 	} else {
-		return 1;
+		goto err;
 	}
-
 	cout << "Waiting for preloaded library.." << endl;
 	*ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (*ofd < 0) {
 		perror("open ofd");
-		return 1;
+		goto err;
 	}
 
 	// Write dynmem cfg to output FIFO
 	written = write(*ofd, obuf, pos);
 	if (written < pos) {
 		perror("FIFO write");
-		return 1;
+		goto err;
 	}
 #endif
 	return 0;
+err:
+	return 1;
 }
 
 static inline bool tool_is_available (char *name)
@@ -813,7 +832,7 @@ i32 main (i32 argc, char **argv, char **env)
 	char def_home[] = "~";
 	i32 ret, pmask = PARSE_M | PARSE_S | PARSE_C;
 	char ch;
-	i32 ifd = -1, ofd = -1;
+	i32 ifd = -1, ofd = -1, dfd = -1;
 	bool allow_empty_cfg = false;
 	enum pstate pstate;
 	list<struct region> rlist;
@@ -892,7 +911,7 @@ discover_next:
 		return -1;
 
 prepare_dynmem:
-	ret = prepare_dynmem(opt, cfg, &ifd, &ofd, &call_pid);
+	ret = prepare_dynmem(opt, cfg, &ifd, &ofd, &dfd, &call_pid);
 	if (ret == 2) {
 		opt->pure_statmem = true;
 	} else if (ret != 0) {
@@ -935,7 +954,7 @@ prepare_dynmem:
 			}
 			return 0;
 		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
-			struct disc_loop_pp dpp = { ifd, opt };
+			struct disc_loop_pp dpp = { dfd, opt };
 			if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
 				handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 			worker_pid = fork_proc(run_stage1234_loop, &dpp);
@@ -953,7 +972,7 @@ prepare_dynmem:
 				return -1;
 		} else if (opt->disc_str[0] == '5') {
 			handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
-			run_stage5_loop(cfg, ifd, pmask, call_pid,
+			run_stage5_loop(cfg, dfd, pmask, call_pid,
 					opt->code_offs);
 		}
 		//list_regions(&rlist);
