@@ -606,7 +606,7 @@ static void dump_stack_raw (ptr_t ffp) {}
  *
  * We expect the first frame pointer to be (32/64 bit) memory aligned here.
  */
-static bool find_code_addresses (ptr_t ffp, char *obuf, i32 *obuf_offs)
+static inline bool find_code_addresses (ptr_t ffp, char *obuf, i32 *obuf_offs)
 {
 	ptr_t offs, code_addr_os;  /* stack offset and code address on stack */
 	i32 i = 0;
@@ -655,7 +655,7 @@ static bool find_code_addresses (ptr_t ffp, char *obuf, i32 *obuf_offs)
 }
 
 /* ATTENTION: GNU backtrace() might crash with SIGSEGV! */
-static bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
+static inline bool run_gnu_backtrace (char *obuf, i32 *obuf_offs)
 {
 	bool found = false;
 	void *trace[MAX_GNUBT] = { NULL };
@@ -703,6 +703,13 @@ static inline void write_obuf (char obuf[])
 	funlockfile(ofile);
 }
 
+/*
+ * "inline" is not really enough here. We don't want to see this function in
+ * backtrace output. With the reverse stack search there is no issue as the
+ * first frame pointer is determined before coming here. But the unpreferred
+ * GNU backtrace() method is affected. Use "__attribute__((always_inline))"
+ * if this bugs you.
+ */
 static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 {
 	i32 wbytes;
