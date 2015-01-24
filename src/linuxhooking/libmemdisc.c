@@ -26,6 +26,7 @@
 #include <stdio.h>      /* printf */
 #include <stdlib.h>     /* malloc */
 #include <string.h>
+#include <libgen.h>     /* basename */
 #include <fcntl.h>
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
@@ -51,6 +52,8 @@
 #define HOOK_G_SLICE_ALLOC 1
 #define HOOK_G_SLICE_ALLOC0 1
 #define HOOK_G_SLICE_FREE1 1
+/* PIC hook */
+#define HOOK_DLOPEN 1
 #define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN   "/tmp/memhack_in"
 #define DYNMEM_OUT  "/tmp/memhack_out"
@@ -1120,3 +1123,47 @@ void g_slice_free1 (gsize block_size, gpointer mem_block)
 #endif
 
 #endif /* HAVE_GLIB */
+
+static inline void postprocess_dlopen (const char *lib_path)
+{
+	i32 wbytes;
+	char obuf[BUF_SIZE + 1] = { 0 };
+
+	if (!active)
+		return;
+
+	wbytes = snprintf(obuf, BUF_SIZE, "l;%s\n",
+		basename((char *) lib_path));
+	if (wbytes < 0) {
+		perror(PFX "snprintf");
+		return;
+	}
+#if DEBUG_MEM
+	pr_out("%s", obuf);
+#endif
+	wbytes = write(ofd, obuf, wbytes);
+	if (wbytes < 0)
+		perror("write");
+}
+
+#ifdef HOOK_DLOPEN
+void *dlopen (const char *filename, int flag)
+{
+	void *handle;
+	static void *(*orig_dlopen)(const char *filename, int flag) = NULL;
+
+	if (no_hook)
+		return orig_dlopen(filename, flag);
+
+	no_hook = true;
+	/* get the libdl dlopen function */
+	if (!orig_dlopen)
+		*(void **) (&orig_dlopen) = dlsym(RTLD_NEXT, "dlopen");
+
+	handle = orig_dlopen(filename, flag);
+	postprocess_dlopen(filename);
+	no_hook = false;
+
+	return handle;
+}
+#endif
