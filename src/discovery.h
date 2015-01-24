@@ -94,7 +94,7 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 
 	if (!opt->pure_statmem) {
 		while (true) {
-			sleep_sec_unless_input(1, ifd, -1);
+			sleep_sec_unless_input(1, ifd);
 			rbytes = read(ifd, buf, sizeof(buf));
 			if (rbytes == 0 ||
 			    (rbytes < 0 && errno == EAGAIN))

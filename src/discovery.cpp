@@ -368,7 +368,7 @@ void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
 {
 	enum pstate pstate;
 	while (true) {
-		sleep_sec_unless_input(1, ifd, -1);
+		sleep_sec_unless_input(1, ifd);
 		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, code_offs,
 				process_disc5_output, NULL);
 		pstate = check_process(pid, NULL);
@@ -399,7 +399,7 @@ void run_stage1234_loop (void *argp)
 	}
 
 	while (true) {
-		sleep_sec_unless_input(1, ifd, -1);
+		sleep_sec_unless_input(1, ifd);
 		rbytes = read(ifd, buf, sizeof(buf));
 		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN))
 			continue;

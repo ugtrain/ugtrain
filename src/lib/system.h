@@ -100,12 +100,31 @@ static inline void sleep_msec (u32 msec)
 }
 
 /*
+ * sleep given seconds count unless there is input on given fd
+ *
+ * Not using va_list to keep this inline. Assumption: fd is valid.
+ */
+static inline void sleep_sec_unless_input (u32 sec, i32 fd)
+{
+	fd_set fs;
+	struct timeval tv;
+	i32 nfds = fd + 1;
+
+	FD_ZERO(&fs);
+	tv.tv_sec = sec;
+	tv.tv_usec = 0;
+
+	FD_SET(fd, &fs);
+
+	select(nfds, &fs, NULL, NULL, &tv);
+}
+
+/*
  * sleep given seconds count unless there is input on given fds
  *
- * Not using va_list to keep this inline. Two fds is the maximum.
- * Use -1 for the second fd if it's not required.
+ * Not using va_list to keep this inline. Assumption: fds are valid.
  */
-static inline void sleep_sec_unless_input (u32 sec, i32 fd1, i32 fd2)
+static inline void sleep_sec_unless_input2 (u32 sec, i32 fd1, i32 fd2)
 {
 	fd_set fs;
 	struct timeval tv;
@@ -115,10 +134,8 @@ static inline void sleep_sec_unless_input (u32 sec, i32 fd1, i32 fd2)
 	tv.tv_sec = sec;
 	tv.tv_usec = 0;
 
-	if (fd1 >= 0)
-		FD_SET(fd1, &fs);
-	if (fd2 >= 0)
-		FD_SET(fd2, &fs);
+	FD_SET(fd1, &fs);
+	FD_SET(fd2, &fs);
 
 	select(nfds, &fs, NULL, NULL, &tv);
 }
@@ -165,7 +182,11 @@ static inline void sleep_msec (u32 msec)
 #ifndef STDIN_FILENO
 #define STDIN_FILENO -1
 #endif
-static inline void sleep_sec_unless_input (u32 sec, i32 fd1, i32 fd2)
+static inline void sleep_sec_unless_input (u32 sec, i32 fd)
+{
+	sleep_sec(sec);
+}
+static inline void sleep_sec_unless_input2 (u32 sec, i32 fd1, i32 fd2)
 {
 	sleep_sec(sec);
 }

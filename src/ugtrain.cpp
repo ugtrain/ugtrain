@@ -1011,7 +1011,7 @@ prepare_dynmem:
 	handle_statmem_pie(opt->code_offs, cfg);
 
 	while (true) {
-		sleep_sec_unless_input(1, ifd, STDIN_FILENO);
+		sleep_sec_unless_input2(1, ifd, STDIN_FILENO);
 		ch = do_getch();
 		if (ch >= 0 && ch < CFGP_MAP_SIZE)
 			handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
