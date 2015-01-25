@@ -283,9 +283,10 @@ static inline void rm_dasm_files (void)
 static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
 			       list<struct region> *rlist)
 {
-	i32 ifd, pmask = PARSE_M | PARSE_S;
+	i32 ifd, pmask = PARSE_S;
 	ptr_t mem_addr;
 	struct disc_pp dpp;
+	struct parse_cb pcb = { NULL };
 
 	ifd = open(opt->dynmem_file, O_RDONLY);
 	if (ifd < 0) {
@@ -309,10 +310,12 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
 	dpp.opt = opt;
 	dpp.rlist = rlist;
 
+	pcb.mf = process_disc1234_malloc;
+
 	rm_dasm_files();
 	while (true) {
 		if (read_dynmem_buf(cfg, &dpp, ifd, pmask, true,
-		    opt->code_offs, process_disc1234_malloc, NULL) < 0)
+		    opt->code_offs, &pcb) < 0)
 			break;
 	}
 	rm_dasm_files();
@@ -363,14 +366,19 @@ out:
 	return;
 }
 
-void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 pmask, pid_t pid,
-		      ptr_t code_offs)
+void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 dfd, i32 pmask,
+		      pid_t pid, ptr_t code_offs)
 {
 	enum pstate pstate;
+	struct parse_cb pcb = { NULL };
+
+	pcb.mf = process_disc5_output;
+
 	while (true) {
-		sleep_sec_unless_input(1, ifd);
-		read_dynmem_buf(cfg, NULL, ifd, pmask, 0, code_offs,
-				process_disc5_output, NULL);
+		sleep_sec_unless_input2(1, ifd, dfd);
+		read_dynmem_buf(cfg, NULL, dfd, pmask, 0, code_offs, &pcb);
+		// just make the FIFO empty - do nothing else for now
+		read_dynmem_buf(NULL, NULL, ifd, 0, 0, 0, NULL);
 		pstate = check_process(pid, NULL);
 		if (pstate == PROC_DEAD || pstate == PROC_ZOMBIE)
 			break;

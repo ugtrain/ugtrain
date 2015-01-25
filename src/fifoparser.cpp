@@ -27,8 +27,7 @@
 
 
 ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
-			 bool reverse, ptr_t code_offs, void (*mf)(MF_PARAMS),
-			 void (*ff)(FF_PARAMS))
+			 bool reverse, ptr_t code_offs, struct parse_cb *pcb)
 {
 	ptr_t mem_addr = 0, code_addr = 0, stack_offs = 0;
 	static ptr_t heap_start = 0;
@@ -37,6 +36,7 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 	ssize_t tmp_ilen, ppos = 0;
 	static char ibuf[PIPE_BUF] = { 0 };
 	char *msg_start = ibuf, *msg_end = ibuf, *sep_pos = ibuf;
+	char *lib_name = NULL;
 	char scan_ch;
 	struct post_parse pp;
 	static off_t fd_offs = REVERSE_FST;
@@ -117,6 +117,8 @@ next:
 			goto parse_err;
 		switch (scan_ch) {
 		case 'm':
+			if (!pcb || !pcb->mf)
+				break;
 			ppos = msg_start - ibuf + 1;
 			if (sscanf(ibuf + ppos, SCN_PTR, &mem_addr) != 1)
 				goto parse_err;
@@ -165,18 +167,33 @@ skip_o:
 			pp.argp = argp;
 
 			// call post parsing function
-			mf(cfg, &pp, heap_start, mem_addr, mem_size,
-			   code_offs, code_addr, stack_offs);
+			pcb->mf(cfg, &pp, heap_start, mem_addr, mem_size,
+				code_offs, code_addr, stack_offs);
 			break;
 		case 'f':
-			if (!ff)
+			if (!pcb || !pcb->ff)
 				break;
 			ppos = msg_start - ibuf + 1;
 			if (sscanf(ibuf + ppos, SCN_PTR, &mem_addr) != 1)
 				goto parse_err;
 
 			// call post parsing function
-			ff(cfg, argp, mem_addr);
+			pcb->ff(cfg, argp, mem_addr);
+			break;
+		case 'l':
+			if (!pcb || !pcb->lf)
+				break;
+			ppos = msg_start - ibuf + 1;
+			if (ibuf[ppos] != ';')
+				goto parse_err;
+			ppos++;
+			lib_name = new char[msg_end - (ibuf + ppos) + 1];
+			memcpy(lib_name, ibuf + ppos, msg_end - (ibuf + ppos));
+			lib_name[msg_end - (ibuf + ppos)] = '\0';
+
+			// call post parsing function
+			pcb->lf(argp, lib_name);
+			delete lib_name;
 			break;
 		case 'h':
 			ppos = msg_start - ibuf + 1;

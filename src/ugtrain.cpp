@@ -408,18 +408,51 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 	}
 }
 
+// lf() callback for read_dynmem_buf()
+static void show_loaded_lib (LF_PARAMS)
+{
+	//cout << lib_name << " loaded" << endl;
+}
+
 // TIME CRITICAL! Read the memory allocations and freeings from the input FIFO.
 // If the buffer fills, the game process hangs.
 static inline void read_dynmem_fifo (list<CfgEntry> *cfg, i32 ifd, i32 pmask,
 				     ptr_t code_offs)
 {
 	ssize_t rbytes;
+	struct parse_cb pcb = { NULL };
+
+	pcb.mf = alloc_dynmem_addr;
+	pcb.ff = clear_dynmem_addr;
 
 	do {
 		rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
-			code_offs, alloc_dynmem_addr, clear_dynmem_addr);
+			code_offs, &pcb);
 	} while (rbytes > 0);
 }
+
+// returns:
+//  0: data has been read
+// -1: no data read
+static inline i32 read_libs_from_fifo (i32 ifd)
+{
+	ssize_t rbytes;
+	struct parse_cb pcb = { NULL };
+	i32 i, ret = -1;
+
+	pcb.lf = show_loaded_lib;
+
+	for (i = 0; ; i++) {
+		rbytes = read_dynmem_buf(NULL, NULL, ifd, 0, false,
+			0, &pcb);
+		if (rbytes <= 0)
+			break;
+		if (i == 0)
+			ret = 0;
+	}
+	return ret;
+}
+
 
 // TIME CRITICAL! Process all activated config entries.
 // Note: We are attached to the game process and it is frozen.
@@ -502,7 +535,7 @@ static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
  * to do that here in an equal hacky way as the process
  * belongs to init.
  */
-static void wait_orphan (pid_t pid, char *proc_name)
+static inline void wait_orphan (pid_t pid, char *proc_name)
 {
 	enum pstate pstate;
 	while (true) {
@@ -511,6 +544,33 @@ static void wait_orphan (pid_t pid, char *proc_name)
 			return;
 		sleep_sec(1);
 	}
+}
+
+// Reading the regions list upon every library load would be too much.
+// Most libraries are loaded consecutively during game start. So do it
+// after some cycles of no input from the FIFO.
+static inline void run_stage1234_parent (pid_t pid, char *proc_name, i32 ifd,
+					 list<struct region> *rlist)
+{
+#define CYCLES_BEFORE_RELOAD 2
+	enum pstate pstate;
+	i32 i = 0, ret;
+
+	while (true) {
+		pstate = check_process(pid, proc_name);
+		if (pstate != PROC_RUNNING && pstate != PROC_ERR)
+			return;
+		sleep_sec_unless_input(1, ifd);
+		ret = read_libs_from_fifo(ifd);
+		if (i && ret) {
+			i--;
+			if (!i)
+				read_regions(pid, rlist);
+		} else if (!ret) {
+			i = CYCLES_BEFORE_RELOAD;
+		}
+	}
+#undef CYCLES_BEFORE_RELOAD
 }
 
 static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
@@ -830,7 +890,7 @@ i32 main (i32 argc, char **argv, char **env)
 	string input_str;
 	pid_t pid, call_pid = -1, worker_pid;
 	char def_home[] = "~";
-	i32 ret, pmask = PARSE_M | PARSE_S | PARSE_C;
+	i32 ret, pmask = PARSE_S | PARSE_C;
 	char ch;
 	i32 ifd = -1, ofd = -1, dfd = -1;
 	bool allow_empty_cfg = false;
@@ -940,16 +1000,14 @@ prepare_dynmem:
 	cout << "PID: " << pid << endl;
 
 	if (opt->disc_str) {
-		pmask = PARSE_M | PARSE_S | PARSE_C | PARSE_O;
+		pmask = PARSE_S | PARSE_C | PARSE_O;
 		if (opt->disc_str[0] == 'p')
 			opt->disc_str[0] = opt->disc_str[opt->disc_offs];
 		if (opt->disc_str[0] == '0') {
 			if (opt->scanmem_pid > 0) {
-				wait_proc(opt->scanmem_pid);
-				// Have you closed scanmem before the game?
 				wait_orphan(pid, opt->proc_name);
+				wait_proc(opt->scanmem_pid);
 			} else {
-				// handle a loader that forks and exits
 				wait_orphan(pid, opt->proc_name);
 			}
 			return 0;
@@ -959,12 +1017,12 @@ prepare_dynmem:
 				handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 			worker_pid = fork_proc(run_stage1234_loop, &dpp);
 			if (opt->scanmem_pid > 0) {
+				run_stage1234_parent(pid, opt->proc_name,
+						     ifd, &rlist);
 				wait_proc(opt->scanmem_pid);
-				// Have you closed scanmem before the game?
-				wait_orphan(pid, opt->proc_name);
 			} else {
-				// handle a loader that forks and exits
-				wait_orphan(pid, opt->proc_name);
+				run_stage1234_parent(pid, opt->proc_name,
+						     ifd, &rlist);
 			}
 			sleep_msec(250);  // chance to read the final flush
 			kill_proc(worker_pid);
@@ -972,7 +1030,7 @@ prepare_dynmem:
 				return -1;
 		} else if (opt->disc_str[0] == '5') {
 			handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
-			run_stage5_loop(cfg, dfd, pmask, call_pid,
+			run_stage5_loop(cfg, ifd, dfd, pmask, call_pid,
 					opt->code_offs);
 		}
 		//list_regions(&rlist);
@@ -982,7 +1040,7 @@ prepare_dynmem:
 			goto discover_next;
 			break;
 		case DISC_OKAY:
-			pmask = PARSE_M | PARSE_S | PARSE_C;
+			pmask = PARSE_S | PARSE_C;
 			goto prepare_dynmem;
 			break;
 		case DISC_EXIT:

@@ -24,10 +24,9 @@
 #include <cfgentry.h>
 #include <common.h>
 
-#define PARSE_M 1
-#define PARSE_S 2
-#define PARSE_C 4
-#define PARSE_O 8
+#define PARSE_S (1 << 0)
+#define PARSE_C (1 << 1)
+#define PARSE_O (1 << 2)
 
 struct post_parse {
 	char	*ibuf;
@@ -43,7 +42,16 @@ struct post_parse {
 #define FF_PARAMS \
 	list<CfgEntry> *cfg, void *argp, ptr_t mem_addr
 
+#define LF_PARAMS \
+	void *argp, char *lib_name
+
+/* parsing call back functions */
+struct parse_cb {
+	void (*mf)(MF_PARAMS);
+	void (*ff)(FF_PARAMS);
+	void (*lf)(LF_PARAMS);
+};
+
 ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
-			 bool reverse, ptr_t code_offs, void (*mf)(MF_PARAMS),
-			 void (*ff)(FF_PARAMS));
+			 bool reverse, ptr_t code_offs, struct parse_cb *pcb);
 #endif
