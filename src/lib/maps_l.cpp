@@ -183,9 +183,6 @@ bool readmaps (pid_t pid, list<struct region> *regions)
 		cerr << "failed to open maps file " << name << "." << endl;
 		return false;
 	}
-
-	cout << "maps file located at " << name << " opened." << endl;
-
 	/* get executable name */
 	snprintf(exelink, sizeof(exelink), "/proc/%u/exe", pid);
 	if ((linkbuf_size = readlink(exelink, exename,
@@ -216,9 +213,6 @@ bool readmaps (pid_t pid, list<struct region> *regions)
 		    regions) != 0)
 			goto error;
 	}
-
-	cout << regions->size() << " suitable regions found." << endl;
-
 	/* release memory allocated */
 	free(line);
 	fclose(maps);
