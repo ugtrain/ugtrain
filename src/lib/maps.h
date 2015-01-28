@@ -3,8 +3,7 @@
  * Copyright (C) 2006,2007,2009 Tavis Ormandy <taviso@sdf.lonestar.org>
  * Copyright (C) 2009           Eli Dupree <elidupree@charter.net>
  * Copyright (C) 2009,2010      WANG Lu <coolwanglu@gmail.com>
- * Copyright (c) 2014           Sebastian Parschauer
- *    All rights reserved.     <s.parschauer@gmx.de>
+ * Copyright (c) 2014..15       Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file has been taken from scanmem.
  *
@@ -20,18 +19,21 @@
 #ifndef MAPS_H
 #define MAPS_H
 
-#include <iostream>
-#include <list>
-#include <string>
-using namespace std;
+#include <stdio.h>
+#include <unistd.h>
+
+#ifdef __cplusplus
+	#include <iostream>
+	#include <list>
+	#include <string>
+	using namespace std;
+#endif
 
 /* local includes */
 #include "types.h"
 
-#ifndef list_for_each
-#define list_for_each(list, it) \
-	for (it = list->begin(); it != list->end(); ++it)
-#endif
+/* buffer size for reading symbolic links */
+#define MAPS_MAX_PATH 256
 
 enum region_type {
 	REGION_TYPE_MISC,
@@ -44,7 +46,39 @@ enum region_type {
 #define REGION_TYPE_NAMES { "misc", "code", "exe", "heap", "stack" }
 extern const char *region_type_names[];
 
-// a region obtained from /proc/pid/maps
+/* a map obtained from /proc/pid/maps */
+struct map {
+	ulong start;
+	ulong end;
+	char read, write, exec, cow;
+	i32 offset, dev_major, dev_minor, inode;
+	char *file_path;
+};
+
+i32 read_maps  (pid_t pid, i32 (*callback)(struct map *map, void *data),
+		void *data);
+
+/* Assumption: sizeof(exe_path) >= MAPS_MAX_PATH */
+static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
+					size_t path_size)
+{
+	char link_path[128];
+	ssize_t ret;
+
+	/* get executable path */
+	snprintf(link_path, sizeof(link_path), "/proc/%u/exe", pid);
+	ret = readlink(link_path, exe_path, path_size);
+	if (ret > 0) {
+		exe_path[ret] = '\0';
+	} else {
+		/* readlink() may fail for special processes, treat as empty */
+		exe_path[0] = '\0';
+	}
+}
+
+#ifdef __cplusplus
+
+/* a region obtained from /proc/pid/maps */
 struct region {
 	ulong start;
 	ulong size;
@@ -57,11 +91,22 @@ struct region {
 		u32 shared:1;
 		u32 priv:1;
 	} flags;
-	u32 id;             // unique identifier
-	string *filename;   // associated file
+	u32 id;             /* unique identifier */
+	string *file_path;  /* associated file path */
 };
 
-bool readmaps(pid_t pid, list<struct region> *regions);
+/* process_map() parameters */
+struct pmap_params {
+	char *exe_path;
+	list<struct region> *rlist;
+};
+
+i32 process_map (struct map *map, void *data);
+
+#ifndef list_for_each
+#define list_for_each(list, it) \
+	for (it = list->begin(); it != list->end(); ++it)
+#endif
 
 static inline void list_regions (list<struct region> *rlist)
 {
@@ -75,14 +120,17 @@ static inline void list_regions (list<struct region> *rlist)
 			region->flags.read ? 'r' : '-',
 			region->flags.write ? 'w' : '-',
 			region->flags.exec ? 'x' : '-',
-			region->filename ? region->filename->c_str() : "unassociated");
+			region->file_path ? region->file_path->c_str() : "unassociated");
 }
 
-static inline void read_regions (pid_t pid, list<struct region> *rlist)
+static inline void read_regions (pid_t pid, struct pmap_params *params)
 {
+	list<struct region> *rlist = params->rlist;
+
 	rlist->clear();
-	if (!readmaps(pid, rlist))
+	if (read_maps(pid, process_map, params))
 		rlist->clear();
 }
+#endif
 
 #endif

@@ -159,7 +159,7 @@ static inline i32 code_addr_to_region (ptr_t *code_addr,
 	i32 ret = -1;
 
 	list_for_each (rlist, it) {
-		string *fpath = it->filename;
+		string *fpath = it->file_path;
 		size_t pos;
 
 		if (!it->flags.exec || it->start + it->size < *code_addr ||

@@ -549,15 +549,21 @@ static inline void wait_orphan (pid_t pid, char *proc_name)
 // Reading the regions list upon every library load would be too much.
 // Most libraries are loaded consecutively during game start. So do it
 // after some cycles of no input from the FIFO.
-static inline void run_stage1234_parent (pid_t pid, char *proc_name, i32 ifd,
-					 list<struct region> *rlist)
+static inline void run_stage1234_parent (pid_t pid, struct app_options *opt,
+					 i32 ifd, list<struct region> *rlist)
 {
 #define CYCLES_BEFORE_RELOAD 2
+	struct pmap_params params;
+	char exe_path[MAPS_MAX_PATH];
 	enum pstate pstate;
 	i32 i = 0, ret;
 
+	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
+	params.exe_path = exe_path;
+	params.rlist = rlist;
+
 	while (true) {
-		pstate = check_process(pid, proc_name);
+		pstate = check_process(pid, opt->proc_name);
 		if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 			return;
 		sleep_sec_unless_input(1, ifd);
@@ -565,7 +571,7 @@ static inline void run_stage1234_parent (pid_t pid, char *proc_name, i32 ifd,
 		if (i && ret) {
 			i--;
 			if (!i)
-				read_regions(pid, rlist);
+				read_regions(pid, &params);
 		} else if (!ret) {
 			i = CYCLES_BEFORE_RELOAD;
 		}
@@ -1017,12 +1023,10 @@ prepare_dynmem:
 				handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 			worker_pid = fork_proc(run_stage1234_loop, &dpp);
 			if (opt->scanmem_pid > 0) {
-				run_stage1234_parent(pid, opt->proc_name,
-						     ifd, &rlist);
+				run_stage1234_parent(pid, opt, ifd, &rlist);
 				wait_proc(opt->scanmem_pid);
 			} else {
-				run_stage1234_parent(pid, opt->proc_name,
-						     ifd, &rlist);
+				run_stage1234_parent(pid, opt, ifd, &rlist);
 			}
 			sleep_msec(250);  // chance to read the final flush
 			kill_proc(worker_pid);

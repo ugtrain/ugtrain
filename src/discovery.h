@@ -82,6 +82,7 @@ static inline ptr_t handle_exe_region (struct region *r, i32 ofd,
 static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 	i32 ifd, i32 ofd, pid_t pid, list<struct region> *rlist)
 {
+	struct pmap_params params;
 	char buf[PIPE_BUF];
 	ssize_t rbytes;
 	list<CfgEntry>::iterator cfg_it;
@@ -89,6 +90,7 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 	DynMemEntry *old_dynmem = NULL;
 	ptr_t exe_offs = 0;
 	ssize_t wbytes;
+	char exe_path[MAPS_MAX_PATH];
 	char obuf[PIPE_BUF];
 	i32 osize = 0;
 
@@ -103,7 +105,10 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 				break;
 		}
 	}
-	read_regions(pid, rlist);
+	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
+	params.exe_path = exe_path;
+	params.rlist = rlist;
+	read_regions(pid, &params);
 	list_for_each (rlist, it) {
 		if (it->type == REGION_TYPE_EXE && it->flags.exec) {
 			exe_offs = handle_exe_region(&(*it), ofd, opt);
