@@ -20,7 +20,7 @@
 #define MAPS_H
 
 #include <stdio.h>
-#include <unistd.h>
+#include <unistd.h>   /* readlink */
 
 #ifdef __cplusplus
 	#include <iostream>
@@ -35,17 +35,6 @@
 /* buffer size for reading symbolic links */
 #define MAPS_MAX_PATH 256
 
-enum region_type {
-	REGION_TYPE_MISC,
-	REGION_TYPE_CODE,
-	REGION_TYPE_EXE,
-	REGION_TYPE_HEAP,
-	REGION_TYPE_STACK
-};
-
-#define REGION_TYPE_NAMES { "misc", "code", "exe", "heap", "stack" }
-extern const char *region_type_names[];
-
 /* a map obtained from /proc/pid/maps */
 struct map {
 	ulong start;
@@ -55,8 +44,15 @@ struct map {
 	char *file_path;
 };
 
-i32 read_maps  (pid_t pid, i32 (*callback)(struct map *map, void *data),
-		void *data);
+#ifdef __cplusplus
+extern "C" {
+#endif
+	i32 read_maps  (pid_t pid, i32 (*callback)(struct map *map, void *data),
+			void *data);
+#ifdef __cplusplus
+};
+#endif
+
 
 /* Assumption: sizeof(exe_path) >= MAPS_MAX_PATH */
 static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
@@ -77,6 +73,17 @@ static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 }
 
 #ifdef __cplusplus
+
+enum region_type {
+	REGION_TYPE_MISC,
+	REGION_TYPE_CODE,
+	REGION_TYPE_EXE,
+	REGION_TYPE_HEAP,
+	REGION_TYPE_STACK
+};
+
+#define REGION_TYPE_NAMES { "misc", "code", "exe", "heap", "stack" }
+extern const char *region_type_names[];
 
 /* a region obtained from /proc/pid/maps */
 struct region {

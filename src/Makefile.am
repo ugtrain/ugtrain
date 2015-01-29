@@ -12,7 +12,8 @@ ugtrain_SOURCES = \
 	lib/types.h \
 	lib/getch_l.c \
 	lib/getch_w.c \
-	lib/maps_l.cpp \
+	lib/maps_l.c \
+	lib/mapscb_l.cpp \
 	lib/memattach_l.c \
 	lib/memattach_w.c \
 	lib/preload_l.c \
