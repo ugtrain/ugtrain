@@ -423,6 +423,42 @@ void run_stage1234_loop (void *argp)
 	}
 }
 
+static inline void stage34_args_err (char stage)
+{
+	cerr << "Error: Not enough valid arguments for discovery stage "
+	     << stage << "!" << endl;
+	cerr << "Use at least \'" << stage << ";<size>\'"
+	     << endl;
+}
+
+// Does the user request to filter the backtrace to the given lib?
+// returns 0 for success, -1 for error
+static inline i32 parse_bt_filter (char **disc_part, char stage)
+{
+	i32 ret = -1;
+	char *pos;
+
+	if ((*disc_part)[0] != ';' || !isalpha((*disc_part)[1]))
+		goto success;
+
+	(*disc_part)++;
+	pos = strchr(*disc_part, ';');
+	if (!pos) {
+		stage34_args_err(stage);
+		goto out;
+	}
+#if (DISC_DEBUG)
+	*pos = '\0';
+	cout << "PIC: filtering backtrace to " << *disc_part << endl;
+	*pos = ';';
+#endif
+	*disc_part = pos;
+success:
+	ret = 0;
+out:
+	return ret;
+}
+
 i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str, cmd_str;
@@ -490,6 +526,8 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		// fall through
 	case '4':
 		disc_part++;
+		if (parse_bt_filter(&disc_part, stage))
+			goto err;
 		ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;" SCN_PTR
 			     ";" SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
 			     &mem_size, &bt_saddr, &bt_eaddr, &code_addr);
@@ -502,10 +540,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		}
 		opt->code_addr = code_addr;
 		if (ret < 3) {
-			cerr << "Error: Not enough arguments for discovery "
-				"stage " << stage << "!" << endl;
-			cerr << "Use at least \'" << stage
-			     << ";<size>\'" << endl;
+			stage34_args_err(stage);
 			goto err;
 		}
 		if (mem_size == 0) {
