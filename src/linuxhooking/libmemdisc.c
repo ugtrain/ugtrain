@@ -25,9 +25,10 @@
 #include <dlfcn.h>      /* dlsym */
 #include <stdio.h>      /* printf */
 #include <stdlib.h>     /* malloc */
-#include <string.h>
+#include <string.h>     /* strchr */
+#include <ctype.h>      /* isalpha */
 #include <libgen.h>     /* basename */
-#include <fcntl.h>
+#include <fcntl.h>      /* open */
 #include <signal.h>     /* sigignore */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
@@ -36,6 +37,7 @@
 #include <glib.h>       /* g_malloc */
 #endif
 
+#include <lib/maps.h>
 #include "libcommon.h"
 
 #define PFX "[memdisc] "
@@ -107,6 +109,9 @@ extern void *__libc_stack_end;
    don't work here */
 extern char *__progname;
 
+/* filter discovery backtrace output to code from this lib only */
+static char *bt_filter;
+
 /* relevant start and end code addresses of .text segment */
 static ptr_t bt_saddr = 0, bt_eaddr = 0;
 
@@ -134,6 +139,62 @@ typedef struct cfg cfg_s;
 
 static cfg_s ptr_cfg;
 
+
+/*
+ * callback for read_maps(),
+ * searches for bt_filter start and end code address in memory,
+ * sets found code addresses as the new backtrace filter,
+ * returns 1 for stopping the iteration (bt_filter found) and 0 otherwise
+ *
+ * Assumption: bt_filter != NULL
+ */
+static i32 set_bt_addrs (struct map *map, void *data)
+{
+	char *lib_name = basename(map->file_path);
+
+	if (map->exec != 'x' || !strstr(lib_name, bt_filter))
+		goto out;
+
+	pr_out("bt_filter: %s ("PRI_PTR "-" PRI_PTR")\n", map->file_path,
+		(ptr_t) map->start, (ptr_t) map->end);
+
+	bt_saddr = (ptr_t) map->start;
+	bt_eaddr = (ptr_t) map->end;
+	return 1;
+out:
+	return 0;
+}
+
+/*
+ * Does the user request to filter the backtrace to the given lib?
+ * returns 0 for success, -1 for error
+ */
+static inline i32 parse_bt_filter (char *ibuf, i32 *ioffs)
+{
+	i32 ret = -1;
+	u32 len;
+	char *pos;
+	char *disc_part = ibuf + *ioffs;
+
+	if (disc_part[0] != ';' || !isalpha(disc_part[1]))
+		goto success;
+
+	disc_part++;
+	pos = strchr(disc_part, ';');
+	if (!pos)
+		goto out;
+	len = pos - disc_part;
+	bt_filter = (char *) malloc(len + 1);
+	memcpy(bt_filter, disc_part, len);
+	bt_filter[len] = '\0';
+	pr_out("PIC: filtering backtrace to %s\n", bt_filter);
+	disc_part = pos;
+	*ioffs = disc_part - ibuf;
+success:
+	ret = 0;
+out:
+	return ret;
+}
 
 #define READ_STAGE_CFG()  \
 	rbytes = read(ifd, ibuf + ioffs, sizeof(ibuf) - ioffs); \
@@ -206,7 +267,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	ssize_t rbytes;
 	i32 ioffs = 0, scanned;
 	char *iptr;
-	char ibuf[128] = { 0 };
+	char ibuf[BUF_SIZE] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	void *heap_ptr;
 	ptr_t heap_start = 0, heap_soffs = 0, heap_eoffs = 0;
@@ -385,6 +446,8 @@ void __attribute ((constructor)) memdisc_init (void)
 			use_gbt = true;
 			ioffs += sizeof(GBT_CMD);
 		}
+		if (parse_bt_filter(ibuf, &ioffs))
+			goto parse_err;
 		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
 			SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
 			&malloc_size, &bt_saddr, &bt_eaddr);
@@ -430,6 +493,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	case '4':
 	case '5':
 		ioffs += 1;
+		if (parse_bt_filter(ibuf, &ioffs))
+			goto parse_err;
 		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
 			SCN_PTR ";" SCN_PTR ";" SCN_PTR, &heap_soffs,
 			&heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr,
@@ -1128,12 +1193,13 @@ static inline void postprocess_dlopen (const char *lib_path)
 {
 	i32 wbytes;
 	char obuf[BUF_SIZE + 1] = { 0 };
+	char *lib_name;
 
 	if (!active)
 		return;
 
-	wbytes = snprintf(obuf, BUF_SIZE, "l;%s\n",
-		basename((char *) lib_path));
+	lib_name = basename((char *) lib_path);
+	wbytes = snprintf(obuf, BUF_SIZE, "l;%s\n", lib_name);
 	if (wbytes < 0) {
 		perror(PFX "snprintf");
 		return;
@@ -1144,6 +1210,8 @@ static inline void postprocess_dlopen (const char *lib_path)
 	wbytes = write(ofd, obuf, wbytes);
 	if (wbytes < 0)
 		perror("write");
+	if (bt_filter && bt_filter[0] != '\0' && strstr(lib_name, bt_filter))
+		read_maps(getpid(), set_bt_addrs, NULL);
 }
 
 #ifdef HOOK_DLOPEN

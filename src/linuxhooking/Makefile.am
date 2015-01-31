@@ -24,7 +24,7 @@ endif
 include_HEADERS = list.h
 
 if BITS_32
-libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c
+libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c ../lib/maps_l.c
 libmemhack32_la_SOURCES = libmemhack.c libcommon.c
 libprivacy32_la_SOURCES = libprivacy.c
 libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
@@ -52,7 +52,7 @@ libprivacy32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
 endif
 
 if BITS_64
-libmemdisc64_la_SOURCES = libmemdisc.c libcommon.c
+libmemdisc64_la_SOURCES = libmemdisc.c libcommon.c ../lib/maps_l.c
 libmemhack64_la_SOURCES = libmemhack.c libcommon.c
 libprivacy64_la_SOURCES = libprivacy.c
 libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
