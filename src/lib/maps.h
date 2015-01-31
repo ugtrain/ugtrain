@@ -72,6 +72,25 @@ static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 	}
 }
 
+/* PIE detection - check for known static load addresses */
+static inline ptr_t get_exe_offs (ulong map_start)
+{
+	ptr_t exe_offs;
+#ifdef __arm__
+	/* Static load address: armv7l: 0x8000 */
+	if (map_start == 0x8000UL)
+#else
+	/* Static load address: x86: 0x8048000, x86_64: 0x400000 */
+	if (map_start == 0x8048000UL ||
+	    (map_start == 0x400000UL))
+#endif
+		exe_offs = 0;
+	else
+		exe_offs = (ptr_t) map_start;
+
+	return exe_offs;
+}
+
 #ifdef __cplusplus
 
 enum region_type {

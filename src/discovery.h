@@ -57,20 +57,9 @@ i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 static inline ptr_t handle_exe_region (struct region *r, i32 ofd,
 				       struct app_options *opt)
 {
-	ptr_t exe_offs;
-
 	/* PIE detection */
-#ifdef __arm__
-	/* Static load address: armv7l: 0x8000 */
-	if (r->start == 0x8000UL)
-#else
-	/* Static load address: x86: 0x8048000, x86_64: 0x400000 */
-	if (r->start == 0x8048000UL ||
-	    (r->start == 0x400000UL))
-#endif
-		exe_offs = 0;
-	else
-		exe_offs = r->start;
+	ptr_t exe_offs = get_exe_offs(r->start);
+
 	opt->code_offs = exe_offs;
 	cout << "exe_offs: 0x" << hex << exe_offs << dec << endl;
 	if (exe_offs)
