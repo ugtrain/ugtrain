@@ -109,7 +109,7 @@ extern void *__libc_stack_end;
    don't work here */
 extern char *__progname;
 
-/* filter discovery backtrace output to code from this lib only */
+/* filter discovery backtrace output to code from the exe or this lib only */
 static char *bt_filter;
 
 /* relevant start and end code addresses of .text segment */
@@ -140,6 +140,25 @@ typedef struct cfg cfg_s;
 static cfg_s ptr_cfg;
 
 
+static inline void update_cfg_for_pie (ptr_t exe_offs)
+{
+	/* pointer to heap obj. discovery PIE handling */
+	if (ptr_cfg.code_addr &&
+	    ptr_cfg.code_addr <= UINTPTR_MAX - exe_offs) {
+		ptr_cfg.code_addr += exe_offs;
+		pr_dbg("new ptr cfg code addr: " PRI_PTR "\n",
+			ptr_cfg.code_addr);
+	} else if (ptr_cfg.ptr_offs &&
+	    ptr_cfg.ptr_offs <= UINTPTR_MAX - exe_offs) {
+		ptr_cfg.ptr_offs += exe_offs;
+		pr_dbg("new ptr cfg ptr addr: " PRI_PTR "\n",
+			ptr_cfg.ptr_offs);
+	}
+	/* stage >= 3 PIE handling */
+	if (code_addr && code_addr <= UINTPTR_MAX - exe_offs)
+		code_addr += exe_offs;
+}
+
 /*
  * callback for read_maps(),
  * searches for bt_filter start and end code address in memory,
@@ -150,9 +169,14 @@ static cfg_s ptr_cfg;
  */
 static i32 set_bt_addrs (struct map *map, void *data)
 {
+	char *exe_path = (char *) data;
 	char *lib_name = basename(map->file_path);
+	ptr_t exe_offs;
 
-	if (map->exec != 'x' || !strstr(lib_name, bt_filter))
+	if (map->exec != 'x')
+		goto out;
+	if ((bt_filter[0] == '\0' && !strstr(map->file_path, exe_path)) ||
+	    !strstr(lib_name, bt_filter))
 		goto out;
 
 	pr_out("bt_filter: %s ("PRI_PTR "-" PRI_PTR")\n", map->file_path,
@@ -160,13 +184,20 @@ static i32 set_bt_addrs (struct map *map, void *data)
 
 	bt_saddr = (ptr_t) map->start;
 	bt_eaddr = (ptr_t) map->end;
+	if (bt_filter[0] != '\0')
+		return 1;
+
+	/* PIE detection */
+	exe_offs = get_exe_offs(map->start);
+
+	update_cfg_for_pie(exe_offs);
 	return 1;
 out:
 	return 0;
 }
 
 /*
- * Does the user request to filter the backtrace to the given lib?
+ * Does the user request to filter the backtrace to the exe or the given lib?
  * returns 0 for success, -1 for error
  */
 static inline i32 parse_bt_filter (char *ibuf, i32 *ioffs)
@@ -184,10 +215,17 @@ static inline i32 parse_bt_filter (char *ibuf, i32 *ioffs)
 	if (!pos)
 		goto out;
 	len = pos - disc_part;
-	bt_filter = (char *) malloc(len + 1);
-	memcpy(bt_filter, disc_part, len);
-	bt_filter[len] = '\0';
-	pr_out("PIC: filtering backtrace to %s\n", bt_filter);
+	*pos = '\0';
+	if (len == 3 && strcmp(disc_part, "exe") == 0) {
+		bt_filter = (char *) "\0";
+		pr_out("PIE: filtering backtrace to executable\n");
+	} else {
+		bt_filter = (char *) malloc(len + 1);
+		memcpy(bt_filter, disc_part, len);
+		bt_filter[len] = '\0';
+		pr_out("PIC: filtering backtrace to %s\n", bt_filter);
+	}
+	*pos = ';';
 	disc_part = pos;
 	*ioffs = disc_part - ibuf;
 success:
@@ -448,17 +486,15 @@ void __attribute ((constructor)) memdisc_init (void)
 		}
 		if (parse_bt_filter(ibuf, &ioffs))
 			goto parse_err;
-		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
-			SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
-			&malloc_size, &bt_saddr, &bt_eaddr);
+		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd",
+			&heap_soffs, &heap_eoffs, &malloc_size);
 		if (scanned == 0) {
-			scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR ";"
-				SCN_PTR, &malloc_size, &bt_saddr, &bt_eaddr);
-			if (scanned != 3)
+			scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
+			if (scanned != 1)
 				goto parse_err;
 			scanned += 2;
 		}
-		if (scanned == 5) {
+		if (scanned == 3) {
 			heap_saddr += heap_soffs;
 			heap_eaddr += heap_eoffs;
 			if (malloc_size < 1)
@@ -467,9 +503,8 @@ void __attribute ((constructor)) memdisc_init (void)
 				pr_out("Using GNU backtrace(). "
 					"This might crash with SIGSEGV!\n");
 			stage = 3;
-			pr_dbg("stage 3 cfg: " PRI_PTR ";" PRI_PTR ";%zd;"
-				PRI_PTR ";" PRI_PTR "\n", heap_soffs,
-				heap_eoffs, malloc_size, bt_saddr, bt_eaddr);
+			pr_dbg("stage 3 cfg: " PRI_PTR ";" PRI_PTR ";%zd\n",
+				heap_soffs, heap_eoffs, malloc_size);
 		} else {
 			goto parse_err;
 		}
@@ -496,25 +531,22 @@ void __attribute ((constructor)) memdisc_init (void)
 		if (parse_bt_filter(ibuf, &ioffs))
 			goto parse_err;
 		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
-			SCN_PTR ";" SCN_PTR ";" SCN_PTR, &heap_soffs,
-			&heap_eoffs, &malloc_size, &bt_saddr, &bt_eaddr,
+			SCN_PTR, &heap_soffs, &heap_eoffs, &malloc_size,
 			&code_addr);
 		if (scanned == 0) {
-			scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR ";"
-				SCN_PTR ";" SCN_PTR, &malloc_size, &bt_saddr,
-				&bt_eaddr, &code_addr);
-			if (scanned < 3)
+			scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR,
+				&malloc_size, &code_addr);
+			if (scanned < 1)
 				goto parse_err;
 			scanned += 2;
 		}
-		if (scanned >= 5) {
+		if (scanned >= 3) {
 			heap_saddr += heap_soffs;
 			heap_eaddr += heap_eoffs;
 			stage = 4;
 			pr_dbg("stage 4 cfg: " PRI_PTR ";" PRI_PTR ";%zd;"
-				PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
-				heap_soffs, heap_eoffs, malloc_size,
-				bt_saddr, bt_eaddr, code_addr);
+				PRI_PTR "\n", heap_soffs, heap_eoffs,
+				malloc_size, code_addr);
 		} else {
 			goto parse_err;
 		}
@@ -531,8 +563,7 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	/* Read new backtrace filter config (might be PIC/PIE) */
 	if (stage >= 3 || ptr_cfg.code_addr != 0) {
-		ptr_t code_offs[2] = { 0 };
-		i32 ret;
+		/* notify ugtrain to do its PIE handling as well */
 		ssize_t wbytes;
 #define NOTIFY_STR "ready\n"
 		wbytes = write(ofd, NOTIFY_STR, sizeof(NOTIFY_STR));
@@ -541,38 +572,17 @@ void __attribute ((constructor)) memdisc_init (void)
 			goto out;
 		}
 #undef NOTIFY_STR
-		if (read_input(ibuf, sizeof(ibuf)) != 0) {
-			pr_err("Couldn't read code offsets!\n");
-		} else {
-			ret = sscanf(ibuf, SCN_PTR ";" SCN_PTR, &code_offs[0],
-				&code_offs[1]);
-			if (ret < 2)
-				pr_err("Code offset parsing error!\n");
-			/* pointer to heap obj. discovery PIE handling */
-			if (ptr_cfg.code_addr &&
-			    ptr_cfg.code_addr <= UINTPTR_MAX - code_offs[0]) {
-				ptr_cfg.code_addr += code_offs[0];
-				pr_dbg("new ptr cfg code addr: " PRI_PTR "\n",
-					ptr_cfg.code_addr);
-			} else if (ptr_cfg.ptr_offs &&
-			    ptr_cfg.ptr_offs <= UINTPTR_MAX - code_offs[0]) {
-				ptr_cfg.ptr_offs += code_offs[0];
-				pr_dbg("new ptr cfg ptr addr: " PRI_PTR "\n",
-					ptr_cfg.ptr_offs);
-			}
-			/* stage >= 3 PIE handling */
-			if (bt_saddr <= UINTPTR_MAX - code_offs[1] && bt_saddr)
-				bt_saddr += code_offs[1];
-			if (bt_eaddr <= UINTPTR_MAX - code_offs[1])
-				bt_eaddr += code_offs[1];
-			if (code_addr && code_addr <= UINTPTR_MAX - code_offs[1])
-				code_addr += code_offs[1];
+		/* PIE handling if exe filter is requested */
+		if (bt_filter && bt_filter[0] == '\0') {
+			char exe_path[MAPS_MAX_PATH];
+			get_exe_path_by_pid(getpid(), exe_path,
+				sizeof(exe_path));
+			read_maps(getpid(), set_bt_addrs, exe_path);
 		}
 	}
 	pr_dbg("new cfg: %d;" PRI_PTR ";" PRI_PTR ";%zd;"
-		PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
-		stage, heap_saddr, heap_eaddr, malloc_size,
-		bt_saddr, bt_eaddr, code_addr);
+		PRI_PTR "\n", stage, heap_saddr, heap_eaddr, malloc_size,
+		code_addr);
 
 	/* Send out the heap start */
 	fprintf(ofile, "h" PRI_PTR "\n", heap_start);

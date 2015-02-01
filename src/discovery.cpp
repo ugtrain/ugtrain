@@ -464,13 +464,11 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	string disc_str, cmd_str;
 	char *pos, *disc_part;
 	char stage;
-	i32 i, ret;
+	i32 ret;
 	list<CfgEntry>::iterator it;
 	ptr_t heap_soffs = 0, heap_eoffs = 0;
-	ptr_t bt_saddr = 0, bt_eaddr = 0, code_addr = 0;
+	ptr_t code_addr = 0;
 	ulong mem_size;
-	char pbuf[PIPE_BUF] = { 0 };
-	bool use_gbt = false;
 
 	if (!opt->disc_str)
 		return 0;
@@ -519,21 +517,17 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	case '3':
 		ret = strncmp(&disc_part[1], ";" GBT_CMD ";",
 			sizeof(GBT_CMD) + 1);
-		if (ret == 0) {
-			use_gbt = true;
+		if (ret == 0)
 			disc_part += sizeof(GBT_CMD);
-		}
 		// fall through
 	case '4':
 		disc_part++;
 		if (parse_bt_filter(&disc_part, stage))
 			goto err;
-		ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;" SCN_PTR
-			     ";" SCN_PTR ";" SCN_PTR, &heap_soffs, &heap_eoffs,
-			     &mem_size, &bt_saddr, &bt_eaddr, &code_addr);
+		ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;" SCN_PTR,
+			     &heap_soffs, &heap_eoffs, &mem_size, &code_addr);
 		if (ret == 0) {
-			ret = sscanf(disc_part, ";%lu;" SCN_PTR ";" SCN_PTR ";"
-				     SCN_PTR, &mem_size, &bt_saddr, &bt_eaddr,
+			ret = sscanf(disc_part, ";%lu;" SCN_PTR, &mem_size,
 				     &code_addr);
 			if (ret >= 1)
 				ret += 2;
@@ -547,38 +541,6 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			cerr << "Error: Too much data! Please discover the "
 				"size first!" << endl;
 			goto err;
-		}
-		if (ret < 5) {
-			if (!opt->have_objdump)
-				goto err;
-			cmd_str = "objdump -p ";
-			cmd_str += opt->game_binpath;
-			cmd_str += " | grep \"INIT\\|FINI\" "
-				   "| tr -d [:upper:] | tr -d [:blank:] | head -n 2";
-			cout << "$ " << cmd_str << endl;
-			if (run_cmd_pipe(cmd_str.c_str(), NULL, pbuf,
-			    sizeof(pbuf)) <= 0)
-				goto err;
-			if (sscanf(pbuf, SCN_PTR "\n" SCN_PTR, &bt_saddr, &bt_eaddr) != 2) {
-				goto err;
-			} else {
-				opt->disc_str[opt->disc_offs + 1] = '\0';
-				disc_str = opt->disc_str;
-				if (use_gbt)
-					disc_str += ";" GBT_CMD ";0x";
-				else
-					disc_str += ";0x";
-				disc_str += to_xstring(heap_soffs);
-				disc_str += ";0x";
-				disc_str += to_xstring(heap_eoffs);
-				disc_str += ";";
-				disc_str += to_string(mem_size);
-				disc_str += ";0x";
-				disc_str += to_xstring(bt_saddr);
-				disc_str += ";0x";
-				disc_str += to_xstring(bt_eaddr);
-				opt->disc_str = to_c_str(&disc_str);
-			}
 		}
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
@@ -606,12 +568,10 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			goto err;
 found:
 			disc_str = opt->disc_str[0];
-			disc_str += ";0x0;0x0;";
+			disc_str += ";exe;0x0;0x0;";
 			disc_str += to_string(it->dynmem->adp_size);
-			for (i = 0; i < 3; i++) {
-				disc_str += ";0x";
-				disc_str += to_xstring(it->dynmem->adp_addr);
-			}
+			disc_str += ";0x";
+			disc_str += to_xstring(it->dynmem->adp_addr);
 			opt->disc_str = to_c_str(&disc_str);
 			cout << "Discovering class " << it->dynmem->name
 			     << " stack offset." << endl

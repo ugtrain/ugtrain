@@ -104,19 +104,14 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 			break;
 		}
 	}
-	if (opt->pure_statmem)
+	if (opt->pure_statmem || opt->disc_str)
 		return;
-	if (opt->disc_str) {
+	list_for_each (cfg, cfg_it) {
+		if (!cfg_it->dynmem || cfg_it->dynmem == old_dynmem)
+			continue;
+		old_dynmem = cfg_it->dynmem;
 		osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-			PRI_PTR ";" PRI_PTR "\n", exe_offs, exe_offs);
-	} else {
-		list_for_each (cfg, cfg_it) {
-			if (!cfg_it->dynmem || cfg_it->dynmem == old_dynmem)
-				continue;
-			old_dynmem = cfg_it->dynmem;
-			osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-				PRI_PTR ";", exe_offs);
-		}
+			PRI_PTR ";", exe_offs);
 	}
 	// Write code offsets to output FIFO
 	wbytes = write(ofd, obuf, osize);
