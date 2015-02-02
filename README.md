@@ -33,6 +33,10 @@ For **further documentation** see:
 * [Development TODOs]
 (https://github.com/sriemer/ugtrain/blob/master/TODO)
 
+## Logo
+
+![ugtrain logo](https://github.com/sriemer/ugtrain/blob/images/img/ugtrain_logo_300px.png)
+
 ## Videos of the Examples
 
 **Chromium B.S.U.** <br/>
