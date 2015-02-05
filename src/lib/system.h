@@ -119,6 +119,21 @@ static inline void sleep_sec_unless_input (u32 sec, i32 fd)
 	select(nfds, &fs, NULL, NULL, &tv);
 }
 
+static inline void sleep_msec_unless_input (u32 msec, i32 fd)
+{
+	fd_set fs;
+	struct timeval tv;
+	i32 nfds = fd + 1;
+
+	FD_ZERO(&fs);
+	tv.tv_sec = msec / 1000;
+	tv.tv_usec = (msec % 1000) * 1000;
+
+	FD_SET(fd, &fs);
+
+	select(nfds, &fs, NULL, NULL, &tv);
+}
+
 /*
  * sleep given seconds count unless there is input on given fds
  *
@@ -185,6 +200,10 @@ static inline void sleep_msec (u32 msec)
 static inline void sleep_sec_unless_input (u32 sec, i32 fd)
 {
 	sleep_sec(sec);
+}
+static inline void sleep_msec_unless_input (u32 msec, i32 fd)
+{
+	sleep_msec(msec);
 }
 static inline void sleep_sec_unless_input2 (u32 sec, i32 fd1, i32 fd2)
 {
