@@ -33,6 +33,7 @@ struct app_options {
 	char	*pre_cmd;
 	char	*preload_lib;
 	char	*disc_str;
+	char	*disc_lib;
 	bool	do_adapt;
 	bool	run_scanmem;
 	bool	use_glc;

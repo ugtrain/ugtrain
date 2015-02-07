@@ -433,7 +433,8 @@ static inline void stage34_args_err (char stage)
 
 // Does the user request to filter the backtrace to the given lib?
 // returns 0 for success, -1 for error
-static inline i32 parse_bt_filter (char **disc_part, char stage)
+static inline i32 parse_bt_filter (char **disc_part, char **disc_lib,
+				   char stage)
 {
 	i32 ret = -1;
 	char *pos;
@@ -447,11 +448,17 @@ static inline i32 parse_bt_filter (char **disc_part, char stage)
 		stage34_args_err(stage);
 		goto out;
 	}
-#if (DISC_DEBUG)
 	*pos = '\0';
+#if (DISC_DEBUG)
 	cout << "PIC: filtering backtrace to " << *disc_part << endl;
-	*pos = ';';
 #endif
+	if (strncmp(*disc_part, "exe", sizeof("exe") - 1) == 0) {
+		*disc_lib = (char *) "\0";
+	} else {
+		*disc_lib = new char[strlen(*disc_part) + 1];
+		strcpy(*disc_lib, *disc_part);
+	}
+	*pos = ';';
 	*disc_part = pos;
 success:
 	ret = 0;
@@ -522,7 +529,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		// fall through
 	case '4':
 		disc_part++;
-		if (parse_bt_filter(&disc_part, stage))
+		if (parse_bt_filter(&disc_part, &opt->disc_lib, stage))
 			goto err;
 		ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;" SCN_PTR,
 			     &heap_soffs, &heap_eoffs, &mem_size, &code_addr);
@@ -545,6 +552,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		cout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '5':
+		opt->disc_lib = (char *) "\0";
 		if (!opt->do_adapt) {
 			list_for_each (cfg, it) {
 				if (it->dynmem && !it->dynmem->adp_addr) {

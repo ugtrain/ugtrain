@@ -38,6 +38,7 @@
 #endif
 
 #include <lib/maps.h>
+#include <lib/system.h>
 #include "libcommon.h"
 
 #define PFX "[memdisc] "
@@ -171,7 +172,6 @@ static i32 set_bt_addrs (struct map *map, void *data)
 {
 	char *exe_path = (char *) data;
 	char *lib_name = basename(map->file_path);
-	ptr_t exe_offs;
 
 	if (map->exec != 'x')
 		goto out;
@@ -184,13 +184,6 @@ static i32 set_bt_addrs (struct map *map, void *data)
 
 	bt_saddr = (ptr_t) map->start;
 	bt_eaddr = (ptr_t) map->end;
-	if (bt_filter[0] != '\0')
-		return 1;
-
-	/* PIE detection */
-	exe_offs = get_exe_offs(map->start);
-
-	update_cfg_for_pie(exe_offs);
 	return 1;
 out:
 	return 0;
@@ -272,7 +265,7 @@ static inline i32 read_input (char ibuf[], size_t size)
 		}
 		if (read_tries <= 0)
 			break;
-		usleep(250 * 1000);
+		sleep_msec_unless_input(250, ifd);
 	}
 	return ret;
 }
@@ -563,7 +556,7 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	/* Read new backtrace filter config (might be PIC/PIE) */
 	if (stage >= 3 || ptr_cfg.code_addr != 0) {
-		/* notify ugtrain to do its PIE handling as well */
+		/* notify ugtrain to do the PIE handling */
 		ssize_t wbytes;
 #define NOTIFY_STR "ready\n"
 		wbytes = write(ofd, NOTIFY_STR, sizeof(NOTIFY_STR));
@@ -574,10 +567,24 @@ void __attribute ((constructor)) memdisc_init (void)
 #undef NOTIFY_STR
 		/* PIE handling if exe filter is requested */
 		if (bt_filter && bt_filter[0] == '\0') {
-			char exe_path[MAPS_MAX_PATH];
-			get_exe_path_by_pid(getpid(), exe_path,
-				sizeof(exe_path));
-			read_maps(getpid(), set_bt_addrs, exe_path);
+			ptr_t exe_start = 0, exe_end = 0, exe_offs = 0;
+			i32 ret;
+			if (read_input(ibuf, sizeof(ibuf)) != 0) {
+				pr_err("Couldn't read backtrace filter!\n");
+				goto out;
+			}
+			ret = sscanf(ibuf, SCN_PTR ";" SCN_PTR ";" SCN_PTR,
+				&exe_start, &exe_end, &exe_offs);
+			if (ret < 3) {
+				pr_err("Exe backtrace filter parsing error!\n");
+				goto out;
+			}
+			bt_saddr = exe_start;
+			bt_eaddr = exe_end;
+			update_cfg_for_pie(exe_offs);
+
+			pr_out("bt_filter: exe ("PRI_PTR "-" PRI_PTR")\n",
+				exe_start, exe_end);
 		}
 	}
 	pr_dbg("new cfg: %d;" PRI_PTR ";" PRI_PTR ";%zd;"
@@ -1219,7 +1226,7 @@ static inline void postprocess_dlopen (const char *lib_path)
 #endif
 	wbytes = write(ofd, obuf, wbytes);
 	if (wbytes < 0)
-		perror("write");
+		perror("dlopen write");
 	if (bt_filter && bt_filter[0] != '\0' && strstr(lib_name, bt_filter))
 		read_maps(getpid(), set_bt_addrs, NULL);
 }

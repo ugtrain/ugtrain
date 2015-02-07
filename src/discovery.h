@@ -77,7 +77,7 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 	list<CfgEntry>::iterator cfg_it;
 	list<struct region>::iterator it;
 	DynMemEntry *old_dynmem = NULL;
-	ptr_t exe_offs = 0;
+	ptr_t exe_offs = 0, exe_start = 0, exe_end = 0;
 	ssize_t wbytes;
 	char exe_path[MAPS_MAX_PATH];
 	char obuf[PIPE_BUF];
@@ -100,18 +100,28 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 	read_regions(pid, &params);
 	list_for_each (rlist, it) {
 		if (it->type == REGION_TYPE_EXE && it->flags.exec) {
+			exe_start = (ptr_t) it->start;
+			exe_end = (ptr_t) (it->start + it->size);
 			exe_offs = handle_exe_region(&(*it), ofd, opt);
 			break;
 		}
 	}
-	if (opt->pure_statmem || opt->disc_str)
+	if (opt->pure_statmem)
 		return;
-	list_for_each (cfg, cfg_it) {
-		if (!cfg_it->dynmem || cfg_it->dynmem == old_dynmem)
-			continue;
-		old_dynmem = cfg_it->dynmem;
+	if (opt->disc_str) {
+		if (!opt->disc_lib || opt->disc_lib[0] != '\0')
+			return;
 		osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-			PRI_PTR ";", exe_offs);
+			PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n", exe_start,
+			exe_end, exe_offs);
+	} else {
+		list_for_each (cfg, cfg_it) {
+			if (!cfg_it->dynmem || cfg_it->dynmem == old_dynmem)
+				continue;
+			old_dynmem = cfg_it->dynmem;
+			osize += snprintf(obuf + osize, sizeof(obuf) - osize,
+				PRI_PTR ";", exe_offs);
+		}
 	}
 	// Write code offsets to output FIFO
 	wbytes = write(ofd, obuf, osize);
