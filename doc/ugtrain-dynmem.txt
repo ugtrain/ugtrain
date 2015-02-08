@@ -25,7 +25,7 @@ name. This way libmemhack/disc knows when to activate itself (not in another
 preloader, not in a shell, etc.). This also works for pure static memory.
 See the "--pre-cmd" and "--glc" options of ugtrain.
 
-The lib has a constructor function, a malloc() and a free() hook. It wraps
+The lib has a constructor function, malloc() and free() hooks. It wraps
 these functions. In the constructor the lib opens the input and the output
 FIFO and tries for 1 second to read the config. If there is no config or there
 is an error in the config, then it doesn't get active. This means that it
@@ -39,31 +39,24 @@ One could think about backtracing there as well for optimization but how to
 discover/adapt that and ensure that we've found all free() calls for that
 class?!
 
-The in-memory config is at a static memory location and uses a fixed size of
-e.g. four memory pages (4 * 4096 bytes). In this memory area libmemhack stores
-all important data like config pointers, config entries and the memory
-addresses of the currently allocated objects. These are filled with an invalid
-pointer value in the constructor and the last value is always that invalid
-pointer. This way free() only iterates until it hits an invalid pointer. Upon
-a free() the found memory address is set to NULL and malloc() can re-use it.
-This way the first invalid pointer represents the number of objects which had
-to be kept track of at once. The more objects there are, the slower it gets.
-All this is quite hacky but it's the most flexible way with performance in
-mind.
-
-Note: The constructor tells the user of how many memory objects per memory
-class libmemhack can keep track of. The more classes you configure, the less it
-gets. And don't worry: libmemhack gets an own independent memory area for its
-config data. So static memory cheating works no matter if libmemhack is
-preloaded or not.
+The in-memory config is stored as an array of config entries on the heap. An
+array of memory addresses of the currently allocated objects is part of a
+config entry. It grows dynamically with a size-doubling allocator with a mutex
+held. The memory addresses are filled with an invalid pointer value and the last
+value is always that invalid pointer. This way free() only iterates until it
+hits an invalid pointer. Upon a free() the found memory address is set to NULL
+and malloc() can re-use it. This way the first invalid pointer represents the
+number of objects which had to be kept track of at once. The more objects there
+are, the slower it gets.
 
 == ugtrain Specialties ==
 
-The command-line option '-P' is recommended for dynamic memory cheating. With
+The command-line option '-P' is required for dynamic memory cheating. With
 that libmemhack is preloaded, the libraries are configured with the game
 process name and the game is started automatically. The advantage compared to
 manually preloading and separately starting is that root permissions aren't
-required (for ptrace). They are in the same process group!
+required (for ptrace). They are in the same process group! Furthermore, the
+library and ugtrain communicate to bypass security measures.
 
 Required config options: "dynmemstart", "dynmemend", >= 1 value inside
 Related config options: "checko"
@@ -72,7 +65,7 @@ FIFOs: /tmp/memhack_in, /tmp/memhack_out
 Value locations are used as offsets within the objects. They become only active
 if at least one object has been allocated. The lib sends the code and the
 memory address through the FIFO to ugtrain. The ugtrain appends this to a
-vector of memory addresses in the right memory class then. It also grows the
+vector of memory addresses in the related memory class then. It also grows the
 old value vectors per configured value in that class. This way ugtrain always
 knows which value was in memory before changing it and can show it to the user.
 Displaying all values at once would be too much. This is why ugtrain uses a
@@ -85,7 +78,7 @@ otherwise to an opponent. If it fails, it removes the object from the active
 ugtrain in-memory config by setting its memory address to NULL. Following
 values in that object are not processed anymore. After leaving the critical
 section, the object is removed from the vectors and freed. Afterwards the user
-is informed. This behaves very similar like having received a free() from
+is informed. This behaves very similar to having received a free() from
 libmemhack.
 
 But keep in mind: libmemhack doesn't know about that. It still tracks kicked-
@@ -95,10 +88,11 @@ The rest works the same way as with static memory.
 
 == Hardened Security ==
 
-With a PIE (position independent executable) and ASLR the code addresses on
-the stack are randomized. Ugtrain determines the load address of the executable
-from /proc/$pid/maps and sends it to libmemhack. Libmemhack adds it to the
-configured code addresses afterwards.
+With a PIE (position independent executable) and ASLR (address space layout
+randomization) the code addresses on the stack are randomized. Ugtrain
+determines the load address of the executable from /proc/$pid/maps and
+sends it to libmemhack. Libmemhack adds it to the configured code addresses
+afterwards. E.g. Ubuntu uses PIE on everything since version 13.04.
 
 
 === Dynamic Memory Discovery ===
@@ -118,22 +112,26 @@ we need are the following stage parameters for the '-D' option:
 
 1. "StageNr[;HeapStartOffs;HeapEndOffs]"
 2. "StageNr[[;HeapStartOffs;HeapEndOffs];MemSize]"
-3. "StageNr[;gbt][;HeapStartOffs;HeapEndOffs];MemSize[;CodeStart;CodeEnd]"
-4. "StageNr[;HeapStartOffs;HeapEndOffs];MemSize[;CodeStart;CodeEnd][;CodeAddr]"
+3. "StageNr[;gbt][;CodeFilter][;HeapStartOffs;HeapEndOffs];MemSize[;CodeAddr]"
+4. "StageNr[;CodeFilter][;HeapStartOffs;HeapEndOffs];MemSize[;CodeAddr]"
 
 Examples:
 
 1. "1", "1;0x200000;0x350000"
 2. "2", "2;0", "2;288", "2;0x200000;0x350000;288"
-3. "3;288", "3;0x200000;0x350000;288;0x404d50;0x425c88"
-4. "4;288", "4;0x200000;0x350000;288;0x404d50;0x425c88;0x40f4e7"
+3. "3;288", "3;exe;288", "3;gbt;exe;0x200000;0x350000;288"
+4. "4;288", "4;exe;288", "4;exe;0x200000;0x350000;288;0x40f4e7"
 
 You see, we can also do this in only two stages: stages 2 and 4. Size 0 means
 that all sizes are recorded in stage 2. The ugtrain expands the first example
-string to the second in stage 2. The heap filter is completely optional. The
-libmemdisc tells you about heap start and stack end. In stages 3 and 4 ugtrain
-finds out the code start and end for you by "objdump -p"-based binary header
-extraction. Only the malloc size is important there.
+string to the second in stage 2. The heap filter is completely optional and
+rarely used. The libmemdisc tells you about heap start and stack end. In stages
+3 and 4 ugtrain finds out the code start and end for you for the code filter
+you've specified. It reads from /proc/$pid/maps to find them. Use "exe" to
+filter the backtrace output to the executable. A library name like e.g.
+"libbt_objects.so" filters the backtrace to a library. Without a code filter
+set ugtrain shows all code addresses it finds in the backtrace. Only the malloc
+size is important in these stages.
 
 Returns:
 
@@ -147,22 +145,23 @@ the object, 's' is the size in bytes
 --> 'o' is the reverse stack offset of the code address
 
 The results are written with caching directly from /tmp/memhack_out into the
-file /tmp/memhack_file. There is a flush each second in case that there is only
-a small amount of data. After ending the game ugtrain asks you for a memory
-address from static memory search in parallel. Enter it and ugtrain will search
-for the matching malloc calls. It is very likely that interesting objects
-are kept until game end. So they should be at the end of that list. But as in
-stages 3 and 4 the "objdump -D"-based symbol lookup is quite slow, we reverse
-that list and the interesting malloc is at the top. This way you can interrupt
-the symbol lookup earlier. It is really important to end the game directly and
-not to return to the game main menu as further allocations could occur there.
+file /tmp/memhack_file. There is a flush when terminating the game process
+regularly in case that there is only a small amount of data. After ending the
+game ugtrain asks you for a memory address from static memory search in
+parallel. Enter it and ugtrain will search for the matching malloc calls. It
+is very likely that interesting objects are kept until game end. So they should
+be at the end of that list. But as in stages 3 and 4 the "objdump -D"-based
+symbol lookup might be quite slow, we reverse that list and the interesting
+malloc is at the top. This way you can interrupt the symbol lookup earlier.
+It is really important to end the game directly and not to return to the game
+main menu as further allocations to the same memory space could occur there.
 Like in static memory search the -S option is important here.
 
 Discovery preparation:
 
 Write the process name of the game into a config file. The PID is determined
 from that and it must be located in the first line. We use the game Chromium
-B.S.U. 64 bit as an example here.
+B.S.U. 64 bit as an example here with PIE.
 
 $ echo "chromium-bsu" > test.conf
 
@@ -175,13 +174,18 @@ $ echo "game_path /usr/games/bin/chromium-bsu" >> test.conf
 
 Example stage 2:
 
-$ ugtrain -S -D "2" test.conf
+$ ugtrain -D "2" -S test.conf
 ...
-Memory address (e.g. 0xdeadbeef): 0x87ad8c
-Searching reverse for 0x87ad8c in discovery output..
-m0x87acd0;s288 contains 0x87ad8c, offs: 0xbc, heap offs: 0x2257f0
-m0x87acd0;s344 contains 0x87ad8c, offs: 0xbc, heap offs: 0x2257f0
-m0x87acd0;s344 contains 0x87ad8c, offs: 0xbc, heap offs: 0x2257f0
+1> list
+[ 0] 7f776a639a8c, 30 +       998a8c,  heap, 2, [I64 I32 I16 I8 ]
+1> set 9
+info: setting *0x7f776a639a8c to 9...
+1> exit
+Memory address (e.g. 0xdeadbeef): 0x7f776a639a8c
+Searching reverse for 0x7f776a639a8c in discovery output..
+m0x7f776a6399d0;s288 contains 0x7f776a639a8c, offs: 0xbc, heap offs: 0x988500
+m0x7f776a6398e0;s8192 contains 0x7f776a639a8c, offs: 0x1ac, heap offs: 0x988410
+m0x7f776a639170;s8192 contains 0x7f776a639a8c, offs: 0x91c, heap offs: 0x987ca0
 ...
 
 This shows us that the malloc size is 288 bytes and the offset in the object
@@ -190,23 +194,29 @@ We also get to know the heap offset.
 
 Example stage 4:
 
-$ ugtrain -S -D "4;288" test.conf
+$ ugtrain -D "4;288" -S test.conf
 ...
-Memory address (e.g. 0xdeadbeef): 0x8a605c
-Searching reverse for 0x8a605c in discovery output..
-m0x8a5fa0;s288 contains 0x8a605c, offs: 0xbc, heap offs: 0x250ac0
-c0x40f4e7;o0x28 <_Znwm@plt>
-c0x417801;o0x48
-c0x404be6;o0x78
+Memory address (e.g. 0xdeadbeef): 0x7fb14577b95c
+Searching reverse for 0x7fb14577b95c in discovery output..
+m0x7fb14577b8a0;s288 contains 0x7fb14577b95c, offs: 0xbc, heap offs: 0x97e5b0
+c0x7fb144ddf400;o0x0
+c0x5ef2d;o0x8 libstdc++.so.6.0.19 <malloc@plt>
+c0x0;o0x10
+c0x7fb14527e860;o0x18
+c0x7fb144ddf400;o0x20
+c0x14b57;o0x28 chromium-bsu <_Znwm@plt>
 ...
 
-Only <*@plt> direct library calls are displayed and "_Znwm" on the first
+The names of libraries and the executable are only shown if their code addresses
+are found on the stack. Their load address is subtracted automatically from
+their found code addresses then.
+Only <*@plt> direct library calls are displayed and "_Znwm" on the last
 position is exactly what we are looking for. It is a GNU C++ internal function
 (part of the "new" operator) which calls "malloc" internally. On 32 bit systems
 it is called "_Znwj".
 We can see the reverse stack offset is 0x28. It would be lower if "malloc"
 would have been called directly from the game binary (e.g. 0x8). We also
-get to know the jump-back code address 0x40f4e7.
+get to know the jump-back code address 0x14b57.
 
 That's it! We can write a basic config for the lives in chromium-bsu. We
 start with a watcher in order to verify that our findings are correct. It
@@ -216,7 +226,7 @@ too many enemies through, the lives are set to -1 (0xffffffff). When hex
 dumping this, we see that we actually have a 32 bit signed integer here.
 
 chromium-bsu
-dynmemstart HeroAircraft 288 0x40f4e7 0x28
+dynmemstart HeroAircraft 288 0x14b57 0x28
 Lives 0xbc i32 watch
 dynmemend
 
@@ -233,32 +243,31 @@ check 0xbc i32 g 0
 ...
 
 Here, we want the lives to be updated to 9 only if they are less than 9 and
-also greater than 0. Otherwise, unexpected behaviour could happen. We also
+also greater than 0. Otherwise, unexpected behavior could happen. We also
 want to be sure that we are on the correct memory address in case of adaption.
 With the keys '1' and '0' we can toggle the activation of this value. The
-ugtrain uses non-blocking getchar just like the Linux command "top". In the
+ugtrain uses non-blocking getchar() just like the Linux command "top". In the
 last column the 'a' means that this is activated at trainer start.
 
 $ ugtrain -P test.conf
 ...
 Starting game with libmemhack64.so preloaded..
 ...
-[memhack] Using max. 4088 objects per class.
-[memhack] config[0]: mem_size: 288; code_addr: 0x40f4e7; stack_offs: 0x28
-...
-exe_offs: 0
+[memhack] config[0]: mem_size: 288; code_addr: 0x14b57; stack_offs: 0x28
+exe_offs: 0x7fbc12ded000
+PIE (position independent executable) detected!
 ===> Obj. HeroAircraft created 1 time(s); now: 1
-*HeroAircraft[0] = 0x288dd70, 1 obj.
-Lives at 0x288de2c, Data: 0x4 (4)
-*HeroAircraft[0] = 0x288dd70, 1 obj.
-Lives at 0x288de2c, Data: 0x9 (9)
+*HeroAircraft[0] = 0x7fbc13df9f40, 1 obj.
+Lives at 0x7fbc13df9ffc, Data: 0x4 (4)
+*HeroAircraft[0] = 0x7fbc13df9f40, 1 obj.
+Lives at 0x7fbc13df9ffc, Data: 0x9 (9)
 ...
 ===> Obj. HeroAircraft freed 1 time(s); remaining: 0
 
-This is without PIE as the load address of the executable is always at 0x400000
-on x86_64 without PIE. We can also see it when looking at the configured code
-address. It is greater than that and it would be much lower with PIE. So there
-is no need to add an offset to the code addresses here.
+This is with PIE as the load address of the executable has to be added back
+to the configured code address. Without PIE the load address of the executable
+would be always at 0x400000 on x86_64 and would be configuered as is without
+adding something to it when running the game.
 
 
 === Finding more Values in Dynamic Memory ===
