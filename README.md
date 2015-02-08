@@ -2,13 +2,16 @@
 
 The ugtrain is an advanced free and universal game trainer for the CLI under
 GPLv2 license on GitHub and Sourceforge.net. It is mostly written in C with
-C++ parts for convenience and some shell scripts. The dynamic memory support
+C++ parts for convenience and some shell scripts. The **dynamic memory support**
 sets it apart. An integrated preloader, a memory discovery and a memory
 hacking library are included for this.
-The ugtrain uses one simple config file per game which can be exchanged
-with others. Examples for games which allow cheating are included. These
-also come with automatic adaption for dynamic memory so that you can use
-them right away on your system after adaption.
+The ugtrain uses one simple **config file per game** which can be exchanged
+with others. **Example configs** for games which allow cheating are included.
+These also come with **automatic adaption** for dynamic memory so that you can
+use them right away on your system after adaption.
+Also security measures like **ASLR and PIE are bypassed**. All this makes
+ugtrain now already the **best game trainer on Linux**. And with **scanmem** it
+integrates the best memory search on Linux.
 
 The ugtrain is powered by the Open Game Cheating Association.
 
@@ -17,10 +20,14 @@ http://en.wikipedia.org/wiki/Trainer_%28games%29
 
 For **further documentation** see:
 
-* README_qanda.md (Questions and Answers)
-* doc/ugtrain-statmem.txt (Static Memory Cheating Documentation)
-* doc/ugtrain-dynmem.txt (Dynamic Memory Cheating Documentation)
-* examples/README (Config Syntax Description)
+* [Questions and Answers]
+(https://github.com/sriemer/ugtrain/blob/master/README_qanda.md)
+* [Static Memory Cheating Documentation]
+(https://github.com/sriemer/ugtrain/blob/master/doc/ugtrain-statmem.txt)
+* [Dynamic Memory Cheating Documentation]
+(https://github.com/sriemer/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
+* [Config Syntax Description]
+(https://github.com/sriemer/ugtrain/blob/master/examples/README)
 
 ## Videos of the Examples
 
@@ -65,8 +72,8 @@ autotools-dev, autoconf, automake, libtoolize and libtool
 `echo -e "/usr/local/lib\n/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf` <br/>
 `ldconfig -v  # regenerate the ld.so cache`
 
-These paths simplify file usage. Where to set these environment
-variables is distribution-specific. See "man ld.so".
+These paths simplify file usage. Where and how to set these paths is
+distribution-specific. See "man ld.so".
 
 "objdump" and "scanmem" should be installed as well.
 
@@ -112,12 +119,12 @@ adaption can be triggered explicitly as well: <br/>
 **Static Memory**
 
 * no adaption yet
-* no support for values in a library (PIC) yet
+* no support for values within a library (PIC) yet
 
 **Dynamic Memory**
 
 * growing of objects/structures experimental, no documentation yet
-* no support for allocations in a library (PIC) yet
+* only discovery support for allocations within a library (PIC) so far
 * doesn't work with WINE yet
 
 **Compilation**
