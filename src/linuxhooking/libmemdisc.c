@@ -37,7 +37,6 @@
 #include <glib.h>       /* g_malloc */
 #endif
 
-#include <lib/maps.h>
 #include <lib/system.h>
 #include "libcommon.h"
 
@@ -117,7 +116,7 @@ static char *bt_filter;
 static ptr_t bt_saddr = 0, bt_eaddr = 0;
 
 /* code address of the interesting malloc call */
-static ptr_t code_addr = 0;
+static ptr_t orig_code_addr = 0, code_addr = 0;
 
 /*
  * ATTENTION: GNU backtrace() might crash with SIGSEGV!
@@ -158,35 +157,6 @@ static inline void update_cfg_for_pie (ptr_t exe_offs)
 	/* stage >= 3 PIE handling */
 	if (code_addr && code_addr <= UINTPTR_MAX - exe_offs)
 		code_addr += exe_offs;
-}
-
-/*
- * callback for read_maps(),
- * searches for bt_filter start and end code address in memory,
- * sets found code addresses as the new backtrace filter,
- * returns 1 for stopping the iteration (bt_filter found) and 0 otherwise
- *
- * Assumption: bt_filter != NULL
- */
-static i32 set_bt_addrs (struct map *map, void *data)
-{
-	char *exe_path = (char *) data;
-	char *lib_name = basename(map->file_path);
-
-	if (map->exec != 'x')
-		goto out;
-	if ((bt_filter[0] == '\0' && !strstr(map->file_path, exe_path)) ||
-	    !strstr(lib_name, bt_filter))
-		goto out;
-
-	pr_out("bt_filter: %s ("PRI_PTR "-" PRI_PTR")\n", map->file_path,
-		(ptr_t) map->start, (ptr_t) map->end);
-
-	bt_saddr = (ptr_t) map->start;
-	bt_eaddr = (ptr_t) map->end;
-	return 1;
-out:
-	return 0;
 }
 
 /*
@@ -251,6 +221,9 @@ static void flush_output (void)
 	funlockfile(ofile);
 }
 
+/*
+ * Assumption: ifd >= 0
+ */
 static inline i32 read_input (char ibuf[], size_t size)
 {
 	i32 ret = -1;
@@ -268,6 +241,42 @@ static inline i32 read_input (char ibuf[], size_t size)
 		sleep_msec_unless_input(250, ifd);
 	}
 	return ret;
+}
+
+/*
+ * PIC handling: read the backtrace filter from the input FIFO
+ *
+ * Attention: Might be called multiple times for the same library.
+ */
+static inline void set_bt_addrs (void)
+{
+	ptr_t lib_start, lib_end;
+	char ibuf[128] = { 0 };
+	i32 ret;
+
+	if (read_input(ibuf, sizeof(ibuf)) != 0) {
+		pr_err("Couldn't read library backtrace filter!\n");
+		goto out;
+	}
+	ret = sscanf(ibuf, SCN_PTR ";" SCN_PTR, &lib_start, &lib_end);
+	if (ret < 2) {
+		pr_err("Library backtrace filter parsing error!\n");
+		goto out;
+	}
+	bt_saddr = lib_start;
+	bt_eaddr = lib_end;
+
+	/* stage >= 3 PIC handling */
+	if (code_addr && code_addr <= UINTPTR_MAX - lib_start) {
+		if (!orig_code_addr)
+			orig_code_addr = code_addr;
+		code_addr = orig_code_addr + lib_start;
+	}
+
+	pr_out("bt_filter: %s ("PRI_PTR "-" PRI_PTR")\n", bt_filter,
+		bt_saddr, bt_eaddr);
+out:
+	return;
 }
 
 /* clean up upon failure in library constructor */
@@ -570,7 +579,7 @@ void __attribute ((constructor)) memdisc_init (void)
 			ptr_t exe_start = 0, exe_end = 0, exe_offs = 0;
 			i32 ret;
 			if (read_input(ibuf, sizeof(ibuf)) != 0) {
-				pr_err("Couldn't read backtrace filter!\n");
+				pr_err("Couldn't read exe backtrace filter!\n");
 				goto out;
 			}
 			ret = sscanf(ibuf, SCN_PTR ";" SCN_PTR ";" SCN_PTR,
@@ -585,6 +594,11 @@ void __attribute ((constructor)) memdisc_init (void)
 
 			pr_out("bt_filter: exe ("PRI_PTR "-" PRI_PTR")\n",
 				exe_start, exe_end);
+		/* PIC handling if library filter is requested */
+		} else if (bt_filter && bt_filter[0] != '\0') {
+			/* get early loaded lib backtrace filter or just delay
+			   execution until ugtrain has PIC handling in place */
+			set_bt_addrs();
 		}
 	}
 	pr_dbg("new cfg: %d;" PRI_PTR ";" PRI_PTR ";%zd;"
@@ -597,10 +611,12 @@ void __attribute ((constructor)) memdisc_init (void)
 	fflush(ofile);
 #endif
 	active = true;
-
 out:
-	/* don't need the input FIFO anymore */
-	if (ifd >= 0) {
+	/*
+	 * don't need the input FIFO any more
+	 * (unless library backtrace filter set)
+	 */
+	if (ifd >= 0 && (!bt_filter || bt_filter[0] == '\0')) {
 		close(ifd);
 		ifd = -1;
 	}
@@ -1225,10 +1241,14 @@ static inline void postprocess_dlopen (const char *lib_path)
 	pr_out("%s", obuf);
 #endif
 	wbytes = write(ofd, obuf, wbytes);
-	if (wbytes < 0)
+	if (wbytes < 0) {
 		perror("dlopen write");
-	if (bt_filter && bt_filter[0] != '\0' && strstr(lib_name, bt_filter))
-		read_maps(getpid(), set_bt_addrs, NULL);
+		return;
+	}
+	if (bt_filter && bt_filter[0] != '\0' && strstr(lib_name, bt_filter)) {
+		pr_out("Reading backtrace filter for %s\n", lib_name);
+		set_bt_addrs();
+	}
 }
 
 #ifdef HOOK_DLOPEN
