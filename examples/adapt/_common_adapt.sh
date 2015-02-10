@@ -34,16 +34,16 @@ get_malloc_code()
         CODE=`objdump -D "$app_path"`
     fi
     if [ "$OLD_FNAME" != "$fname" ]; then
-        if [ $DEBUG -eq 1 ]; then echo "echo -e \$CODE | grep $fname -B $blines -A 1"; fi
-        FUNC_CALLS=`echo -e "$CODE" | grep "$fname" -B $blines -A 1`
+        if [ $DEBUG -eq 1 ]; then echo "echo \$CODE | grep $fname -B $blines -A 1"; fi
+        FUNC_CALLS=`echo "$CODE" | grep "$fname" -B $blines -A 1`
         OLD_FNAME="$fname"
     fi
-    if [ $DEBUG -eq 1 ]; then echo "echo -e \$FUNC_CALLS | grep -A $alines $msize"; fi
-    CODE_PART=`echo -e "$FUNC_CALLS" | grep -A $alines "$msize"`
+    if [ $DEBUG -eq 1 ]; then echo "echo \$FUNC_CALLS | grep -A $alines $msize"; fi
+    CODE_PART=`echo "$FUNC_CALLS" | grep -A $alines "$msize"`
     if [ -z "$CODE_PART" ]; then RC=1; return; fi
-    if [ $DEBUG -eq 1 ]; then echo -e "$CODE_PART"; fi
+    if [ $DEBUG -eq 1 ]; then echo "$CODE_PART"; fi
 
-    CODE_LINES=`echo -e "$CODE_PART" | wc -l`
+    CODE_LINES=`echo "$CODE_PART" | wc -l`
     if [ $CODE_LINES -eq $reslines ]; then
         isunique=1
     elif [ $CODE_LINES -ne $explines ]; then
@@ -51,20 +51,20 @@ get_malloc_code()
     fi
 
     if [ $isunique -ne 1 ]; then
-        CODE_PART=`echo -e "$CODE_PART" | tail -n $taillines`
-        CODE_PART=`echo -e "$CODE_PART" | head -n $reslines`
+        CODE_PART=`echo "$CODE_PART" | tail -n $taillines`
+        CODE_PART=`echo "$CODE_PART" | head -n $reslines`
 
-        CODE_LINES=`echo -e "$CODE_PART" | wc -l`
+        CODE_LINES=`echo "$CODE_PART" | wc -l`
         if [ $CODE_LINES -ne $reslines ]; then RC=1; return; fi
     fi
 
-    CODE_CALL=`echo -e "$CODE_PART" | cut -d '
+    CODE_CALL=`echo "$CODE_PART" | cut -d '
 ' -f $alines | grep call`
     if [ -z "$CODE_CALL" ]; then RC=1; return; fi
-    if [ $DEBUG -eq 1 ]; then echo -e "CODE_CALL:\n$CODE_CALL"; fi
+    if [ $DEBUG -eq 1 ]; then echo "CODE_CALL:"; echo "$CODE_CALL"; fi
 
-    CODE_ADDR=`echo -e "$CODE_PART" | tail -n 1 | cut -d ':' -f 1 | tr -d [:blank:]`
+    CODE_ADDR=`echo "$CODE_PART" | tail -n 1 | cut -d ':' -f 1 | tr -d [:blank:]`
     if [ -z "$CODE_ADDR" ]; then RC=1; return; fi
-    if [ $DEBUG -eq 1 ]; then echo -e "CODE_ADDR:\n$CODE_ADDR"; fi
+    if [ $DEBUG -eq 1 ]; then echo "CODE_ADDR:"; echo "$CODE_ADDR"; fi
     IFS=''
 }
