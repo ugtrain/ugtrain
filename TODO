@@ -1,5 +1,5 @@
-Version 0.2
-This tool is still under heavy development. Dyn. mem. support is new.
+Version 0.2.1-pre
+This tool is still under heavy development.
 There is still a lot of work to do. We appreciate any help we can get.
 
 Autotools:
@@ -7,7 +7,7 @@ Autotools:
 
 Config files:
 + make search paths for config files configurable
-+ support vector and list pointers to take over a dynamic structure in memory
++ support static memory and memory allocations within a library (PIC)
 
 Options:
 + support common linux options (-V, -v, -q, ...)
@@ -17,11 +17,11 @@ External control (using ugtrain as backend):
 + support config from stdin or command line
 
 Multi-arch support:
-+ support more architectures than x86, x86_64 and ARM
++ support more CPU architectures than x86, x86_64 and ARM
 
 Multi-platform support:
 + support Windows as well
-+ write getch functions for Windows
++ write getch() functions for Windows
 + add Windows support for memory changing (OpenProcess, Read/WriteProcessMemory)
 + support MinGW compilation
 + implement arbitrary command execution helpers for Windows
@@ -29,16 +29,32 @@ Multi-platform support:
 + add dyn. mem. support for WINE (Inline Hooking)
 
 Trainer:
-+ detect PIE in a more universal way by reading the ELF header
-+ support PIC
-+ support list and vector processing (hook 'memmove' as well)
++ support PIC in dynamic memory hacking and adaption (discovery works already)
++ support PIC for static memory
++ enhance support for growing memory objects (adaption, not only realloc(), ...)
++ add keys to disable all configured values and to enable all of them
+    (we can only toggle values so far)
 + support external control (start/stop freezing)
+
+Testing:
++ implement (semi-)automatic testing with live-images and (3D enabled) VMs
++ implement options to stop execution at a certain point for unit testing
+
+Demoing:
++ use live-images to demo ugtrain
 
 Documentation:
 + create man pages
 
 Other:
-+ record more videos of ugtrain cheating FOSS games and upload them to YouTube
++ improve dumping of dynamic memory objects
+    * integrate 'xxd' and convert dumps also to text files
+    * always keep two states for comparing them (find further values in object)
++ develop global config handling (/etc/ugtrain.conf, e.g. set preloading method)
++ create much more ugtrain configs for FOSS games
++ record more videos of ugtrain cheating at FOSS games and upload them to YouTube
++ fix the game capture tool "glc" to support pulseaudio capture correctly
++ further rework the ELF file growing algorihm in "patchelf".
 + evaluate "Cheat Engine" (source code) for Windows stuff
 
 Roadmap:
