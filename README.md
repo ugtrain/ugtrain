@@ -5,10 +5,12 @@ GPLv2 license on GitHub and Sourceforge.net. It is mostly written in C with
 C++ parts for convenience and some shell scripts. The **dynamic memory support**
 sets it apart. An integrated preloader, a memory discovery and a memory
 hacking library are included for this.
+
 The ugtrain uses one simple **config file per game** which can be exchanged
 with others. **Example configs** for games which allow cheating are included.
 These also come with **automatic adaption** for dynamic memory so that you can
-use them right away on your system after adaption.
+use them right away on your system after executing it.
+
 Also security measures like **ASLR and PIE are bypassed**. All this makes
 ugtrain now already the **best game trainer on Linux**. And with **scanmem** it
 integrates the best memory search on Linux.
@@ -124,7 +126,8 @@ adaption can be triggered explicitly as well: <br/>
 **Dynamic Memory**
 
 * growing of objects/structures experimental, no documentation yet
-* only discovery support for allocations within a library (PIC) so far
+* support for allocations within a library (PIC) limited to discovery so far
+* disassembly within discovery and adaption for x86 and x86\_64 only
 * doesn't work with WINE yet
 
 **Compilation**
@@ -139,6 +142,11 @@ adaption can be triggered explicitly as well: <br/>
 **Packaging**
 
 * only Debian packaging for MeeGo 1.2 Harmattan (Nokia N9)
+
+**Testing**
+
+* testing limited to manual tests so far
+* tests mostly based on Debian/Ubuntu distributions
 
 # How to Contribute
 
