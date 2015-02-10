@@ -30,6 +30,8 @@ For **further documentation** see:
 (https://github.com/sriemer/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
 * [Config Syntax Description]
 (https://github.com/sriemer/ugtrain/blob/master/examples/README)
+* [Development TODOs]
+(https://github.com/sriemer/ugtrain/blob/master/TODO)
 
 ## Videos of the Examples
 
