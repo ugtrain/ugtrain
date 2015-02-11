@@ -8,6 +8,7 @@ Autotools:
 Config files:
 + make search paths for config files configurable
 + support static memory and memory allocations within a library (PIC)
++ provide separate config compatibility files (distribution, game version, ...)
 
 Options:
 + support common linux options (-V, -v, -q, ...)
@@ -45,11 +46,10 @@ Demoing:
 
 Documentation:
 + create man pages
++ imprement an interactive tutorial tool "ugtutor" to do use ugtrain step by step
++ let ugtutor detect installed games known to be working with ugtrain configs
 
 Other:
-+ improve dumping of dynamic memory objects
-    * integrate 'xxd' and convert dumps also to text files
-    * always keep two states for comparing them (find further values in object)
 + develop global config handling (/etc/ugtrain.conf, e.g. set preloading method)
 + create much more ugtrain configs for FOSS games
 + record more videos of ugtrain cheating at FOSS games and upload them to YouTube
