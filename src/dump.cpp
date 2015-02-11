@@ -16,6 +16,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdio.h>
 
 // local includes
 #include <lib/memattach.h>
@@ -65,8 +66,8 @@ err:
 static void dump_mem_obj (pid_t pid, u32 class_id, u32 obj_id,
 			  ptr_t mem_addr, size_t size)
 {
-	i32 fd;
-	string fname;
+	i32 fd, ret;
+	string fname, backup;
 	char buf[size];
 	ssize_t wbytes;
 
@@ -83,8 +84,21 @@ static void dump_mem_obj (pid_t pid, u32 class_id, u32 obj_id,
 	if (obj_id < 10)
 		fname += "0";
 	fname += to_string(obj_id);
+	backup = fname;
+	backup += "~.dump";
 	fname += ".dump";
 
+	// store a backup if file exists for keeping two states to compare
+	fd = open(fname.c_str(), O_RDONLY);
+	if (fd >= 0) {
+		close(fd);
+		ret = rename(fname.c_str(), backup.c_str());
+		if (ret) {
+			cerr << "renaming " << fname << " to "
+			     << backup << " failed!" << endl;
+			goto err;
+		}
+	}
 	fd = open(fname.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
 	if (fd < 0)
 		goto err;
