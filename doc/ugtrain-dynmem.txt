@@ -223,7 +223,8 @@ start with a watcher in order to verify that our findings are correct. It
 is often better to use the smallest possible data type. Later it can be
 possibly discovered that a larger type is used. E.g. here when letting
 too many enemies through, the lives are set to -1 (0xffffffff). When hex
-dumping this, we see that we actually have a 32 bit signed integer here.
+dumping this (pressing the '>' key), we see that we actually have a 32
+bit signed integer here.
 
 chromium-bsu
 dynmemstart HeroAircraft 288 0x14b57 0x28
@@ -234,8 +235,10 @@ See examples/README for the complete config syntax.
 
 $ ugtrain -P test.conf
 
-When being sure, you can add the checks and the wish value, assign one or
-more comma-separated activation keys and set the initial activation state.
+Now we run our discovered config with memory hacking and watch how the
+lives value changes. When being sure about it, you can add the checks and
+the wish value, assign one or more comma-separated activation keys and set
+the initial activation state. The lives are frozen to the wish value then.
 
 ...
 Lives 0xbc i32 l 9 1,0 a
@@ -264,36 +267,43 @@ Lives at 0x7fbc13df9ffc, Data: 0x9 (9)
 ...
 ===> Obj. HeroAircraft freed 1 time(s); remaining: 0
 
+The lives are frozen to 9. So freezing our first value in dynamic memory works.
 This is with PIE as the load address of the executable has to be added back
 to the configured code address. Without PIE the load address of the executable
-would be always at 0x400000 on x86_64 and would be configuered as is without
+would be always at 0x400000 on x86_64 and would be configured as is without
 adding something to it when running the game.
 
 
 === Finding more Values in Dynamic Memory ===
 
-In the game we can use the object dump now by pressing the '>' key. For our
-example there should be the HeroAircraft object dumped as "0_000.dump". Before
-the '_' there is the class index and after it the object index. Just compare
-two dumps: when you are low on everything and when you are high on everything.
-This way you can easily find other values like ammo and shields. Zero is also
-with a float zero in hex. The .dump files are binary files so either you use
-a binary diff tool or you convert them into text first and use a text diff tool
-like e.g. "meld". Conversion can be done as follows:
+When running ugtrain with memory hacking we can use the object dump now by
+pressing the '>' key. For our example there is the HeroAircraft object dumped
+as "0_000.dump". In front of the '_' there is the class index and behind it the
+object index. The next dump renames the existing dump file to "0_000~.dump" and
+overwrites in case such file already exists. This way always upto two states for
+a memory object are stored.
 
+Do the first dump when you are low on everything (ammo, shields, etc.) and the
+second one when you are high on everything. Then just compare both dumps with a
+binary diff tool like e.g. "vbindiff". This way you can easily find other values
+like ammo and shields. Zero is also with a float zero in hex.
+
+$ vbindiff 0_000~.dump 0_000.dump
+
+If a text diff tool like e.g. "meld" fits you better, then you will need to
+convert the files into hex text first. This is done e.g. with the tool "xxd"
+which is part of the "vim" package.
+
+$ xxd 0_000~.dump > 0_000~.dump.txt
 $ xxd 0_000.dump > 0_000.dump.txt
+$ meld 0_000~.dump.txt 0_000.dump.txt
 
-The tool "xxd" is part of the "vim" package.
-
-Note: Dumping objects to existing files overwrites them. So rename them before
-dumping another state.
-
-Here, in the "doc" directory you can find the files 0_000_low.dump.txt and
-0_000_hig.dump.txt. These represent the HeroAircraft object. In the first state
-there are no shields, no extra weapons and we are very close to be destroyed.
-In the other state there are extra shields and full extra weapons. Compare the
-files with a text diff tool. We mainly search for transitions from zero to a
-quite high number and patterns of three times the same value (for ammo).
+Here in the "doc" directory you can find these files for our HeroAircraft
+example. In the first state (0_000~.dump) there are no shields, no extra
+weapons and we are very close to being destroyed. In the other state there
+are extra shields, no damage and all extra weapons with full ammo. Compare the
+files. We mainly search for transitions from zero to a quite high number and
+patterns of three times the same value (for weapons or ammo).
 
 Remember: Everything is stored little-endian and very likely memory aligned.
 
@@ -322,6 +332,9 @@ little longer to acquire the weapons and shields - so there is higher score.
 Strange that they store it as float! Modifying it doesn't make much sense, so
 we ignore or just watch it.
 
+Set up all values where you are guessing interesting values with watching first
+to verify that they are the values you are looking for.
+
 == Multiple Objects ==
 
 If you've got a lot of objects and don't know exactly which ones are yours and
@@ -341,9 +354,9 @@ fidx: 0x22
 0_021.dump, 0_022.dump, ...,
 
 The campaign starts with 7 own Droids and 40 enemies in Warzone 2100. From the
-name string we know that these files are exactly these 7 own Droids. We have
-player ID 0 and the AI has ID 6 and ID 7. So our player ID is located at offset
-0x22.
+name string inside we know that these files are exactly these 7 own Droids. We
+have player ID 0 and the AI has ID 6 and ID 7. So our player ID is located at
+offset 0x22.
 
 
 === Dynamic Memory Adaption ===
