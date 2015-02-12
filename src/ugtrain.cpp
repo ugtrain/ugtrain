@@ -594,24 +594,6 @@ static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
 	}
 }
 
-/*
- * The function run_pgrp_bg() is so hacky OS security
- * bypassing so that it is not possible to wait for the
- * child process (the game) in a regular way. We have
- * to do that here in an equal hacky way as the process
- * belongs to init.
- */
-static inline void wait_orphan (pid_t pid, char *proc_name)
-{
-	enum pstate pstate;
-	while (true) {
-		pstate = check_process(pid, proc_name);
-		if (pstate != PROC_RUNNING && pstate != PROC_ERR)
-			return;
-		sleep_sec(1);
-	}
-}
-
 // Reading the regions list upon every library load would be too much.
 // Most libraries are loaded consecutively during game start. So do it
 // after some cycles of no input from the FIFO.

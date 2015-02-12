@@ -155,6 +155,21 @@ static inline void sleep_sec_unless_input2 (u32 sec, i32 fd1, i32 fd2)
 	select(nfds, &fs, NULL, NULL, &tv);
 }
 
+/*
+ * wait more reliably than waitpid() as the game process
+ * may be forked off or belong to init
+ */
+static inline void wait_orphan (pid_t pid, char *proc_name)
+{
+	enum pstate pstate;
+	while (true) {
+		pstate = check_process(pid, proc_name);
+		if (pstate != PROC_RUNNING && pstate != PROC_ERR)
+			return;
+		sleep_sec(1);
+	}
+}
+
 static inline void wait_proc (pid_t pid)
 {
 	i32 status;
@@ -208,6 +223,10 @@ static inline void sleep_msec_unless_input (u32 msec, i32 fd)
 static inline void sleep_sec_unless_input2 (u32 sec, i32 fd1, i32 fd2)
 {
 	sleep_sec(sec);
+}
+
+static inline void wait_orphan (pid_t pid, char *proc_name)
+{
 }
 
 static inline void wait_proc (pid_t pid)
