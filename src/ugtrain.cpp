@@ -798,6 +798,24 @@ static pid_t run_preloader (struct app_options *opt)
 	pid = run_game(opt, opt->preload_lib);
 	return pid;
 }
+
+static inline i32 setup_fifo (const char *name)
+{
+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+
+	if (mkfifo(name, mode) < 0 && errno != EEXIST) {
+		perror("mkfifo");
+		goto err;
+	}
+	// security in Ubuntu: mkfifo ignores mode
+	if (chmod(name, mode) < 0) {
+		perror("fifo chmod");
+		goto err;
+	}
+	return 0;
+err:
+	return -1;
+}
 #endif
 
 /* returns: 0: success, 1: error, 2: pure static memory detected */
@@ -888,41 +906,13 @@ skip_memhack:
 		goto err;
 	}
 	// Set up and open FIFOs
-	if (mkfifo(DYNMEM_IN, S_IRUSR | S_IWUSR |
-	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
-		perror("input mkfifo");
+	if (setup_fifo(DYNMEM_IN))
 		goto err;
-	}
-	// security in Ubuntu: mkfifo ignores mode
-	if (chmod(DYNMEM_IN, S_IRUSR | S_IWUSR |
-	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
-		perror("input chmod");
+	if (setup_fifo(DYNMEM_OUT))
 		goto err;
-	}
-	if (mkfifo(DYNMEM_OUT, S_IRUSR | S_IWUSR |
-	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 && errno != EEXIST) {
-		perror("output mkfifo");
-		goto err;
-	}
-	// security in Ubuntu: mkfifo ignores mode
-	if (chmod(DYNMEM_OUT, S_IRUSR | S_IWUSR |
-	    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
-		perror("output chmod");
-		goto err;
-	}
 	if (opt->disc_str) {
-		if (mkfifo(MEMDISC_IN, S_IRUSR | S_IWUSR |
-		    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0 &&
-		    errno != EEXIST) {
-			perror("output mkfifo");
+		if (setup_fifo(MEMDISC_IN))
 			goto err;
-		}
-		// security in Ubuntu: mkfifo ignores mode
-		if (chmod(MEMDISC_IN, S_IRUSR | S_IWUSR |
-		    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
-			perror("output chmod");
-			goto err;
-		}
 		*dfd = open(MEMDISC_IN, O_RDONLY | O_NONBLOCK);
 		if (*dfd < 0) {
 			perror("open dfd");
