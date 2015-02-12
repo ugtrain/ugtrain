@@ -32,6 +32,7 @@ public:
 	u32 add;
 	ptr_t code_addr;
 	ptr_t stack_offs;
+	char *lib;                    // for PIC support
 
 	// later determined values
 	vector<size_t> v_msize;       // set by malloc/realloc calls
@@ -45,8 +46,8 @@ public:
 	size_t mem_size;
 	ptr_t code_addr;
 	ptr_t stack_offs;
-	GrowEntry *grow;
 	char *lib;                    // for PIC support
+	GrowEntry *grow;
 
 	// later determined values
 	vector<ptr_t> v_maddr;        // set by malloc calls

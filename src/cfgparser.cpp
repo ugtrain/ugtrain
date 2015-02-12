@@ -471,6 +471,27 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 	}
 }
 
+/*
+ * returns the string at the end of a line
+ * returns NULL if there is no string, it is "exe" or contains blanks
+ */
+static inline char *parse_pic_lib (string *line, u32 *start)
+{
+	string tmp_str;
+	char *lib = NULL;
+
+	if (*start >= line->length())
+		goto out;
+
+	tmp_str = line->substr(*start);
+	if (tmp_str == "exe" || tmp_str.find(' ') != string::npos ||
+	    tmp_str.find('\t') != string::npos)
+		goto out;
+	lib = to_c_str(&tmp_str);
+out:
+	return lib;
+}
+
 static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 			   u32 *start)
 {
@@ -505,6 +526,7 @@ static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 		parse_address(NULL, NULL, line, lnr, start);
 	grow_enp->stack_offs =
 		parse_address(NULL, NULL, line, lnr, start);
+	grow_enp->lib = parse_pic_lib(line, start);
 	grow_enp->v_msize.clear();
 	dynmem_enp->grow = grow_enp;
 }
@@ -526,12 +548,7 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->stack_offs =
 			parse_address(NULL, NULL, line, lnr, start);
 		dynmem_enp->cfg_line = lnr;
-		if (*start < line->length()) {
-			string tmp_str = line->substr(*start);
-			dynmem_enp->lib = to_c_str(&tmp_str);
-		} else {
-			dynmem_enp->lib = NULL;
-		}
+		dynmem_enp->lib = parse_pic_lib(line, start);
 	}
 	dynmem_enp->grow = NULL;
 	dynmem_enp->v_maddr.clear();

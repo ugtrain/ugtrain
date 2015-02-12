@@ -234,6 +234,8 @@ void output_config (list<CfgEntry> *cfg)
 				output_grow_method(grow);
 				cout << " 0x" << hex << grow->code_addr << " 0x"
 				     << grow->stack_offs << dec;
+				if (grow->lib)
+					cout << " " << grow->lib;
 			}
 			cout << endl;
 		} else if (cfg_en.ptrmem) {
