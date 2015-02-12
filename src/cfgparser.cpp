@@ -518,6 +518,7 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->code_addr = 0;
 		dynmem_enp->stack_offs = 0;
 		dynmem_enp->cfg_line = 0;
+		dynmem_enp->lib = NULL;
 	} else {
 		dynmem_enp->mem_size = parse_u32_value(line, lnr, start);
 		dynmem_enp->code_addr =
@@ -525,6 +526,12 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->stack_offs =
 			parse_address(NULL, NULL, line, lnr, start);
 		dynmem_enp->cfg_line = lnr;
+		if (*start < line->length()) {
+			string tmp_str = line->substr(*start);
+			dynmem_enp->lib = to_c_str(&tmp_str);
+		} else {
+			dynmem_enp->lib = NULL;
+		}
 	}
 	dynmem_enp->grow = NULL;
 	dynmem_enp->v_maddr.clear();

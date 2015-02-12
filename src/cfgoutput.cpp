@@ -226,6 +226,8 @@ void output_config (list<CfgEntry> *cfg)
 			     << dynmem->mem_size << " 0x" << hex
 			     << dynmem->code_addr << " 0x" << dynmem->stack_offs
 			     << dec;
+			if (dynmem->lib)
+				cout << " " << dynmem->lib;
 			if (grow) {
 				cout << " growing " << grow->size_min
 				     << " " << grow->size_max << " ";

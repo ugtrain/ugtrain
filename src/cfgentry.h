@@ -34,7 +34,7 @@ public:
 	ptr_t stack_offs;
 
 	// later determined values
-	vector<size_t> v_msize;    // set by malloc/realloc calls
+	vector<size_t> v_msize;       // set by malloc/realloc calls
 };
 
 class CfgEntry;
@@ -46,13 +46,14 @@ public:
 	ptr_t code_addr;
 	ptr_t stack_offs;
 	GrowEntry *grow;
+	char *lib;                    // for PIC support
 
 	// later determined values
-	vector<ptr_t> v_maddr;    // set by malloc calls
-	u32 num_alloc;   // how many obj. created at once
-	u32 num_freed;   // how many obj. freed at once
-	u32 obj_idx;     // object index for object check
-	u32 pr_idx;      // print index
+	vector<ptr_t> v_maddr;        // set by malloc calls
+	u32 num_alloc;                // how many obj. created at once
+	u32 num_freed;                // how many obj. freed at once
+	u32 obj_idx;                  // object index for object check
+	u32 pr_idx;                   // object print index
 
 	// adaption
 	u32  adp_size;                // adapted object size
@@ -119,7 +120,7 @@ typedef union {
 	ptr_t		ptr;
 } value_t;
 
-#define MAX_CHK_VALS 4  // for "or" checks
+#define MAX_CHK_VALS 4                // for "or" checks
 
 class CheckEntry {
 public:
@@ -139,9 +140,9 @@ public:
 	struct type type;
 	check_e check;
 	dynval_e dynval;
-	ptr_t val_addr;   // for DYN_VAL_ADDR only
+	ptr_t val_addr;               // for DYN_VAL_ADDR only
 	value_t value;
-	value_t old_val;      // for static memory only
+	value_t old_val;              // for static memory only
 
 	// get value from other cfg entry (DYN_VAL_ADDR)
 	CfgEntry *cfg_ref;
@@ -149,8 +150,8 @@ public:
 	list<CheckEntry> *checks;
 	// dynamic memory
 	DynMemEntry *dynmem;
-	vector<value_t> v_oldval;   // old value per object
-	// pointer memory
+	vector<value_t> v_oldval;     // old value per object
+	// memory behind pointer following
 	PtrMemEntry *ptrmem;
 	PtrMemEntry *ptrtgt;
 };
