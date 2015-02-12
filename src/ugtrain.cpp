@@ -426,100 +426,6 @@ static inline void read_dynmem_fifo (list<CfgEntry> *cfg, i32 ifd, i32 pmask,
 	} while (rbytes > 0);
 }
 
-struct lf_params {
-	pid_t pid;
-	i32 ofd;
-	char *disc_lib;
-};
-
-static inline void _send_bt_addrs (i32 ofd, ptr_t lib_start, ptr_t lib_end)
-{
-	char obuf[PIPE_BUF];
-	i32 osize = 0;
-	ssize_t wbytes;
-
-	osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-		PRI_PTR ";" PRI_PTR "\n", lib_start, lib_end);
-
-	wbytes = write(ofd, obuf, osize);
-	if (wbytes < osize)
-		perror("FIFO write");
-}
-
-/*
- * callback for read_maps(),
- * searches for disc_lib start and end code address in memory,
- * sends found code addresses as the new backtrace filter to libmemdisc,
- * returns 1 for stopping the iteration (disc_lib found) and 0 otherwise
- *
- * Assumptions: disc_lib != NULL, disc_lib[0] != '\0'
- */
-static i32 send_bt_addrs (struct map *map, void *data)
-{
-	struct lf_params *lfp = (struct lf_params *) data;
-	char *disc_lib = lfp->disc_lib;
-	i32 ofd = lfp->ofd;
-	char *lib_name = basename(map->file_path);
-	ptr_t lib_start, lib_end;
-
-	if (map->exec != 'x')
-		goto out;
-	if (!strstr(lib_name, disc_lib))
-		goto out;
-
-	lib_start = (ptr_t) map->start;
-	lib_end = (ptr_t) map->end;
-	_send_bt_addrs(ofd, lib_start, lib_end);
-	return 1;
-out:
-	return 0;
-}
-
-// lf() callback for read_dynmem_buf()
-static void handle_pic (LF_PARAMS)
-{
-	struct lf_params *lfp = (struct lf_params *) argp;
-	pid_t pid = lfp->pid;
-	i32 ofd = lfp->ofd;
-	char *disc_lib = lfp->disc_lib;
-	i32 ret;
-
-	//cout << lib_name << " loaded" << endl;
-
-	if (disc_lib && disc_lib[0] != '\0' &&
-	    strstr(lib_name, disc_lib)) {
-		ret = read_maps(pid, send_bt_addrs, lfp);
-		if (!ret)
-			_send_bt_addrs(ofd, 0, UINTPTR_MAX);
-	}
-}
-
-// returns:
-//  0: data has been read
-// -1: no data read
-static inline i32 read_libs_from_fifo (pid_t pid, char *disc_lib,
-				       i32 ifd, i32 ofd)
-{
-	ssize_t rbytes;
-	struct parse_cb pcb = { NULL };
-	struct lf_params lfp;
-	i32 i, ret = -1;
-
-	pcb.lf = handle_pic;
-	lfp.pid = pid;
-	lfp.ofd = ofd;
-	lfp.disc_lib = disc_lib;
-
-	for (i = 0; ; i++) {
-		rbytes = read_dynmem_buf(NULL, &lfp, ifd, 0, false, 0, &pcb);
-		if (rbytes <= 0)
-			break;
-		if (i == 0)
-			ret = 0;
-	}
-	return ret;
-}
-
 // TIME CRITICAL! Process all activated config entries.
 // Note: We are attached to the game process and it is frozen.
 static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
@@ -592,68 +498,6 @@ static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
 		list_for_each (chk_lp, chk_it)
 			chk_it->addr += code_offs;
 	}
-}
-
-// Reading the regions list upon every library load would be too much.
-// Most libraries are loaded consecutively during game start. So do it
-// after some cycles of no input from the FIFO.
-static inline void do_pic_work (pid_t pid, struct app_options *opt,
-				i32 ifd, i32 ofd,
-				list<struct region> *rlist)
-{
-#define CYCLES_BEFORE_RELOAD 2
-	struct pmap_params params;
-	char exe_path[MAPS_MAX_PATH];
-	enum pstate pstate;
-	list<struct region>::iterator it;
-	ptr_t lib_start = 0, lib_end = 0;
-	char obuf[128];
-	i32 osize = 0;
-	ssize_t wbytes;
-	i32 i = 0, ret;
-
-	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
-	params.exe_path = exe_path;
-	params.rlist = rlist;
-
-	// search for the configured lib, it might be loaded already
-	list_for_each (rlist, it) {
-		char *file_name;
-		if (!it->flags.exec)
-		       continue;
-		file_name = basename((char *) it->file_path->c_str());
-		if (strstr(file_name, opt->disc_lib)) {
-			lib_start = (ptr_t) it->start;
-			lib_end = (ptr_t) (it->start + it->size);
-			break;
-		}
-	}
-	// notify libmemdisc that we are ready for PIC handling
-	// and send backtrace filter for early library load
-	if (lib_start == 0)
-		lib_end = UINTPTR_MAX;
-	osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-		PRI_PTR ";" PRI_PTR "\n", lib_start, lib_end);
-
-	wbytes = write(ofd, obuf, osize);
-	if (wbytes < osize)
-		perror("FIFO write");
-
-	while (true) {
-		ret = read_libs_from_fifo(pid, opt->disc_lib, ifd, ofd);
-		if (i && ret) {
-			i--;
-			if (!i)
-				read_regions(pid, &params);
-		} else if (!ret) {
-			i = CYCLES_BEFORE_RELOAD;
-		}
-		pstate = check_process(pid, opt->proc_name);
-		if (pstate != PROC_RUNNING && pstate != PROC_ERR)
-			return;
-		sleep_sec_unless_input(1, ifd);
-	}
-#undef CYCLES_BEFORE_RELOAD
 }
 
 static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
@@ -961,7 +805,7 @@ i32 main (i32 argc, char **argv, char **env)
 #define CFGP_MAP_SIZE 128
 	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
 	string input_str;
-	pid_t pid, call_pid = -1, worker_pid;
+	pid_t pid = -1;
 	char def_home[] = "~";
 	i32 ret, pmask = PARSE_S | PARSE_C;
 	char ch;
@@ -1044,7 +888,7 @@ discover_next:
 		return -1;
 
 prepare_dynmem:
-	ret = prepare_dynmem(opt, cfg, &ifd, &ofd, &dfd, &call_pid);
+	ret = prepare_dynmem(opt, cfg, &ifd, &ofd, &dfd, &pid);
 	if (ret == 2) {
 		opt->pure_statmem = true;
 	} else if (ret != 0) {
@@ -1053,8 +897,7 @@ prepare_dynmem:
 	}
 
 	pid = proc_to_pid(opt->proc_name);
-	if (pid < 0 && (call_pid >= 0 || !opt->pure_statmem ||
-	    !opt->preload_lib)) {
+	if (pid < 0 && (!opt->pure_statmem || !opt->preload_lib)) {
 		goto pid_err;
 	} else if (opt->pure_statmem && opt->preload_lib) {
 		/* Run the game but not as root */
@@ -1063,48 +906,14 @@ prepare_dynmem:
 			return -1;
 #endif
 		cout << "Starting the game.." << endl;
-		call_pid = run_game(opt, NULL);
-		if (call_pid < 0)
-			goto pid_err;
-		pid = proc_to_pid(opt->proc_name);
+		pid = run_game(opt, NULL);
 		if (pid < 0)
 			goto pid_err;
 	}
 	cout << "PID: " << pid << endl;
 
 	if (opt->disc_str) {
-		pmask = PARSE_S | PARSE_C | PARSE_O;
-		if (opt->disc_str[0] == 'p')
-			opt->disc_str[0] = opt->disc_str[opt->disc_offs];
-		if (opt->disc_str[0] == '0') {
-			if (opt->scanmem_pid > 0) {
-				wait_orphan(pid, opt->proc_name);
-				wait_proc(opt->scanmem_pid);
-			} else {
-				wait_orphan(pid, opt->proc_name);
-			}
-			return 0;
-		} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
-			struct disc_loop_pp dpp = { dfd, opt };
-			if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
-				handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
-			worker_pid = fork_proc(run_stage1234_loop, &dpp);
-			if (opt->disc_str[0] >= '3' && opt->disc_lib &&
-			    opt->disc_lib[0] != '\0')
-				do_pic_work(pid, opt, ifd, ofd, &rlist);
-			else
-				wait_orphan(pid, opt->proc_name);
-			if (opt->scanmem_pid > 0)
-				wait_proc(opt->scanmem_pid);
-			sleep_msec(250);  // chance to read the final flush
-			kill_proc(worker_pid);
-			if (worker_pid < 0)
-				return -1;
-		} else if (opt->disc_str[0] == '5') {
-			handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
-			run_stage5_loop(cfg, ifd, dfd, pmask, call_pid,
-					opt->code_offs);
-		}
+		process_discovery(opt, cfg, ifd, dfd, ofd, pid, &rlist);
 		//list_regions(&rlist);
 		ret = postproc_discovery(opt, cfg, &rlist, lines);
 		switch (ret) {

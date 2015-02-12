@@ -42,6 +42,9 @@ struct disc_loop_pp {
 };
 
 i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
+void process_discovery  (struct app_options *opt, list<CfgEntry> *cfg,
+			 i32 ifd, i32 dfd, i32 ofd, i32 pid,
+			 list<struct region> *rlist);
 void run_stage1234_loop (void *argp);
 void run_stage5_loop    (list<CfgEntry> *cfg, i32 ifd, i32 dfd, i32 pmask,
 			 pid_t pid, ptr_t code_offs);
