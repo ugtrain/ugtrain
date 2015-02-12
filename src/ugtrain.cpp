@@ -949,6 +949,10 @@ prepare_dynmem:
 	handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 	handle_statmem_pie(opt->code_offs, cfg);
 
+	// use sleep_sec_unless_input2() also for pure static memory
+	if (ifd < 0)
+		ifd = STDIN_FILENO;
+
 	while (true) {
 		sleep_sec_unless_input2(1, ifd, STDIN_FILENO);
 		ch = do_getch();
