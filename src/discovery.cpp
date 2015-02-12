@@ -180,7 +180,7 @@ static inline i32 code_addr_to_region (ptr_t *code_addr,
 	return ret;
 }
 
-// parameter for process_disc1234_malloc()
+// post parsing parameters for process_disc1234_malloc()
 struct disc_pp {
 	ptr_t in_addr;
 	struct app_options *opt;
@@ -386,15 +386,21 @@ static void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 dfd,
 	}
 }
 
+// parameter for run_stage1234_loop()
+struct disc_params {
+	i32 ifd;
+	struct app_options *opt;
+};
+
 /*
  * worker process
  * changed values aren't available in the parent
  */
 void run_stage1234_loop (void *argp)
 {
-	struct disc_loop_pp *dpp = (struct disc_loop_pp *) argp;
-	i32 ifd = dpp->ifd;
-	struct app_options *opt = dpp->opt;
+	struct disc_params *params = (struct disc_params *) argp;
+	i32 ifd = params->ifd;
+	struct app_options *opt = params->opt;
 	i32 ofd;
 	char buf[PIPE_BUF];
 	ssize_t rbytes, wbytes;
@@ -597,10 +603,10 @@ void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 		}
 		exit(0);
 	} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
-		struct disc_loop_pp dpp = { dfd, opt };
+		struct disc_params params = { dfd, opt };
 		if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
 			handle_pie(opt, cfg, ifd, ofd, pid, rlist);
-		worker_pid = fork_proc(run_stage1234_loop, &dpp);
+		worker_pid = fork_proc(run_stage1234_loop, &params);
 		if (opt->disc_str[0] >= '3' && opt->disc_lib &&
 		    opt->disc_lib[0] != '\0')
 			do_pic_work(pid, opt, ifd, ofd, rlist);
