@@ -1,8 +1,7 @@
 /* memattach_l.c:    functions to attach/read/write victim proc. memory
  * This file is for Linux only.
  *
- * Copyright (c) 2012..14, by:  Sebastian Parschauer
- *    All rights reserved.     <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  * inspired by libgcheater by Alf <h980501427@hotmail.com>

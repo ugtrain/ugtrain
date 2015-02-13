@@ -1,7 +1,6 @@
 /* ugsimfind.c:    find similarities in mem. obj. dump files
  *
- * Copyright (c) 2013, by:      Sebastian Parschauer
- *    All rights reserved.     <s.parschauer@gmx.de>
+ * Copyright (c) 2013..2015 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *

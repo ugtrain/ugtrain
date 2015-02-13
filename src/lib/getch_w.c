@@ -1,7 +1,6 @@
 /* getch_w.c:    getch() for Windows with system functions
  *
- * Copyright (c) 2012..14, by:  Sebastian Parschauer
- *    All rights reserved.     <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * powered by the Open Game Cheating Association
  *
