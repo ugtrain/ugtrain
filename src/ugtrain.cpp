@@ -649,7 +649,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 {
 	char obuf[PIPE_BUF] = { 0 };
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
-	ptr_t old_code_addr = 0;
+	ptr_t old_code_addr = 0, old_grow_addr = 0;
 	list<CfgEntry>::iterator it;
 #ifdef __linux__
 	size_t written;
@@ -680,13 +680,19 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		if (!dynmem)
 			continue;
 		grow = dynmem->grow;
-		if ((dynmem->code_addr != old_code_addr) ||
-		    (grow && (grow->code_addr != old_code_addr))) {
+		if ((!grow && (dynmem->code_addr != old_code_addr)) ||
+		    (grow && (grow->code_addr != old_grow_addr))) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 				";%lu;" SCN_PTR ";" SCN_PTR, (ulong)
 				dynmem->mem_size, dynmem->code_addr,
 				dynmem->stack_offs);
+			if (dynmem->lib)
+				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
+					";%s", dynmem->lib);
+			else
+				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
+						";exe");
 			if (grow) {
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 					";grow;%lu;%lu;+%u;" SCN_PTR ";" SCN_PTR,
@@ -694,7 +700,14 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 					grow->size_max, grow->add,
 					grow->code_addr,
 					grow->stack_offs);
-				old_code_addr = grow->code_addr;
+				if (grow->lib)
+					pos += snprintf(obuf + pos,
+						sizeof(obuf) - pos,
+						";%s", grow->lib);
+				else
+					pos += snprintf(obuf + pos,
+						sizeof(obuf) - pos, ";exe");
+				old_grow_addr = grow->code_addr;
 			} else {
 				old_code_addr = dynmem->code_addr;
 			}
@@ -929,9 +942,8 @@ prepare_dynmem:
 			return -1;
 		}
 	} else if (opt->scanmem_pid > 0) {
-		wait_proc(opt->scanmem_pid);
-		// Have you closed scanmem before the game?
 		wait_orphan(pid, opt->proc_name);
+		wait_proc(opt->scanmem_pid);
 		return 0;
 	}
 

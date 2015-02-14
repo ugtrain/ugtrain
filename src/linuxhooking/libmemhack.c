@@ -107,6 +107,7 @@ struct grow {
 	u32 add;
 	ptr_t code_addr;
 	ptr_t stack_offs;
+	char *lib;
 };
 
 /* Config structure */
@@ -114,11 +115,14 @@ struct cfg {
 	size_t mem_size;
 	ptr_t code_addr;
 	ptr_t stack_offs;
-	ptr_t *mem_addrs;  /* filled by malloc for free */
-	u32 max_obj;       /* currently allocated memory addresses */
-	u32 insert_idx;    /* lowest mem_addrs index for insertion */
-	pthread_mutex_t mutex;  /* protects mem_addrs, max_obj, insert_idx */
+	char *lib;
 	struct grow *grow;
+
+	/* later determined */
+	ptr_t *mem_addrs;       /* filled by malloc for free */
+	u32 max_obj;            /* currently allocated memory addresses */
+	u32 insert_idx;         /* lowest mem_addrs index for insertion */
+	pthread_mutex_t mutex;  /* protects mem_addrs, max_obj, insert_idx */
 };
 
 /*
@@ -127,10 +131,26 @@ struct cfg {
 static struct cfg **config = NULL;
 
 
-#define SET_IBUF_OFFS() {				\
-	char *pos = strchr(&ibuf[ibuf_offs], ';');	\
+#define SET_IBUF_START(start) {				\
+	char *pos = strchr(start, ';');			\
 	if (pos)					\
-		ibuf_offs = pos - ibuf + 1;		\
+		start = pos + 1;			\
+}
+
+#define SET_CODE_LIB(start, lib) {			\
+	char *pos = strchr(start, ';');			\
+	if (pos)					\
+		*pos = '\0';				\
+	if (strcmp(start, "exe") != 0)			\
+		lib = start;				\
+	if (pos)					\
+		start = pos + 1;			\
+}
+
+#define RM_NEW_LINE(start) {				\
+	char *pos = strchr(start, '\n');		\
+	if (pos)					\
+		*pos = '\0';				\
 }
 
 static inline i32 read_input (char ibuf[], size_t size)
@@ -157,8 +177,8 @@ static inline i32 read_input (char ibuf[], size_t size)
 void __attribute ((constructor)) memhack_init (void)
 {
 	char *proc_name = NULL, *expected = NULL;
-	char ibuf[BUF_SIZE] = { 0 };
-	u32 i, j, k, ibuf_offs = 0, num_cfg = 0;
+	char ibuf[BUF_SIZE] = { 0 }, *start = ibuf;
+	u32 i, j, k, num_cfg = 0;
 	i32 wbytes, scanned = 0;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	ptr_t code_offs[MAX_CFG] = { 0 };
@@ -215,14 +235,15 @@ void __attribute ((constructor)) memhack_init (void)
 	if (read_input(ibuf, sizeof(ibuf) - 1) != 0)
 		goto read_err;
 
-	scanned = sscanf(ibuf + ibuf_offs, "%u;", &num_cfg);
+	scanned = sscanf(start, "%u;", &num_cfg);
 	if (scanned != 1 || num_cfg <= 0)
 		goto err;
-	SET_IBUF_OFFS();
-	if (sscanf(ibuf + ibuf_offs, "%3s;", gbt_buf) == 1 &&
+	RM_NEW_LINE(start);
+	SET_IBUF_START(start);
+	if (sscanf(start, "%3s;", gbt_buf) == 1 &&
 	    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
 		use_gbt = true;
-		SET_IBUF_OFFS();
+		SET_IBUF_START(start);
 		pr_out("Using GNU backtrace(). "
 			"This might crash with SIGSEGV!\n");
 	}
@@ -252,13 +273,14 @@ void __attribute ((constructor)) memhack_init (void)
 		config[i] = PTR_ADD(struct cfg *, cfg_sa,
 			i * sizeof(struct cfg));
 
-		scanned = sscanf(ibuf + ibuf_offs, "%zd;" SCN_PTR ";" SCN_PTR,
+		scanned = sscanf(start, "%zd;" SCN_PTR ";" SCN_PTR,
 			&config[i]->mem_size, &config[i]->code_addr,
 			&config[i]->stack_offs);
 		if (scanned != 3)
 			goto err;
 		for (j = 3; j > 0; --j)
-			SET_IBUF_OFFS();
+			SET_IBUF_START(start);
+		SET_CODE_LIB(start, config[i]->lib);
 
 		pr_dbg("config: %p\n", config);
 
@@ -277,16 +299,16 @@ void __attribute ((constructor)) memhack_init (void)
 		pthread_mutex_init(&config[i]->mutex, NULL);
 
 		/* handle growing config */
-		if (strncmp(ibuf + ibuf_offs, "grow;", 5) != 0)
+		if (strncmp(start, "grow;", 5) != 0)
 			continue;
-		SET_IBUF_OFFS();
+		SET_IBUF_START(start);
 		grow = (struct grow *) calloc(1, sizeof(struct grow));
 		if (!grow) {
 			pr_err("Error: No space for grow structure, "
 				"ignoring it!\n");
 			continue;
 		}
-		scanned = sscanf(ibuf + ibuf_offs, "%zd;%zd;%c%u;" SCN_PTR ";"
+		scanned = sscanf(start, "%zd;%zd;%c%u;" SCN_PTR ";"
 			SCN_PTR, &grow->size_min, &grow->size_max, &op_ch,
 			&grow->add, &grow->code_addr, &grow->stack_offs);
 		if (scanned != 6 || op_ch != '+') {
@@ -296,7 +318,8 @@ void __attribute ((constructor)) memhack_init (void)
 		}
 		grow->type = GROW_ADD;
 		for (j = 5; j > 0; --j)
-			SET_IBUF_OFFS();
+			SET_IBUF_START(start);
+		SET_CODE_LIB(start, grow->lib);
 		config[i]->grow = grow;
 	}
 	if (i != num_cfg)
@@ -307,15 +330,17 @@ void __attribute ((constructor)) memhack_init (void)
 	for (i = 0; config[i] != NULL; i++) {
 		struct grow *grow = config[i]->grow;
 		pr_out("config[%u]: mem_size: %zd; "
-			"code_addr: " PRI_PTR "; stack_offs: " PRI_PTR "\n", i,
+			"code_addr: " PRI_PTR "; stack_offs: " PRI_PTR "; %s\n", i,
 			config[i]->mem_size, config[i]->code_addr,
-			config[i]->stack_offs);
+			config[i]->stack_offs, (config[i]->lib) ?
+			config[i]->lib : "exe");
 		if (grow) {
 			pr_out("config[%u] growing: size_min: %zd; size_max: "
 				"%zd; add: %u; code_addr: " PRI_PTR
-				"; stack_offs: " PRI_PTR "\n", i,
+				"; stack_offs: " PRI_PTR "; %s\n", i,
 				grow->size_min, grow->size_max, grow->add,
-				grow->code_addr, grow->stack_offs);
+				grow->code_addr, grow->stack_offs, (grow->lib) ?
+				grow->lib : "exe");
 		}
 
 	}
