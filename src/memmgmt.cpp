@@ -233,12 +233,12 @@ void alloc_dynmem_addr (MF_PARAMS)
 			continue;
 		grow = dynmem->grow;
 		if (grow) {
-			if (dynmem->code_addr != code_addr - code_offs &&
-			    grow->code_addr != code_addr - code_offs)
+			if (dynmem->code_addr != code_addr &&
+			    grow->code_addr != code_addr)
 				continue;
 			svec = &grow->v_msize;
 			svec->push_back(mem_size);
-		} else if (dynmem->code_addr != code_addr - code_offs) {
+		} else if (dynmem->code_addr != code_addr) {
 			continue;
 		}
 		mvec = &dynmem->v_maddr;

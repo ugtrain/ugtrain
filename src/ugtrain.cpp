@@ -410,8 +410,7 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 
 // TIME CRITICAL! Read the memory allocations and freeings from the input FIFO.
 // If the buffer fills, the game process hangs.
-static inline void read_dynmem_fifo (list<CfgEntry> *cfg, i32 ifd, i32 pmask,
-				     ptr_t code_offs)
+static inline void read_dynmem_fifo (list<CfgEntry> *cfg, i32 ifd, i32 pmask)
 {
 	ssize_t rbytes;
 	struct parse_cb pcb = { NULL };
@@ -421,7 +420,7 @@ static inline void read_dynmem_fifo (list<CfgEntry> *cfg, i32 ifd, i32 pmask,
 
 	do {
 		rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
-			code_offs, &pcb);
+			0, &pcb);
 	} while (rbytes > 0);
 }
 
@@ -972,7 +971,7 @@ prepare_dynmem:
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		if (!opt->pure_statmem) {
-			read_dynmem_fifo(cfg, ifd, pmask, opt->code_offs);
+			read_dynmem_fifo(cfg, ifd, pmask);
 			// print allocated and freed object counts
 			ret = output_dynmem_changes(cfg);
 			if (ret)
@@ -1008,7 +1007,7 @@ prepare_dynmem:
 		// R/W to invalid heap addresses crashes the game (SIGSEGV).
 		// There could have been free() calls before freezing the game.
 		if (!opt->pure_statmem) {
-			read_dynmem_fifo(cfg, ifd, pmask, opt->code_offs);
+			read_dynmem_fifo(cfg, ifd, pmask);
 			// We might also read mallocs. Can't ignore them!
 			alloc_dynmem(cfg);
 		}

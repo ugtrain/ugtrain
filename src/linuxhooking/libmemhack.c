@@ -56,7 +56,6 @@
 #define DYNMEM_OUT "/tmp/memhack_out"
 
 #define ADDR_INVAL 1
-#define MAX_CFG 5
 
 /*
  * Ask gcc for the current stack frame pointer.
@@ -131,6 +130,29 @@ struct cfg {
 static struct cfg **config = NULL;
 
 
+static inline void output_cfg (void)
+{
+	i32 i;
+
+	for (i = 0; config[i] != NULL; i++) {
+		struct grow *grow = config[i]->grow;
+		pr_out("config[%u]: mem_size: %zd; "
+			"code_addr: " PRI_PTR "; stack_offs: " PRI_PTR "; %s\n", i,
+			config[i]->mem_size, config[i]->code_addr,
+			config[i]->stack_offs, (config[i]->lib) ?
+			config[i]->lib : "exe");
+		if (grow) {
+			pr_out("config[%u] growing: size_min: %zd; size_max: "
+				"%zd; add: %u; code_addr: " PRI_PTR
+				"; stack_offs: " PRI_PTR "; %s\n", i,
+				grow->size_min, grow->size_max, grow->add,
+				grow->code_addr, grow->stack_offs, (grow->lib) ?
+				grow->lib : "exe");
+		}
+
+	}
+}
+
 #define SET_IBUF_START(start) {				\
 	char *pos = strchr(start, ';');			\
 	if (pos)					\
@@ -181,7 +203,6 @@ void __attribute ((constructor)) memhack_init (void)
 	u32 i, j, k, num_cfg = 0;
 	i32 wbytes, scanned = 0;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
-	ptr_t code_offs[MAX_CFG] = { 0 };
 	struct cfg *cfg_sa = NULL;  /* struct cfg array */
 	struct grow *grow = NULL;
 
@@ -246,10 +267,6 @@ void __attribute ((constructor)) memhack_init (void)
 		SET_IBUF_START(start);
 		pr_out("Using GNU backtrace(). "
 			"This might crash with SIGSEGV!\n");
-	}
-	if (num_cfg > MAX_CFG) {
-		pr_err("Error: Too many classes configured!\n");
-		num_cfg = MAX_CFG;
 	}
 	config = (struct cfg **) calloc(num_cfg + 1, sizeof(struct cfg *));
 		/* NULL for end */
@@ -327,38 +344,46 @@ void __attribute ((constructor)) memhack_init (void)
 
 	/* debug config */
 	pr_dbg("num_cfg: %u\n", num_cfg);
-	for (i = 0; config[i] != NULL; i++) {
-		struct grow *grow = config[i]->grow;
-		pr_out("config[%u]: mem_size: %zd; "
-			"code_addr: " PRI_PTR "; stack_offs: " PRI_PTR "; %s\n", i,
-			config[i]->mem_size, config[i]->code_addr,
-			config[i]->stack_offs, (config[i]->lib) ?
-			config[i]->lib : "exe");
-		if (grow) {
-			pr_out("config[%u] growing: size_min: %zd; size_max: "
-				"%zd; add: %u; code_addr: " PRI_PTR
-				"; stack_offs: " PRI_PTR "; %s\n", i,
-				grow->size_min, grow->size_max, grow->add,
-				grow->code_addr, grow->stack_offs, (grow->lib) ?
-				grow->lib : "exe");
-		}
-
-	}
+	output_cfg();
 
 	wbytes = write(ofd, "ready\n", sizeof("ready\n"));
 	if (wbytes < 0)
 		perror("write");
 	if (read_input(ibuf, sizeof(ibuf) - 1) != 0) {
-		pr_err("Couldn't read code offset!\n");
+		pr_err("Couldn't read code offsets!\n");
 	} else {
-		if (sscanf(ibuf, SCN_PTR ";" SCN_PTR ";" SCN_PTR ";" SCN_PTR
-		    ";" SCN_PTR, &code_offs[0], &code_offs[1], &code_offs[2],
-		    &code_offs[3], &code_offs[4]) < 1)
-			pr_err("Code offset parsing error!\n");
-	}
-	if (num_cfg <= MAX_CFG) {
-		for (i = 0; i < num_cfg; i++)
-			config[i]->code_addr += code_offs[i];
+		char *start = ibuf, *pos;
+		for (i = 0; i < num_cfg; i++) {
+			ptr_t code_offs = 0;
+			if (sscanf(start, SCN_PTR ";", &code_offs) < 1) {
+				pr_err("Code offset parsing error!\n");
+			} else {
+				pos = strchr(start, ';');
+				if (pos)
+					start = pos + 1;
+				pr_dbg("code_offs %d: " PRI_PTR "\n",
+					i, code_offs);
+			}
+			if (config[i]->code_addr)
+				config[i]->code_addr += code_offs;
+			if (config[i]->grow) {
+				code_offs = 0;
+				if (sscanf(start, SCN_PTR ";",
+				    &code_offs) < 1) {
+					pr_err("Code offset parsing error!\n");
+				} else {
+					pos = strchr(start, ';');
+					if (pos)
+						start = pos + 1;
+					pr_dbg("code_offs %dg: " PRI_PTR "\n",
+						i, code_offs);
+				}
+				if (config[i]->grow->code_addr)
+					config[i]->grow->code_addr += code_offs;
+			}
+		}
+		pr_out("Config after early PIC/PIE handling:\n");
+		output_cfg();
 	}
 	if (num_cfg > 0)
 		active = true;

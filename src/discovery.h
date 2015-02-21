@@ -64,6 +64,20 @@ static inline ptr_t handle_exe_region (struct region *r, i32 ofd,
 	return exe_offs;
 }
 
+static inline ptr_t find_lib_in_regions (list<struct region> *rlist, char *lib)
+{
+	list<struct region>::iterator it;
+
+	list_for_each (rlist, it) {
+		if (it->type == REGION_TYPE_CODE && it->flags.exec &&
+		    strstr(it->file_path->c_str(), lib))
+			return (ptr_t) it->start;
+	}
+	cout << "Couldn't find load address of " << lib
+	     << " for early PIC." << endl;
+	return 0;
+}
+
 static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 	i32 ifd, i32 ofd, pid_t pid, list<struct region> *rlist)
 {
@@ -105,18 +119,41 @@ static inline void handle_pie (struct app_options *opt, list<CfgEntry> *cfg,
 	if (opt->pure_statmem)
 		return;
 	if (opt->disc_str) {
+		/* handle only PIE and handle early PIC somewhere else */
 		if (!opt->disc_lib || opt->disc_lib[0] != '\0')
 			return;
 		osize += snprintf(obuf + osize, sizeof(obuf) - osize,
 			PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n", exe_start,
 			exe_end, exe_offs);
 	} else {
+		/* handle PIE and early PIC for libmemhack */
 		list_for_each (cfg, cfg_it) {
-			if (!cfg_it->dynmem || cfg_it->dynmem == old_dynmem)
+			ptr_t code_offs = 0;
+			DynMemEntry *dynmem = cfg_it->dynmem;
+			GrowEntry *grow;
+			if (!dynmem || dynmem == old_dynmem)
 				continue;
-			old_dynmem = cfg_it->dynmem;
+			grow = dynmem->grow;
+			old_dynmem = dynmem;
+			if (!dynmem->lib)
+				code_offs = exe_offs;
+			else
+				code_offs = find_lib_in_regions(rlist,
+					dynmem->lib);
 			osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-				PRI_PTR ";", exe_offs);
+				PRI_PTR ";", code_offs);
+			dynmem->code_addr += code_offs;
+			if (grow) {
+				if (!grow->lib)
+					code_offs = exe_offs;
+				else
+					code_offs = find_lib_in_regions(rlist,
+						grow->lib);
+				osize += snprintf(obuf + osize,
+					sizeof(obuf) - osize,
+					PRI_PTR ";", code_offs);
+				grow->code_addr += code_offs;
+			}
 		}
 	}
 	// Write code offsets to output FIFO
