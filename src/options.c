@@ -51,6 +51,11 @@ void do_assumptions (struct app_options *opt)
 		} else if (opt->run_scanmem || opt->pre_cmd) {
 			use_libmemhack(opt);
 		}
+	/* '-P libmemhack32/64.so -D <str>' -->
+	   '-D <str> -P libmemdisc32/64.so' */
+	} else if (opt->disc_str && strncmp(opt->preload_lib, LHACK_PRE,
+	    sizeof(LHACK_PRE) - 1) == 0) {
+		use_libmemdisc(opt);
 	}
 }
 
