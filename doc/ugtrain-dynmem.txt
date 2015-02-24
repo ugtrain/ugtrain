@@ -198,18 +198,14 @@ $ ugtrain -D "4;288" -S test.conf
 Memory address (e.g. 0xdeadbeef): 0x7fb14577b95c
 Searching reverse for 0x7fb14577b95c in discovery output..
 m0x7fb14577b8a0;s288 contains 0x7fb14577b95c, offs: 0xbc, heap offs: 0x97e5b0
-c0x7fb144ddf400;o0x0
 c0x5ef2d;o0x8 libstdc++.so.6.0.19 <malloc@plt>
-c0x0;o0x10
-c0x7fb14527e860;o0x18
-c0x7fb144ddf400;o0x20
 c0x14b57;o0x28 chromium-bsu <_Znwm@plt>
-...
+c0x1d667;o0x48 chromium-bsu
 
 The names of libraries and the executable are only shown if their code addresses
 are found on the stack. Their load address is subtracted automatically from
 their found code addresses then.
-Only <*@plt> direct library calls are displayed and "_Znwm" on the last
+Only <*@plt> direct library calls are displayed and "_Znwm" on the second
 position is exactly what to look for. It is a GNU C++ internal function
 (part of the "new" operator) which calls "malloc" internally. On 32 bit systems
 it is called "_Znwj".
