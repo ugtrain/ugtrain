@@ -52,6 +52,7 @@
 #include <valoutput.h>
 // special features
 #include <adaption.h>
+#include <aslr.h>
 #include <discovery.h>
 
 #define HOME_VAR   "HOME"

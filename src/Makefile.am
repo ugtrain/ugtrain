@@ -20,6 +20,7 @@ ugtrain_SOURCES = \
 	lib/system_l.c \
 	lib/system_w.c \
 	adaption.h \
+	aslr.h \
 	cfgentry.h \
 	cfgoutput.h \
 	cfgparser.h \
@@ -32,6 +33,7 @@ ugtrain_SOURCES = \
 	options.h \
 	valoutput.h \
 	adaption.cpp \
+	aslr.cpp \
 	cfgoutput.cpp \
 	cfgparser.cpp \
 	common.cpp \

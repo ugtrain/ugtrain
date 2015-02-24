@@ -73,7 +73,7 @@ static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 }
 
 /* PIE detection - check for known static load addresses */
-static inline ptr_t get_exe_offs (ulong map_start)
+static inline ptr_t calc_exe_offs (ulong map_start)
 {
 	ptr_t exe_offs;
 #ifdef __arm__

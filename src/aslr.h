@@ -1,4 +1,4 @@
-/* discovery.h:    discover dynamic memory objects
+/* aslr.h:    handle Address Space Layout Randomization (ASLR)
  *
  * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
  *
@@ -20,8 +20,8 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#ifndef DISCOVERY_H
-#define DISCOVERY_H
+#ifndef ASLR_H
+#define ASLR_H
 
 // local includes
 #include <lib/maps.h>
@@ -29,18 +29,10 @@
 #include <common.h>
 #include <options.h>
 
-#define DISC_EXIT	0
-#define DISC_NEXT	1
-#define DISC_OKAY	2
+void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
+		 i32 ofd, pid_t pid, list<struct region> *rlist);
 
-i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
-void process_discovery  (struct app_options *opt, list<CfgEntry> *cfg,
-			 i32 ifd, i32 dfd, i32 ofd, i32 pid,
-			 list<struct region> *rlist);
-void run_stage1234_loop (void *argp);
-void run_stage5_loop    (list<CfgEntry> *cfg, i32 ifd, i32 dfd, i32 pmask,
-			 pid_t pid, ptr_t code_offs);
-i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
-			 list<struct region> *rlist, vector<string> *lines);
+void do_disc_pic_work (pid_t pid, struct app_options *opt,
+		       i32 ifd, i32 ofd, list<struct region> *rlist);
 
 #endif
