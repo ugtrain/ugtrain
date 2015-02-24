@@ -263,11 +263,13 @@ static void process_disc1234_malloc (MF_PARAMS)
 					&dasm_fpath, pbuf, sizeof(pbuf));
 			}
 			// output one call from backtrace
-			cout << "c0x" << hex << codes[i];
-			if (stage == '4')
-				cout << ";o0x" << hex << soffs[i] << dec;
-			cout << " " << bin_name << " " << pbuf << endl;
-
+			if (!bin_name.empty()) {
+				cout << "c0x" << hex << codes[i];
+				if (stage == '4')
+					cout << ";o0x" << hex << soffs[i]
+					     << dec;
+				cout << " " << bin_name << " " << pbuf << endl;
+			}
 			// cleanup pipe buffer
 			if (rbytes > 0)
 				memset(pbuf, 0, rbytes);
