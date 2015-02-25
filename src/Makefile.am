@@ -31,6 +31,8 @@ ugtrain_SOURCES = \
 	fifoparser.h \
 	memmgmt.h \
 	options.h \
+	testing.h \
+	testopts.h \
 	valoutput.h \
 	adaption.cpp \
 	aslr.cpp \
@@ -50,3 +52,6 @@ ugtrain_SOURCES = \
 ugtrain_LDADD = $(DEPS_LIBS)
 AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
               -Wall -g -O2 -I .
+if TESTING
+AM_CPPFLAGS += -DTESTING=1
+endif

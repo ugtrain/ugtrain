@@ -54,6 +54,7 @@
 #include <adaption.h>
 #include <aslr.h>
 #include <discovery.h>
+#include <testing.h>
 
 #define HOME_VAR   "HOME"
 #define DYNMEM_IN  "/tmp/memhack_out"
@@ -829,12 +830,14 @@ i32 main (i32 argc, char **argv, char **env)
 	atexit(restore_getch);
 
 	parse_options(argc, argv, opt);
+	test_optparsing(opt);
 
 	opt->home = getenv(HOME_VAR);
 	if (!opt->home)
 		opt->home = def_home;
 
 	read_config(opt, cfg, cfg_act, cfgp_map, lines);
+	test_cfgparsing(opt, cfg, cfg_act, cfgp_map);
 	cout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
 	if (opt->disc_str) {
@@ -886,6 +889,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	if (cfg->empty() && !allow_empty_cfg)
 		return -1;
+	test_cfgoutput(opt);
 
 	if (prepare_getch() != 0) {
 		cerr << "Error while terminal preparation!" << endl;

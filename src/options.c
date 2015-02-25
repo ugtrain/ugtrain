@@ -20,6 +20,7 @@
 
 /* local includes */
 #include <options.h>
+#include <testopts.h>
 
 
 #define DYNMEM_FILE "/tmp/memhack_file"
@@ -91,6 +92,7 @@ PROG_NAME " is the universal elite game trainer for the CLI\n"
 "			- it is only important that it appends to LD_PRELOAD\n"
 "--glc[=str]:		run \'" GLC_PRELOADER "\' with the given options for\n"
 "			video recording while cheating - assumes \'-P\'\n"
+TESTING_OPT_HELP
 "\n"
 "Report bugs to and ask " PACKAGE_BUGREPORT " for more help!\n"
 ;
@@ -105,6 +107,7 @@ static void usage()
 enum {
 	PreCmd = 300,
 	Glc,
+	TESTING_OPT_CHARS
 };
 
 static const char short_options[] = "-hVAD:P::S";
@@ -117,6 +120,7 @@ static struct option long_options[] = {
 	{"scanmem",        0, 0, 'S'},
 	{"pre-cmd",        1, 0, PreCmd },
 	{"glc",            2, 0, Glc },
+	TESTING_OPT_LONG
 	{0, 0, 0, 0}
 };
 
@@ -184,6 +188,7 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 				opt->pre_cmd = optarg;
 			opt->use_glc = true;
 			break;
+		TESTING_OPT_PARSING
 		default:  /* unknown option */
 			if (optind != argc) {
 				/* optional argument handling */

@@ -18,6 +18,7 @@
 
 /* local includes */
 #include <common.h>
+#include <testopts.h>
 
 #define PROG_NAME  "ugtrain"
 #define GLC_PRELOADER "glc-capture"
@@ -55,6 +56,8 @@ struct app_options {
 	ptr_t	code_offs;
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
+	/* options for testing */
+	TESTING_OPT_VARS
 };
 
 #ifdef __cplusplus
