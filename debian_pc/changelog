@@ -1,0 +1,5 @@
+ugtrain (0.2.1~pre-1) unstable; urgency=low
+
+  * first packaging for x86 and x86_64
+
+ -- Sebastian Parschauer <s.parschauer@gmx.de>  Thu, 26 Feb 2015 08:55:20 +0100

@@ -21,12 +21,10 @@ lib_LTLIBRARIES += libprivacy32.la
 endif
 endif
 
-include_HEADERS = list.h
-
 if BITS_32
 libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c
 libmemhack32_la_SOURCES = libmemhack.c libcommon.c
-libprivacy32_la_SOURCES = libprivacy.c
+libprivacy32_la_SOURCES = libprivacy.c list.h
 libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libprivacy32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
@@ -54,7 +52,7 @@ endif
 if BITS_64
 libmemdisc64_la_SOURCES = libmemdisc.c libcommon.c
 libmemhack64_la_SOURCES = libmemhack.c libcommon.c
-libprivacy64_la_SOURCES = libprivacy.c
+libprivacy64_la_SOURCES = libprivacy.c list.h
 libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libprivacy64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..

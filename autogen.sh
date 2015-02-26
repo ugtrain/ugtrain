@@ -18,39 +18,51 @@ debug ()
   fi
 }
 
+set_and_check_symlink ()
+# set a symlink and check if it works afterwards
+{
+  local tgt="$1"
+  local name="$2"
+  echo -n "+ setting symlink $name/ to $tgt/ ... "
+  ln -sfT "$tgt" "$name" 2>/dev/null
+  if [ ! -d "$name" ]; then
+    echo "failed."
+  else
+    cd "$name" 2>/dev/null
+    RC=$?
+    if [ $RC -ne 0 ]; then
+      rm "$name"
+      echo "failed."
+    else
+      cd ..
+      echo "ok."
+    fi
+  fi
+}
+
 machine_check ()
 # check which debian directory is required and set a symlink to it
 {
-  DEB="debian"
-  DEB_HARMATTAN="debian_harmattan"
-  MACHINE="`uname -m`"
-  if [ -z "$MACHINE" ]; then
+  local deb="debian"
+  local deb_harmattan="debian_harmattan"
+  local deb_pc="debian_pc"
+  local machine="`uname -m`"
+  if [ -z "$machine" ]; then
     echo "not found."
   else
-    if [ "$MACHINE" = "arm" ]; then
-      AEGIS_MANIFEST="`which aegis-manifest`"
-      if [ -z "$AEGIS_MANIFEST" ]; then
-        echo "$MACHINE."
+    if [ "$machine" = "arm" ]; then
+      local aegis_manifest="`which aegis-manifest`"
+      if [ -z "$aegis_manifest" ]; then
+        echo "$machine."
       else
         echo "Meego 1.2 Harmattan."
-        echo -n "+ setting symlink $DEB/ to $DEB_HARMATTAN/ ... "
-        ln -sfT "$DEB_HARMATTAN" "$DEB" 2>/dev/null
-        if [ ! -d "$DEB" ]; then
-          echo "failed."
-        else
-          cd "$DEB" 2>/dev/null
-          RC=$?
-          if [ $RC -ne 0 ]; then
-            rm "$DEB"
-            echo "failed."
-          else
-            cd ..
-            echo "ok."
-          fi
-        fi
+        set_and_check_symlink "$deb_harmattan" "$deb"
       fi
     else
-      echo "$MACHINE."
+      echo "$machine."
+      if [ "$machine" = "x86_64" ]; then
+        set_and_check_symlink "$deb_pc" "$deb"
+      fi
     fi
   fi
 }
