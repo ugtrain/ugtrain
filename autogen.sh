@@ -7,8 +7,8 @@
 DIE=0
 SRCDIR=`dirname $0`
 BUILDDIR=`pwd`
-srcfile=src/ugtrain.cpp
-package=ugtrain
+SRCFILE=src/ugtrain.cpp
+PACKAGE=ugtrain
 
 debug ()
 # print out a debug message if DEBUG is a defined variable
@@ -25,19 +25,22 @@ set_and_check_symlink ()
   local name="$2"
   echo -n "+ setting symlink $name/ to $tgt/ ... "
   ln -sfT "$tgt" "$name" 2>/dev/null
+
   if [ ! -d "$name" ]; then
     echo "failed."
-  else
-    cd "$name" 2>/dev/null
-    RC=$?
-    if [ $RC -ne 0 ]; then
-      rm "$name"
-      echo "failed."
-    else
-      cd ..
-      echo "ok."
-    fi
+    return 1
   fi
+
+  cd "$name" 2>/dev/null
+  local rc=$?
+  if [ $rc -ne 0 ]; then
+    rm "$name"
+    echo "failed."
+    return 1
+  fi
+
+  cd ..
+  echo "ok."
 }
 
 machine_check ()
@@ -49,22 +52,24 @@ machine_check ()
   local machine="`uname -m`"
   if [ -z "$machine" ]; then
     echo "not found."
-  else
-    if [ "$machine" = "arm" ]; then
-      local aegis_manifest="`which aegis-manifest`"
-      if [ -z "$aegis_manifest" ]; then
-        echo "$machine."
-      else
-        echo "Meego 1.2 Harmattan."
-        set_and_check_symlink "$deb_harmattan" "$deb"
-      fi
-    else
-      echo "$machine."
-      if [ "$machine" = "x86_64" ]; then
-        set_and_check_symlink "$deb_pc" "$deb"
-      fi
-    fi
+    return 1
   fi
+  echo "$machine."
+
+  case "$machine" in
+  "arm")
+    local aegis_manifest="`which aegis-manifest`"
+    if [ -n "$aegis_manifest" ]; then
+      echo "Meego 1.2 Harmattan detected."
+      set_and_check_symlink "$deb_harmattan" "$deb"
+    fi
+    ;;
+  "i686"|"x86_64")
+    set_and_check_symlink "$deb_pc" "$deb"
+    ;;
+  *)
+    ;;
+  esac
 }
 
 version_check ()
@@ -74,126 +79,65 @@ version_check ()
 # third argument : source download url
 # rest of arguments : major, minor, micro version
 {
-  COMPLAIN=$1
-  PACKAGE=$2
-  URL=$3
-  MAJOR=$4
-  MINOR=$5
-  MICRO=$6
+  local complain=$1
+  local package=$2
+  local url=$3
+  local major=$4
+  local minor=$5
+  local micro=$6
 
-  WRONG=
+  local wrong=
 
-  debug "major $MAJOR minor $MINOR micro $MICRO"
-  VERSION=$MAJOR
-  if [ ! -z "$MINOR" ]; then VERSION=$VERSION.$MINOR; else MINOR=0; fi
-  if [ ! -z "$MICRO" ]; then VERSION=$VERSION.$MICRO; else MICRO=0; fi
+  debug "major $major minor $minor micro $micro"
+  local version=$major
+  if [ ! -z "$minor" ]; then version=$version.$minor; else minor=0; fi
+  if [ ! -z "$micro" ]; then version=$version.$micro; else micro=0; fi
 
-  debug "version $VERSION"
-  echo -n "+ checking for $PACKAGE >= $VERSION ... "
+  debug "version $version"
+  echo -n "+ checking for $package >= $version ... "
 
-  ($PACKAGE --version) < /dev/null > /dev/null 2>&1 ||
+  ($package --version) < /dev/null > /dev/null 2>&1 ||
   {
     echo
-    echo "You must have $PACKAGE installed to compile $package."
+    echo "You must have $package installed to compile $PACKAGE."
     echo "Download the appropriate package for your distribution,"
-    echo "or get the source tarball at $URL"
+    echo "or get the source tarball at $url"
     return 1
   }
   # the following line is carefully crafted sed magic
-  pkg_version=`$PACKAGE --version|head -n 1|sed 's/([^)]*)//g;s/^[a-zA-Z\.\ \-\/]*//;s/ .*$//'`
+  local pkg_version=`$package --version|head -n 1|\
+    sed 's/([^)]*)//g;s/^[a-zA-Z\.\ \-\/]*//;s/ .*$//'`
   debug "pkg_version $pkg_version"
-  pkg_major=`echo $pkg_version | cut -d. -f1`
-  pkg_minor=`echo $pkg_version | sed s/[-,a-z,A-Z].*// | cut -d. -f2`
-  pkg_micro=`echo $pkg_version | sed s/[-,a-z,A-Z].*// | cut -d. -f3`
+  local pkg_major=`echo $pkg_version | cut -d. -f1`
+  local pkg_minor=`echo $pkg_version | sed s/[-,a-z,A-Z].*// | cut -d. -f2`
+  local pkg_micro=`echo $pkg_version | sed s/[-,a-z,A-Z].*// | cut -d. -f3`
   [ -z "$pkg_minor" ] && pkg_minor=0
   [ -z "$pkg_micro" ] && pkg_micro=0
 
   debug "found major $pkg_major minor $pkg_minor micro $pkg_micro"
 
   #start checking the version
-  if [ "$pkg_major" -lt "$MAJOR" ]; then
-    WRONG=1
-  elif [ "$pkg_major" -eq "$MAJOR" ]; then
-    if [ "$pkg_minor" -lt "$MINOR" ]; then
-      WRONG=1
-    elif [ "$pkg_minor" -eq "$MINOR" -a "$pkg_micro" -lt "$MICRO" ]; then
-      WRONG=1
+  if [ "$pkg_major" -lt "$major" ]; then
+    wrong=1
+  elif [ "$pkg_major" -eq "$major" ]; then
+    if [ "$pkg_minor" -lt "$minor" ]; then
+      wrong=1
+    elif [ "$pkg_minor" -eq "$minor" -a "$pkg_micro" -lt "$micro" ]; then
+      wrong=1
     fi
   fi
 
-  if [ ! -z "$WRONG" ]; then
+  if [ ! -z "$wrong" ]; then
    echo "found $pkg_version, not ok !"
-   if [ "$COMPLAIN" -eq "1" ]; then
+   if [ "$complain" -eq "1" ]; then
      echo
-     echo "You must have $PACKAGE $VERSION or greater to compile $package."
-     echo "Get the latest version from <$URL>."
+     echo "You must have $package $version or greater to compile $PACKAGE."
+     echo "Get the latest version from <$url>."
      echo
    fi
    return 1
   else
     echo "found $pkg_version, ok."
-  fi
-}
-
-not_version ()
-# check the version of a package
-# first argument : package name (executable)
-# second argument : source download url
-# rest of arguments : major, minor, micro version
-{
-  PACKAGE=$1
-  URL=$2
-  MAJOR=$3
-  MINOR=$4
-  MICRO=$5
-
-  WRONG=
-
-  debug "major $MAJOR minor $MINOR micro $MICRO"
-  VERSION=$MAJOR
-  if [ ! -z "$MINOR" ]; then VERSION=$VERSION.$MINOR; else MINOR=0; fi
-  if [ ! -z "$MICRO" ]; then VERSION=$VERSION.$MICRO; else MICRO=0; fi
-
-  debug "version $VERSION"
-  echo -n "+ checking for $PACKAGE != $VERSION ... "
-
-  ($PACKAGE --version) < /dev/null > /dev/null 2>&1 ||
-  {
-    echo
-    echo "You must have $PACKAGE installed to compile $package."
-    echo "Download the appropriate package for your distribution,"
-    echo "or get the source tarball at $URL"
-    return 1
-  }
-  # the following line is carefully crafted sed magic
-  pkg_version=`$PACKAGE --version|head -n 1|sed 's/([^)]*)//g;s/^[a-zA-Z\.\ \-\/]*//;s/ .*$//'`
-  debug "pkg_version $pkg_version"
-  pkg_major=`echo $pkg_version | cut -d. -f1`
-  pkg_minor=`echo $pkg_version | sed s/[-,a-z,A-Z].*// | cut -d. -f2`
-  pkg_micro=`echo $pkg_version | sed s/[-,a-z,A-Z].*// | cut -d. -f3`
-  [ -z "$pkg_minor" ] && pkg_minor=0
-  [ -z "$pkg_micro" ] && pkg_micro=0
-
-  debug "found major $pkg_major minor $pkg_minor micro $pkg_micro"
-
-  #start checking the version
-  if [ "$pkg_major" -eq "$MAJOR" ]; then
-   if [ "$pkg_minor" -eq "$MINOR" ]; then
-    if [ "$pkg_micro" -eq "$MICRO" ]; then
-      WRONG=1
-    fi
-   fi
-  fi
-
-  if [ ! -z "$WRONG" ]; then
-   echo "found $pkg_version, not ok !"
-   echo
-   echo "Version $PACKAGE $VERSION is known not to work well with $package."
-   echo "Get another (preferably latest) version from <$URL>."
-   echo
-   return 1
-  else
-    echo "not found, good."
   fi
 }
 
@@ -209,7 +153,7 @@ if [ "$DIE" -eq 1 ]; then
   exit 1
 fi
 
-[ -f "$srcfile" ] || {
+[ -f "$SRCFILE" ] || {
   echo "Are you sure $SRCDIR is a valid source directory?"
   exit 1
 }
@@ -223,7 +167,8 @@ libtoolize || {
 echo "+ running aclocal ..."
 aclocal -I m4 || {
   echo
-  echo "aclocal failed - check that all needed development files are present on system"
+  echo "aclocal failed - check that all needed development files"\
+       "are present on system"
   exit 1
 }
 #echo "+ running autoheader ... "
