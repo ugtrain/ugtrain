@@ -1,6 +1,6 @@
 if LINUX
 
-LIB_VERSION="0:0:0"
+LIB_VERSION = "0:0:0"
 
 if BITS_64
 lib_LTLIBRARIES = libmemdisc64.la libmemhack64.la
@@ -22,9 +22,9 @@ endif
 endif
 
 if BITS_32
-libmemdisc32_la_SOURCES = libmemdisc.c libcommon.c
-libmemhack32_la_SOURCES = libmemhack.c libcommon.c
-libprivacy32_la_SOURCES = libprivacy.c list.h
+libmemdisc32_la_SOURCES = libcommon.c libmemdisc.c
+libmemhack32_la_SOURCES = libcommon.c libmemhack.c
+libprivacy32_la_SOURCES = libprivacy.c
 libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libprivacy32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
@@ -50,9 +50,9 @@ libprivacy32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
 endif
 
 if BITS_64
-libmemdisc64_la_SOURCES = libmemdisc.c libcommon.c
-libmemhack64_la_SOURCES = libmemhack.c libcommon.c
-libprivacy64_la_SOURCES = libprivacy.c list.h
+libmemdisc64_la_SOURCES = libcommon.c libmemdisc.c
+libmemhack64_la_SOURCES = libcommon.c libmemhack.c
+libprivacy64_la_SOURCES = libprivacy.c
 libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libprivacy64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..

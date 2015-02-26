@@ -1,5 +1,3 @@
-include_HEADERS =
-
 bin_PROGRAMS = ugsimfind
 
 ugsimfind_SOURCES = ugsimfind.c
