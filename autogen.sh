@@ -159,7 +159,7 @@ fi
 }
 
 echo "+ running libtoolize ..."
-libtoolize || {
+libtoolize -c || {
   echo
   echo "libtoolize failed - check that it is present on system"
   exit 1
