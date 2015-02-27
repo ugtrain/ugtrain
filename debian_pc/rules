@@ -54,8 +54,8 @@ binary-arch: build install
 	dh_testroot
 #	dh_installdebconf
 	dh_installchangelogs
-#	dh_installdocs
-#	dh_installexamples
+	dh_installdocs
+	dh_installexamples
 #	dh_installmenu
 #	dh_installemacsen
 #	dh_installpam
