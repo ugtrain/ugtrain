@@ -33,9 +33,16 @@ For **further documentation** see:
 * [Development TODOs]
 (https://github.com/sriemer/ugtrain/blob/master/TODO)
 
-## Logo
-
-![ugtrain logo](https://github.com/sriemer/ugtrain/blob/images/img/ugtrain_logo_300px.png)
+## Logo and Screenshots
+<table><tr><td>
+<a href="img/ugtrain_logo_300px.png">
+  <img src="img/ugtrain_logo_300px.png"
+   alt="ugtrain logo" align="left" width="250" />
+</a></td><td>
+<a href="img/ugtrain_chromium-bsu64.png">
+  <img src="img/ugtrain_chromium-bsu64.png"
+   alt="ugtrain cheating at Chromium B.S.U. 64 bit" align="right" width="400" />
+</a></td></tr></table>
 
 ## Videos of the Examples
 
