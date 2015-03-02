@@ -92,11 +92,27 @@ i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 	return ret;
 }
 
-static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
-			       char *buf, ssize_t buf_len)
+static inline i32 parse_adp_string (char **start, string **obj_name)
 {
-	char *part_end = buf;
-	ssize_t part_size, ppos = 0;
+	char *end;
+	size_t size;
+
+	end = strchr(*start, ';');
+	if (end == NULL)
+		return 1;
+	size = end - *start;
+	*obj_name = new string(*start, size);
+	*start += size + 1;
+	return 0;
+}
+
+static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
+			       char *buf, ssize_t buf_len,
+			       vector<string> *lines)
+{
+	char *end = buf, *start = buf;
+	ssize_t size;
+	i32 lnr = -1;
 	u32 i, num_obj = 0;
 	string *obj_name = NULL;
 	u32 malloc_size = 0;
@@ -105,31 +121,50 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 	DynMemEntry *tmp = NULL;
 	bool found;
 
-	part_end = strchr(buf, ';');
-	if (part_end == NULL)
+	end = strchr(start, ';');
+	if (end == NULL)
 		goto parse_err;
-	if (sscanf(buf, "%u", &num_obj) != 1)
+	if (sscanf(start, "%u", &num_obj) != 1)
 		goto parse_err;
-	part_size = part_end - buf;
-	ppos += part_size + 1;
+	size = end - start;
+	start += size + 1;
 
 	for (i = 1; i <= num_obj; i++) {
-		part_end = strchr(buf + ppos, ';');
-		if (part_end == NULL)
+		// get object name or reserved cfg entry
+		for (;;) {
+			if (parse_adp_string(&start, &obj_name))
+				goto parse_err;
+			if (*obj_name == "proc_name")
+				lnr = 0;
+			else if (*obj_name == "game_binpath")
+				lnr = opt->binpath_line;
+			if (lnr != -1) {
+				if (parse_adp_string(&start, &obj_name))
+					goto parse_err;
+				if (lnr == 0) {
+					opt->proc_name = to_c_str(obj_name);
+				} else if ((u32) lnr == opt->binpath_line) {
+					*obj_name = "game_binpath " + *obj_name;
+					opt->game_binpath = to_c_str(obj_name);
+					if (strcmp(basename(opt->game_binpath),
+					    opt->proc_name) != 0)
+						goto parse_err;
+				}
+				lines->at(lnr) = *obj_name;
+				lnr = -1;
+				continue;
+			}
+			break;
+		}
+		if (sscanf(start, "%x", &malloc_size) != 1)
 			goto parse_err;
-		part_size = part_end - (buf + ppos);
-		obj_name = new string(buf + ppos, part_size);
-		ppos += part_size + 1;
+		end = strchr(start, ';');
+		if (end == NULL)
+			goto parse_err;
+		size = end - start;
+		start += size + 1;
 
-		if (sscanf(buf + ppos, "%x", &malloc_size) != 1)
-			goto parse_err;
-		part_end = strchr(buf + ppos, ';');
-		if (part_end == NULL)
-			goto parse_err;
-		part_size = part_end - (buf + ppos);
-		ppos += part_size + 1;
-
-		if (sscanf(buf + ppos, SCN_PTR, &code_addr) != 1)
+		if (sscanf(start, SCN_PTR, &code_addr) != 1)
 			goto parse_err;
 
 		// find object and set adp_size and adp_addr
@@ -157,24 +192,25 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 		if (i == num_obj)
 			break;
 
-		part_end = strchr(buf + ppos, ';');
-		if (part_end == NULL)
+		end = strchr(start, ';');
+		if (end == NULL)
 			goto parse_err;
-		part_size = part_end - (buf + ppos);
-		ppos += part_size + 1;
+		size = end - start;
+		start += size + 1;
 	}
 
 	return 0;
 parse_err:
 	cerr << "Error while parsing adaption output!" << endl;
 	if (buf[buf_len - 1] == '\n')
-		cerr << "-->" << (buf + ppos);
+		cerr << "-->" << start;
 	else
-		cerr << "-->" << (buf + ppos) << endl;
+		cerr << "-->" << start << endl;
 	return -1;
 }
 
-static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
+static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg,
+			 vector<string> *lines)
 {
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t read_bytes;
@@ -199,7 +235,7 @@ static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg)
 	else
 		cout << pbuf << endl;
 
-	if (parse_adapt_result(opt, cfg, pbuf, read_bytes) != 0)
+	if (parse_adapt_result(opt, cfg, pbuf, read_bytes, lines) != 0)
 		goto err;
 
 	return 0;
@@ -240,7 +276,7 @@ i32 process_adaption (struct app_options *opt, list<CfgEntry> *cfg,
 			ret = -1;
 			goto out;
 		}
-		ret = adapt_config(opt, cfg);
+		ret = adapt_config(opt, cfg, lines);
 		if (ret) {
 			cerr << "Error while size or code address adaption!"
 			     << endl;

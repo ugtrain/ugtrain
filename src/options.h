@@ -49,6 +49,7 @@ struct app_options {
 	char	*game_call;
 	char	*game_path;
 	char	*game_binpath;
+	u32     binpath_line;
 	char	*game_params;
 	char	*dynmem_file;
 	ptr_t	disc_addr;

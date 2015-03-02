@@ -776,6 +776,7 @@ void read_config (struct app_options *opt,
 
 			// Copy into C string
 			opt->game_binpath = to_c_str(&tmp_str);
+			opt->binpath_line = lnr;
 			break;
 
 		case NAME_GAME_PARAMS:
