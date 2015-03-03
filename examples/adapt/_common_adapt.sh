@@ -2,6 +2,7 @@
 # between distributions, compilers and game versions. But the thing which
 # remains constant is often the way how the code internally works.
 
+PFX="[adaption]"
 DEBUG=0
 if [ -n "$2" ]; then
     if [ "$2" = "DEBUG" ]; then
