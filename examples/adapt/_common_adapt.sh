@@ -2,7 +2,7 @@
 # between distributions, compilers and game versions. But the thing which
 # remains constant is often the way how the code internally works.
 
-PFX="[adaption]"
+PFX="[adapt]"
 DEBUG=0
 if [ -n "$2" ]; then
     if [ "$2" = "DEBUG" ]; then
@@ -10,9 +10,37 @@ if [ -n "$2" ]; then
     fi
 fi
 
+PATH_RESULT=""
 CODE=""
 OLD_FNAME=""
 FUNC_CALLS=""
+
+get_app_path()
+{
+    PATH_RESULT=""
+    APP_PATH="$1"
+    local app_paths="$2"
+    local found=0
+
+    if [ -f "$APP_PATH" ]; then
+        return
+    fi
+    local old_ifs="$IFS"
+    IFS=`printf "\n+"`
+    for path in $app_paths; do
+        if [ -f "$path" ]; then
+            APP_PATH="$path"
+            found=1
+            break
+        fi
+    done
+    IFS="$old_ifs"
+    if [ $found -eq 0 ]; then
+        echo "$PFX $APP_PATH does not exist!" 1>&2; exit 1
+    fi
+    local proc_name=`basename "$APP_PATH"`
+    PATH_RESULT="proc_name;${proc_name};game_binpath;${APP_PATH};"
+}
 
 get_malloc_code()
 {

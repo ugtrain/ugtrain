@@ -11,26 +11,17 @@
 CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
-APP_PATH1="/usr/lib/games/sauerbraten/sauer_client"
-APP_PATH2="/usr/lib/cube2/cube2_client"
-PATH_RESULT=""
+APP_PATHS="\
+/usr/lib/games/sauerbraten/sauer_client
+/usr/lib/cube2/cube2_client
+"
 RC=0
 MSIZE1="0x560"
 
 . ./_common_adapt.sh
 
 # check for changed paths
-if [ ! -f "$APP_PATH" ]; then
-    if [ -f "$APP_PATH1" ]; then
-        APP_PATH="$APP_PATH1"
-    elif [ -f "$APP_PATH2" ]; then
-        APP_PATH="$APP_PATH2"
-    else
-        echo "$PFX $APP_PATH does not exist!" 1>&2; exit 1
-    fi
-    PROC_NAME=`basename "$APP_PATH"`
-    PATH_RESULT="proc_name;$PROC_NAME;game_binpath;$APP_PATH;"
-fi
+get_app_path "$APP_PATH" "$APP_PATHS"
 
 # try 0.0.20100728.dfsg
 get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE1," 3 11 7
