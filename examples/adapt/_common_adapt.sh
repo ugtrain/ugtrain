@@ -15,6 +15,18 @@ CODE=""
 OLD_FNAME=""
 FUNC_CALLS=""
 
+pr_dbg()
+{
+    if [ $DEBUG -eq 1 ]; then
+        echo "$1" >&2
+    fi
+}
+
+pr_err()
+{
+    echo "$PFX $1" >&2
+}
+
 get_app_path()
 {
     PATH_RESULT=""
@@ -36,7 +48,7 @@ get_app_path()
     done
     IFS="$old_ifs"
     if [ $found -eq 0 ]; then
-        echo "$PFX $APP_PATH does not exist!" 1>&2; exit 1
+        pr_err "File $APP_PATH does not exist!"; exit 1
     fi
     local proc_name=`basename "$APP_PATH"`
     PATH_RESULT="proc_name;${proc_name};game_binpath;${APP_PATH};"
@@ -59,24 +71,24 @@ get_malloc_code()
 
     IFS=`printf '\n+'`
     if [ -z "$CODE" ]; then
-        if [ $DEBUG -eq 1 ]; then echo "objdump -D $app_path"; fi
+        pr_dbg "objdump -D $app_path"
         CODE=`objdump -D "$app_path"`
     fi
     if [ "$OLD_FNAME" != "$fname" ]; then
-        if [ $DEBUG -eq 1 ]; then echo "echo \$CODE | grep $fname -B $blines -A 1"; fi
+        pr_dbg "echo \$CODE | grep $fname -B $blines -A 1"
         FUNC_CALLS=`echo "$CODE" | grep "$fname" -B $blines -A 1`
         OLD_FNAME="$fname"
     fi
-    if [ $DEBUG -eq 1 ]; then echo "echo \$FUNC_CALLS | grep -A $alines $msize"; fi
+    pr_dbg "echo \$FUNC_CALLS | grep -A $alines $msize"
     CODE_PART=`echo "$FUNC_CALLS" | grep -A $alines "$msize"`
     if [ -z "$CODE_PART" ]; then RC=1; return; fi
-    if [ $DEBUG -eq 1 ]; then echo "$CODE_PART"; fi
+    pr_dbg "$CODE_PART"
 
     CODE_LINES=`echo "$CODE_PART" | wc -l`
     if [ $CODE_LINES -eq $reslines ]; then
         isunique=1
     elif [ $CODE_LINES -ne $explines ]; then
-	RC=1; return
+        RC=1; return
     fi
 
     if [ $isunique -ne 1 ]; then
@@ -90,10 +102,12 @@ get_malloc_code()
     CODE_CALL=`echo "$CODE_PART" | cut -d '
 ' -f $alines | grep call`
     if [ -z "$CODE_CALL" ]; then RC=1; return; fi
-    if [ $DEBUG -eq 1 ]; then echo "CODE_CALL:"; echo "$CODE_CALL"; fi
+    pr_dbg "CODE_CALL:"; pr_dbg "$CODE_CALL"
 
     CODE_ADDR=`echo "$CODE_PART" | tail -n 1 | cut -d ':' -f 1 | tr -d [:blank:]`
     if [ -z "$CODE_ADDR" ]; then RC=1; return; fi
-    if [ $DEBUG -eq 1 ]; then echo "CODE_ADDR:"; echo "$CODE_ADDR"; fi
+    pr_dbg "CODE_ADDR:"; pr_dbg "$CODE_ADDR"
     IFS=''
 }
+
+# vim: ai ts=4 sw=4 et sts=4 ft=sh
