@@ -15,32 +15,38 @@ MSIZE11="0x36c"
 MSIZE12="0x2fc"
 MSIZE21="0x128"
 MSIZE22="0x16c"
+MSIZE23="0x168"
 
 . ./_common_adapt.sh
 
 if [ "$APP_VERS" = "2.3.8" -o "$APP_VERS" = "2.3.9" ]; then
-  get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE11," 3 3 3
-  if [ $RC -ne 0 ]; then exit 1; fi
-  MSIZE1="$MSIZE11"
+    MSIZE1="$MSIZE11"
+    get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE1," 3 3 3
 else
-  get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE12," 3 3 3
-  if [ $RC -ne 0 ]; then exit 1; fi
-  MSIZE1="$MSIZE12"
+    MSIZE1="$MSIZE12"
+    get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE1," 3 3 3
+    if [ $RC -ne 0 ]; then
+        get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE1," 4 4 4
+    fi
 fi
+if [ $RC -ne 0 ]; then exit 1; fi
 
 CODE_ADDR1="$CODE_ADDR"
 
 ############################################
 
 if [ "$APP_VERS" = "2.3.8" -o "$APP_VERS" = "2.3.9" ]; then
-  get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE21," 3 7 7
-  if [ $RC -ne 0 ]; then exit 1; fi
-  MSIZE2="$MSIZE21"
+    MSIZE2="$MSIZE21"
+    get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE2," 3 7 7
 else
-  get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE22," 3 7 7
-  if [ $RC -ne 0 ]; then exit 1; fi
-  MSIZE2="$MSIZE22"
+    MSIZE2="$MSIZE22"
+    get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE2," 3 7 7
+    if [ $RC -ne 0 ]; then
+        MSIZE2="$MSIZE23"
+        get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE2," 4 8 4
+    fi
 fi
+if [ $RC -ne 0 ]; then exit 1; fi
 
 CODE_ADDR2="$CODE_ADDR"
 
@@ -54,6 +60,4 @@ echo "$RESULT"
 
 # This shows us that 0x813ce6a is the relevant Droid code address.
 
-# We can jump directly to stage 4 of the discovery with that and leave the
-# heap start and end offsets at 0x0 (NULL) as we already know the unique
-# code address and malloc size per memory class.
+# We can jump directly to stage 4 of the discovery with that.
