@@ -17,6 +17,9 @@ MSIZE="0x110"
 . ./_common_adapt.sh
 
 get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE," 3 3 3
+if [ $RC -ne 0 ]; then
+    get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE," 4 4 4
+fi
 if [ $RC -ne 0 ]; then exit 1; fi
 
 RESULT=`echo "1;HeroAircraft;$MSIZE;0x$CODE_ADDR"`
