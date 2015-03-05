@@ -1,12 +1,12 @@
 #!/bin/sh
 
-# Tested with: sauerbraten 0.0.20100728.dfsg
+# Tested with: sauerbraten 0.0.20100728.dfsg, 0.0.20140302-1
 
 # We already know that sauerbraten is a 32-bit C++ application. Therefore,
 # objects are allocated most likely by the "_Znwj" function. This function
-# calls malloc internally.
-# And from previous discovery runs we already know the malloc size (1376 or
-# 0x560) for the FPSent object (first person shooter entity).
+# calls malloc internally. But in latest versions malloc is used directly.
+# And from previous discovery runs we already know the malloc size for the
+# FPSent object (first person shooter entity).
 
 CWD=`dirname $0`
 cd "$CWD"
@@ -17,6 +17,7 @@ APP_PATHS="\
 "
 RC=0
 MSIZE1="0x560"
+MSIZE2="0x578"
 
 . ./_common_adapt.sh
 
@@ -24,8 +25,13 @@ MSIZE1="0x560"
 get_app_path "$APP_PATH" "$APP_PATHS"
 
 # try 0.0.20100728.dfsg
-get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE1," 3 11 7
 MSIZE="$MSIZE1"
+get_malloc_code "$APP_PATH" "\<_Znwj@plt\>" "$MSIZE," 3 11 7
+if [ $RC -ne 0 ]; then
+    # try 0.0.20140302-1
+    MSIZE="$MSIZE2"
+    get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE," 3 15 11
+fi
 if [ $RC -ne 0 ]; then exit 1; fi
 
 RESULT=`echo "1;${PATH_RESULT}FPSent;$MSIZE;0x$CODE_ADDR"`
@@ -38,6 +44,4 @@ echo "$RESULT"
 
 # This shows us that 0x81dc992 is the relevant code address.
 
-# We can jump directly to stage 4 of the discovery with that and leave the
-# heap start and end offsets at 0x0 (NULL) as we already know the unique
-# code address and malloc size.
+# We can jump directly to stage 4 of the discovery with that.

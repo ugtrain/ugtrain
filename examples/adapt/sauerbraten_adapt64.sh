@@ -25,14 +25,14 @@ MSIZE2="0x5b0"
 get_app_path "$APP_PATH" "$APP_PATHS"
 
 # try 0.0.20100728.dfsg
-get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE1," 5 15 11
 MSIZE="$MSIZE1"
+get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE," 5 15 11
 if [ $RC -ne 0 ]; then
     # try 0.0.20130203.dfsg or 0.0.20140302-1
-    get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE2," 7 31 23
-    if [ $RC -ne 0 ]; then exit 1; fi
     MSIZE="$MSIZE2"
+    get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE," 7 31 23
 fi
+if [ $RC -ne 0 ]; then exit 1; fi
 
 RESULT=`echo "1;${PATH_RESULT}FPSent;$MSIZE;0x$CODE_ADDR"`
 echo "$RESULT"
@@ -48,6 +48,4 @@ echo "$RESULT"
 
 # This shows us that 0x5e31d4 is the relevant code address.
 
-# We can jump directly to stage 4 of the discovery with that and leave the
-# heap start and end offsets at 0x0 (NULL) as we already know the unique
-# code address and malloc size.
+# We can jump directly to stage 4 of the discovery with that.
