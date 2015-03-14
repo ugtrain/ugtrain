@@ -228,6 +228,9 @@ child_err:
  *
  * Please note: If the shell is used, then execlp is
  *              used with cmd and cmdv[] is ignored.
+ *
+ *		execvp() doesn't support spaces in the cmd path -
+ *		not with "quotes" and also not with "\ ".
  */
 pid_t run_cmd_bg (const char *cmd, char *const cmdv[], bool do_wait,
 		  char *preload_lib)

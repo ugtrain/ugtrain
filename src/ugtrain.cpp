@@ -508,7 +508,7 @@ static void cmd_str_to_cmd_vec (string *cmd_str, vector<string> *cmd_vec)
 	for (start = 0, pos = 0; pos < cmd_str->size(); pos++) {
 		ch = cmd_str->at(pos);
 		if (ch == ' ' || ch == '\t') {
-			if (prev_ch == ' ')
+			if (prev_ch == ' ' || prev_ch == '\\')
 				continue;
 			cmd_vec->push_back(cmd_str->substr(start, pos - start));
 			prev_ch = ' ';
@@ -537,10 +537,11 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 	pid_t pid = -1;
 	pid_t old_game_pid = proc_to_pid(opt->proc_name);
 	pid_t game_pid;
-	u32 i;
+	u32 i, pos;
 	enum pstate pstate;
-	string cmd_str;
+	string cmd_str, game_path;
 	vector<string> cmd_vec;
+	bool path_has_spaces = false;     // requires using the shell
 
 	if (opt->pre_cmd) {
 		if (opt->use_glc) {
@@ -550,7 +551,16 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 		cmd_str += opt->pre_cmd;
 		cmd_str += " ";
 	}
-	cmd_str += opt->game_path;
+	game_path = opt->game_path;
+	// insert '\\' in front of spaces
+	for (pos = 0; pos < game_path.size(); pos++) {
+		if (game_path.at(pos) == ' ') {
+			game_path.insert(pos, "\\");
+			path_has_spaces = true;
+			pos++;
+		}
+	}
+	cmd_str += game_path;
 	if (opt->game_params) {
 		cmd_str += " ";
 		cmd_str += opt->game_params;
@@ -584,15 +594,27 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 			     << " | cut -d \' \' -f 1` & --> "
 			     << "$ " << cmd_str << " &" << endl;
 
-			pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
-					  pid_str, opt->proc_name, 3,
-					  false, preload_lib);
+			if (path_has_spaces) {
+				cmd = cmd_str.c_str();
+				pid = run_pgrp_bg(pcmd, pcmdv, cmd, NULL,
+						  pid_str, opt->proc_name, 3,
+						  false, preload_lib);
+			} else {
+				pid = run_pgrp_bg(pcmd, pcmdv, cmd, cmdv,
+						  pid_str, opt->proc_name, 3,
+						  false, preload_lib);
+			}
 			if (pid > 0)
 				opt->scanmem_pid = pid;
 		} else {
 			cout << "$ " << cmd_str << " &" << endl;
 
-			pid = run_cmd_bg(cmd, cmdv, false, preload_lib);
+			if (path_has_spaces) {
+				cmd = cmd_str.c_str();
+				pid = run_cmd_bg(cmd, NULL, false, preload_lib);
+			} else {
+				pid = run_cmd_bg(cmd, cmdv, false, preload_lib);
+			}
 		}
 	}
 	if (pid < 0)
