@@ -6,7 +6,7 @@
  * powered by the Open Game Cheating Association
  *
  * This file may be used subject to the terms and conditions of the
- * GNU General Public License Version 2, or any later version
+ * GNU General Public License Version 3, or any later version
  * at your option, as published by the Free Software Foundation.
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of

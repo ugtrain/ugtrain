@@ -1,7 +1,7 @@
 #!/bin/sh
 # Run this to generate all the initial makefiles, etc.
 
-# code taken from Warzone 2100 3.1.1 as they also use
+# code taken from Warzone 2100 3.1.1 as they use
 # GPLv2 and have it implemented already very well
 
 DIE=0

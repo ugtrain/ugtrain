@@ -1,7 +1,7 @@
 ## Description
 
 The ugtrain is an advanced free and universal game trainer for the CLI under
-GPLv2 license on GitHub and Sourceforge.net. It is mostly written in C with
+GPLv3 license on GitHub and Sourceforge.net. It is mostly written in C with
 C++ parts for convenience and some shell scripts. The **dynamic memory support**
 sets it apart. An integrated preloader, a memory discovery and a memory
 hacking library are included for this.
