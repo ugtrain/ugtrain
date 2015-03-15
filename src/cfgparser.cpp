@@ -43,7 +43,7 @@ typedef enum {
 	NAME_DYNMEM_FILE,
 	NAME_PTRMEM_START,
 	NAME_PTRMEM_END,
-	NAME_ADAPT,
+	NAME_ADP_SCRIPT,
 	NAME_ADP_REQ
 } name_e;
 
@@ -169,7 +169,7 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 			*name_type = NAME_REGULAR;
 	} else if (ret.substr(0, 6) == "adapt_") {
 		if (ret.substr(6, string::npos) == "script")
-			*name_type = NAME_ADAPT;
+			*name_type = NAME_ADP_SCRIPT;
 		else if (ret.substr(6, string::npos) == "required")
 			*name_type = NAME_ADP_REQ;
 		else
@@ -716,7 +716,7 @@ void read_config (struct app_options *opt,
 			}
 			break;
 
-		case NAME_ADAPT:
+		case NAME_ADP_SCRIPT:
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
@@ -727,10 +727,14 @@ void read_config (struct app_options *opt,
 			else
 				tmp_str.clear();
 			tmp_str += parse_value_name(&line, lnr, &start,
-				true, NULL);
+				false, NULL);
 
 			// Copy into C string
 			opt->adp_script = to_c_str(&tmp_str);
+
+			// check for added invalid parameters
+			if (start < line.length() - 1)
+				cfg_parse_err(&line, lnr, start);
 			break;
 
 		case NAME_ADP_REQ:
