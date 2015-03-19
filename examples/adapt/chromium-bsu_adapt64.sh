@@ -11,15 +11,21 @@
 CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
+APP_PATHS="\
+/usr/games/chromium-bsu
+"
 RC=0
 MSIZE="0x120"
 
 . ./_common_adapt.sh
 
+# check for changed paths
+get_app_path "$APP_PATH" "$APP_PATHS"
+
 get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE," 4 4 4
 if [ $RC -ne 0 ]; then exit 1; fi
 
-RESULT=`echo "1;HeroAircraft;$MSIZE;0x$CODE_ADDR"`
+RESULT=`echo "1;${PATH_RESULT}HeroAircraft;$MSIZE;0x$CODE_ADDR"`
 echo "$RESULT"
 
 # Should return something like this:
@@ -30,6 +36,4 @@ echo "$RESULT"
 
 # This shows us that 0x411097 is the relevant code address.
 
-# We can jump directly to stage 4 of the discovery with that and leave the
-# heap start and end offsets at 0x0 (NULL) as we already know the unique
-# code address and malloc size.
+# We can jump directly to stage 4 of the discovery with that.
