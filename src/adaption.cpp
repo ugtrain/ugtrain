@@ -134,14 +134,23 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 		for (;;) {
 			if (parse_adp_string(&start, &obj_name))
 				goto parse_err;
-			if (*obj_name == "proc_name")
+			if (*obj_name == "proc_name") {
 				lnr = 0;
-			else if (*obj_name == "game_binpath")
+			} else if (*obj_name == "game_binpath") {
 				lnr = opt->binpath_line;
-			if (lnr != -1) {
+				if (lnr <= 0) {
+					if (parse_adp_string(&start, &obj_name))
+						goto parse_err;
+					lnr = -1;
+					continue;
+				}
+			}
+			if (lnr >= 0) {
 				if (parse_adp_string(&start, &obj_name))
 					goto parse_err;
 				if (lnr == 0) {
+					if (strcmp(opt->game_call, opt->proc_name) == 0)
+						opt->game_call = to_c_str(obj_name);
 					opt->proc_name = to_c_str(obj_name);
 				} else if ((u32) lnr == opt->binpath_line) {
 					*obj_name = "game_binpath " + *obj_name;

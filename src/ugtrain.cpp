@@ -774,6 +774,23 @@ err:
 	return 1;
 }
 
+static inline i32 get_game_paths (struct app_options *opt)
+{
+	if (opt->preload_lib) {
+		if (!opt->game_path)
+			opt->game_path = get_abs_app_path(opt->game_call);
+		if (!opt->game_path) {
+			cerr << "Absolute game path not found or invalid!"
+			     << endl;
+			return -1;
+		}
+	}
+	if (!opt->game_binpath)
+		opt->game_binpath = opt->game_path;
+
+	return 0;
+}
+
 static inline bool tool_is_available (char *name)
 {
 	bool ret = false;
@@ -849,17 +866,7 @@ i32 main (i32 argc, char **argv, char **env)
 		allow_empty_cfg = true;
 	}
 
-	if (opt->preload_lib) {
-		if (!opt->game_path)
-			opt->game_path = get_abs_app_path(opt->game_call);
-		if (!opt->game_path) {
-			cerr << "Absolute game path not found or invalid!"
-			     << endl;
-			return -1;
-		}
-	}
-	if (!opt->game_binpath)
-		opt->game_binpath = opt->game_path;
+	get_game_paths(opt);
 
 	cout << "Config:" << endl;
 	output_config(cfg);
@@ -880,6 +887,11 @@ i32 main (i32 argc, char **argv, char **env)
 	ret = process_adaption(opt, cfg, lines);
 	if (ret)
 		return ret;
+
+	ret = get_game_paths(opt);
+	if (ret)
+		return ret;
+
 discover_next:
 	if (prepare_discovery(opt, cfg) != 0)
 		return -1;
