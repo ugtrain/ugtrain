@@ -1,6 +1,6 @@
-# The issue is that code address and stack offsets for mallocs can differ
+# The issue is that code address and stack offset for mallocs can differ
 # between distributions, compilers and game versions. But the thing which
-# remains constant is often the way how the code internally works.
+# remains constant is often the way how the code works internally.
 
 PFX="[adapt]"
 DEBUG=0
@@ -104,7 +104,9 @@ get_malloc_code()
     if [ -z "$CODE_CALL" ]; then RC=1; return; fi
     pr_dbg "CODE_CALL:"; pr_dbg "$CODE_CALL"
 
-    CODE_ADDR=`echo "$CODE_PART" | tail -n 1 | cut -d ':' -f 1 | tr -d [:blank:]`
+    JMPBACK_CODE=`echo "$CODE_PART" | tail -n 1`
+    if [ "$JMPBACK_CODE" = "$CODE_CALL" ]; then RC=1; return; fi
+    CODE_ADDR=`echo "$JMPBACK_CODE" | cut -d ':' -f 1 | tr -d [:blank:]`
     if [ -z "$CODE_ADDR" ]; then RC=1; return; fi
     pr_dbg "CODE_ADDR:"; pr_dbg "$CODE_ADDR"
     IFS=''
