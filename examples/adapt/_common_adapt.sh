@@ -87,7 +87,7 @@ get_malloc_code()
     CODE_LINES=`echo "$CODE_PART" | wc -l`
     if [ $CODE_LINES -eq $reslines ]; then
         isunique=1
-    elif [ $CODE_LINES -ne $explines ]; then
+    elif [ $explines -gt 0 -a $CODE_LINES -ne $explines ]; then
         RC=1; return
     fi
 
