@@ -92,6 +92,10 @@ get_malloc_code()
     fi
 
     if [ $isunique -ne 1 ]; then
+        if [ $explines -lt 0 ]; then
+            explines=`expr $explines \* -1`
+            CODE_PART=`echo "$CODE_PART" | head -n $explines`
+        fi
         CODE_PART=`echo "$CODE_PART" | tail -n $taillines`
         CODE_PART=`echo "$CODE_PART" | head -n $reslines`
 
