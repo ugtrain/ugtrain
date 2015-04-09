@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <libgen.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -558,6 +559,7 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 		};
 
 		restore_getch();
+		sigignore(SIGINT);
 
 		cout << "$ " << pcmdv[0] << " " << pcmdv[1]
 		     << " `pidof " << opt->proc_name
