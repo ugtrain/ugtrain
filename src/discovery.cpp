@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
+#include <signal.h>
 
 // local includes
 #include <lib/getch.h>
@@ -444,6 +445,7 @@ void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 		if (opt->scanmem_pid > 0) {
 			wait_orphan(pid, opt->proc_name);
 			wait_proc(opt->scanmem_pid);
+			signal(SIGINT, SIG_DFL);
 		} else {
 			wait_orphan(pid, opt->proc_name);
 		}
@@ -458,8 +460,10 @@ void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			do_disc_pic_work(pid, opt, ifd, ofd, rlist);
 		else
 			wait_orphan(pid, opt->proc_name);
-		if (opt->scanmem_pid > 0)
+		if (opt->scanmem_pid > 0) {
 			wait_proc(opt->scanmem_pid);
+			signal(SIGINT, SIG_DFL);
+		}
 		sleep_msec(250);  // chance to read the final flush
 		kill_proc(worker_pid);
 		if (worker_pid < 0)

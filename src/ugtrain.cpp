@@ -572,6 +572,8 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 				  false, preload_lib);
 		if (pid > 0)
 			opt->scanmem_pid = pid;
+		else
+			signal(SIGINT, SIG_DFL);
 	} else {
 		cout << "$ " << cmd_str << " &" << endl;
 
@@ -943,6 +945,7 @@ prepare_dynmem:
 	} else if (opt->scanmem_pid > 0) {
 		wait_orphan(pid, opt->proc_name);
 		wait_proc(opt->scanmem_pid);
+		signal(SIGINT, SIG_DFL);
 		return 0;
 	}
 
