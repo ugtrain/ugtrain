@@ -178,7 +178,7 @@ static inline void wait_proc (pid_t pid)
 
 static inline void kill_proc (pid_t pid)
 {
-	kill(pid, SIGINT);
+	kill(pid, SIGTERM);
 }
 
 #else
