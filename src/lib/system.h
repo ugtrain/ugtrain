@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #ifdef __linux__
+#include <signal.h>
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <sys/stat.h>
@@ -181,6 +182,17 @@ static inline void kill_proc (pid_t pid)
 	kill(pid, SIGTERM);
 }
 
+static inline void ignore_sigint (void)
+{
+	signal(SIGINT, SIG_IGN);
+}
+
+/* set SIGINT handler to default action */
+static inline void reset_sigint (void)
+{
+	signal(SIGINT, SIG_DFL);
+}
+
 #else
 
 static inline bool file_exists (const char *path)
@@ -233,6 +245,14 @@ static inline void wait_proc (pid_t pid)
 }
 
 static inline void kill_proc (pid_t pid)
+{
+}
+
+static inline void ignore_sigint (void)
+{
+}
+
+static inline void reset_sigint (void)
 {
 }
 

@@ -29,7 +29,6 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <libgen.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -559,7 +558,7 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 		};
 
 		restore_getch();
-		sigignore(SIGINT);
+		ignore_sigint();
 
 		cout << "$ " << pcmdv[0] << " " << pcmdv[1]
 		     << " `pidof " << opt->proc_name
@@ -573,7 +572,7 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 		if (pid > 0)
 			opt->scanmem_pid = pid;
 		else
-			signal(SIGINT, SIG_DFL);
+			reset_sigint();
 	} else {
 		cout << "$ " << cmd_str << " &" << endl;
 
@@ -945,7 +944,7 @@ prepare_dynmem:
 	} else if (opt->scanmem_pid > 0) {
 		wait_orphan(pid, opt->proc_name);
 		wait_proc(opt->scanmem_pid);
-		signal(SIGINT, SIG_DFL);
+		reset_sigint();
 		return 0;
 	}
 
