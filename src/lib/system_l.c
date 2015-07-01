@@ -114,7 +114,7 @@ skip_exe_check:
 		goto err;
 	cmd_len = pr_len;
 	pr_len = sprintf((cmd_str + cmd_len),
-		"/status | sed -n 2p | sed \'s/State:	//g\'");
+		"/status 2>/dev/null | sed -n 2p | sed \'s/State:	//g\'");
 	if (pr_len <= 0)
 		goto err;
 	cmd = cmd_str;
