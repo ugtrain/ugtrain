@@ -391,6 +391,7 @@ static void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 dfd,
 // parameter for run_stage1234_loop()
 struct disc_params {
 	i32 ifd;
+	i32 pid;
 	struct app_options *opt;
 };
 
@@ -402,10 +403,12 @@ void run_stage1234_loop (void *argp)
 {
 	struct disc_params *params = (struct disc_params *) argp;
 	i32 ifd = params->ifd;
+	i32 pid = params->pid;
 	struct app_options *opt = params->opt;
 	i32 ofd;
 	char buf[PIPE_BUF];
 	ssize_t rbytes, wbytes;
+	enum pstate pstate;
 
 	ofd = open(opt->dynmem_file, O_WRONLY | O_CREAT | O_TRUNC,
 		   0644);
@@ -418,8 +421,12 @@ void run_stage1234_loop (void *argp)
 	while (true) {
 		sleep_sec_unless_input(1, ifd);
 		rbytes = read(ifd, buf, sizeof(buf));
-		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN))
+		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN)) {
+			pstate = check_process(pid, NULL);
+			if (pstate == PROC_DEAD || pstate == PROC_ZOMBIE)
+				sleep_sec(1);
 			continue;
+		}
 		if (rbytes < 0) {
 			perror("read");
 			break;
@@ -450,7 +457,7 @@ void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 		}
 		exit(0);
 	} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
-		struct disc_params params = { dfd, opt };
+		struct disc_params params = { dfd, pid, opt };
 		if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
 			handle_pie(opt, cfg, ifd, ofd, pid, rlist);
 		worker_pid = fork_proc(run_stage1234_loop, &params);
