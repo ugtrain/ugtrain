@@ -4,15 +4,6 @@ bin_PROGRAMS = ugtrain
 
 # use "ls -1 *.c*" for an ordered list
 ugtrain_SOURCES = \
-	lib/getch_l.c \
-	lib/getch_w.c \
-	lib/maps_l.c \
-	lib/mapscb_l.cpp \
-	lib/memattach_l.c \
-	lib/memattach_w.c \
-	lib/preload_l.c \
-	lib/system_l.c \
-	lib/system_w.c \
 	adaption.cpp \
 	aslr.cpp \
 	cfgoutput.cpp \
@@ -27,6 +18,20 @@ ugtrain_SOURCES = \
 	options.c \
 	ugtrain.cpp \
 	valoutput.cpp
+if LINUX
+ugtrain_SOURCES += \
+	lib/getch_l.c \
+	lib/maps_l.c \
+	lib/mapscb_l.cpp \
+	lib/memattach_l.c \
+	lib/preload_l.c \
+	lib/system_l.c
+else
+ugtrain_SOURCES += \
+	lib/getch_w.c \
+	lib/memattach_w.c \
+	lib/system_w.c
+endif
 
 ugtrain_LDADD = $(DEPS_LIBS)
 AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
