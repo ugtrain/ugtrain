@@ -230,7 +230,7 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 	if (tmp_ilen > 0)
 		tmp_ilen = parse_dynmem_buf(cfg, argp, ibuf, &ilen, tmp_ilen,
 			pmask, reverse, code_offs, pcb);
-	else if (argp)
+	else
 		return -1;
 
 	return tmp_ilen;
