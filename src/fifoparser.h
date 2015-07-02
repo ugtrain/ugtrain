@@ -30,6 +30,7 @@
 struct post_parse {
 	char	*ibuf;
 	ssize_t	ppos;
+	char    *msg_end;
 	void	*argp;
 };
 
@@ -53,4 +54,8 @@ struct parse_cb {
 
 ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 			 bool reverse, ptr_t code_offs, struct parse_cb *pcb);
+
+ssize_t parse_dynmem_buf (list<CfgEntry> *cfg, void *argp, char *ibuf,
+			  ssize_t *ilen, ssize_t tmp_ilen, i32 pmask,
+			  bool reverse, ptr_t code_offs, struct parse_cb *pcb);
 #endif
