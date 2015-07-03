@@ -247,3 +247,27 @@ void alloc_dynmem_addr (MF_PARAMS)
 		break;
 	}
 }
+
+// mf() callback for read_dynmem_buf()
+//
+// write a message including '\n' to the malloc queue
+void queue_dynmem_addr (MF_PARAMS)
+{
+	struct mqueue *mq = (struct mqueue *) pp->argp;
+	char *msg_start = pp->ibuf;
+	char *msg_end = pp->msg_end;
+	char *mq_start = mq->data + mq->end;
+	char tmp_char;
+	ssize_t n = mq->size - mq->end;
+	ssize_t max_print = n - 1;
+	int np;
+
+	tmp_char = *(msg_end + 1);
+	*(msg_end + 1) = '\0';
+	np = snprintf(mq_start, n, "%s", msg_start);
+	*(msg_end + 1) = tmp_char;
+	if (np < 0 || np > max_print)
+		mq_start[1] = '\0';
+	else
+		mq->end += np;
+}
