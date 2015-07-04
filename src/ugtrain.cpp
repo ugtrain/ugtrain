@@ -410,18 +410,41 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 	}
 }
 
+// Process the memory allocations from the malloc queue.
+static inline void process_mallocs (list<CfgEntry> *cfg, struct mqueue *mq,
+				    i32 pmask)
+{
+	ssize_t pbytes, ilen = 0;
+	struct parse_cb pcb = { NULL };
+
+	pcb.mf = alloc_dynmem_addr;
+
+	pbytes = parse_dynmem_buf(cfg, NULL, mq->data, &ilen, mq->end, pmask,
+		false, 0, &pcb);
+	if (pbytes <= 0 && mq->end > 0)
+		cerr << "Malloc queue parsing error!" << endl;
+	// reinit malloc queue
+	mq->end = 0;
+	memset(mq->data, 0, mq->size);
+	// mallocs read -> delay execution to give the game
+	// a chance for memory object initialization
+	if (pbytes > 0)
+		sleep_msec(250);
+}
+
 // TIME CRITICAL! Read the memory allocations and freeings from the input FIFO.
 // If the buffer fills, the game process hangs.
-static inline void read_dynmem_fifo (list<CfgEntry> *cfg, i32 ifd, i32 pmask)
+static inline void read_dynmem_fifo (list<CfgEntry> *cfg, struct mqueue *mq,
+				     i32 ifd, i32 pmask)
 {
 	ssize_t rbytes;
 	struct parse_cb pcb = { NULL };
 
-	pcb.mf = alloc_dynmem_addr;
+	pcb.mf = queue_dynmem_addr;
 	pcb.ff = clear_dynmem_addr;
 
 	do {
-		rbytes = read_dynmem_buf(cfg, NULL, ifd, pmask, false,
+		rbytes = read_dynmem_buf(cfg, mq, ifd, pmask, false,
 			0, &pcb);
 	} while (rbytes > 0);
 }
@@ -818,7 +841,7 @@ i32 main (i32 argc, char **argv, char **env)
 	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
 #define CFGP_MAP_SIZE 128
 	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
-	string input_str;
+	struct mqueue __mq, *mq = &__mq;
 	pid_t pid = -1;
 	char def_home[] = "~";
 	i32 ret, pmask = PARSE_S | PARSE_C;
@@ -828,6 +851,13 @@ i32 main (i32 argc, char **argv, char **env)
 	enum pstate pstate;
 	list<struct region> rlist;
 
+	mq->size = 4 * PIPE_BUF;
+	mq->end = 0;
+	mq->data = (char *) malloc(mq->size);
+	if (!mq->data)
+		return -1;
+	mq->data[0] = '\0';
+	mq->data[mq->size - 1] = '\0';
 	atexit(restore_getch);
 
 	parse_options(argc, argv, opt);
@@ -973,8 +1003,8 @@ prepare_dynmem:
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		if (!opt->pure_statmem) {
-			read_dynmem_fifo(cfg, ifd, pmask);
-			// print allocated and freed object counts
+			read_dynmem_fifo(cfg, mq, ifd, pmask);
+			// print freed object counts
 			ret = output_dynmem_changes(cfg);
 			if (ret)
 				reset_terminal();
@@ -991,16 +1021,13 @@ prepare_dynmem:
 		if (!opt->pure_statmem) {
 			// handle objects freed in the game
 			free_dynmem(cfg, false);
-
-			// allocate old values per memory object
-			alloc_dynmem(cfg);
 		}
 
 		if (memattach(pid) != 0) {
 			pstate = check_process(pid, opt->proc_name);
 			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 				return 0;
-			// coming here often when endling the game
+			// coming here often when ending the game
 			memattach_err_once(pid);
 			continue;
 		}
@@ -1008,11 +1035,9 @@ prepare_dynmem:
 		// read from the FIFO again
 		// R/W to invalid heap addresses crashes the game (SIGSEGV).
 		// There could have been free() calls before freezing the game.
-		if (!opt->pure_statmem) {
-			read_dynmem_fifo(cfg, ifd, pmask);
-			// We might also read mallocs. Can't ignore them!
-			alloc_dynmem(cfg);
-		}
+		if (!opt->pure_statmem)
+			read_dynmem_fifo(cfg, mq, ifd, pmask);
+
 		// TIME CRITICAL! Process all activated config entries
 		process_act_cfg(pid, cfg_act);
 
@@ -1034,6 +1059,19 @@ prepare_dynmem:
 		ret = output_mem_values(cfg_act);
 		if (ret)
 			reset_terminal();
+
+		// process allocated objects from queue
+		if (!opt->pure_statmem) {
+			process_mallocs(cfg, mq, pmask);
+			// print allocated object counts
+			ret = output_dynmem_changes(cfg);
+			if (ret)
+				reset_terminal();
+
+			// allocate old values per memory object
+			alloc_dynmem(cfg);
+		}
+
 	}
 
 	return 0;
