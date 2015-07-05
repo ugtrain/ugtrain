@@ -58,7 +58,13 @@ for that! You may violate copyright and other laws by doing so. Recording
 videos of doing so makes the situation even worse in terms of law. Please
 always read the end user license agreement (EULA) of the game to be very
 sure if you are really allowed to do so or not! If in doubt, use games
-with official FOSS licenses (like GPLv2) only.
+with official FOSS licenses (like GPLv2) in single-player mode only.
+
+Especially don't cheat at Steam! They send out crash dumps with delicate
+information included. We can't accept that you impair our reputation by
+sending dumps with ugtrain parts visible to them.
+
+![Don't cheat at Steam!](img/dont_cheat_at_steam_300px.png)
 
 ## How to Build and Install
 
