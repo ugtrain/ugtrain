@@ -16,6 +16,7 @@
 #include <vector>
 
 // local includes
+#include <cstring>
 #include <memmgmt.h>
 
 
@@ -176,7 +177,7 @@ err:
 	return -1;
 }
 
-static i32 find_addr_idx (vector<ptr_t> *vec, ptr_t addr)
+static inline i32 find_addr_idx (vector<ptr_t> *vec, ptr_t addr)
 {
 	u32 i;
 	i32 ret = -1;
@@ -190,13 +191,56 @@ static i32 find_addr_idx (vector<ptr_t> *vec, ptr_t addr)
 	return ret;
 }
 
+static inline i32 remove_malloc_from_queue (struct mqueue *mq, ptr_t free_addr)
+{
+	i32 ret = -1, len;
+	char *pstart, *msg_end;
+	ptr_t malloc_addr;
+
+	if (!mq->end)
+		goto out;
+	pstart = mq->data + 1;
+next:
+	msg_end = strchr(pstart, '\n');
+	if (msg_end == NULL)
+		goto out;
+	msg_end++;
+	if (sscanf(pstart, SCN_PTR, &malloc_addr) != 1)
+		goto out;
+	// Remove the found malloc to be freed from the queue.
+	if (malloc_addr == free_addr) {
+		pstart--;
+		len = mq->end - (msg_end - mq->data) + 1;
+		if (len >= mq->end)
+			goto out;
+		memmove(pstart, msg_end, len);
+		len = msg_end - pstart;
+		mq->end -= len;
+
+		ret = 0;
+		goto out;
+	}
+	pstart = msg_end + 1;
+	if ((pstart - mq->data) >= mq->end)
+		goto out;
+	goto next;
+out:
+	return ret;
+}
+
+
 // ff() callback for read_dynmem_buf()
 void clear_dynmem_addr (FF_PARAMS)
 {
+	struct mqueue *mq = (struct mqueue *) argp;
 	list<CfgEntry>::iterator it;
 	vector<ptr_t> *mvec;
 	vector<size_t> *svec;
-	i32 idx;
+	i32 idx, ret;
+
+	ret = remove_malloc_from_queue(mq, mem_addr);
+	if (!ret)
+		return;
 
 	list_for_each (cfg, it) {
 		DynMemEntry *dynmem = it->dynmem;
