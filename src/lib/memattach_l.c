@@ -3,7 +3,6 @@
  *
  * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
  *
- * powered by the Open Game Cheating Association
  * inspired by libgcheater by Alf <h980501427@hotmail.com>
  *
  * This file may be used subject to the terms and conditions of the

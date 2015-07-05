@@ -15,8 +15,6 @@ Also security measures like **ASLR and PIE are bypassed**. All this makes
 ugtrain now already the **best game trainer on Linux**. And with **scanmem** it
 integrates the best memory search on Linux.
 
-The ugtrain is powered by the Open Game Cheating Association.
-
 What a **game trainer** is: <br/>
 http://en.wikipedia.org/wiki/Trainer_%28games%29
 
@@ -168,15 +166,6 @@ ugtrain-devel@lists.sourceforge.net
 
 Note: This list has public archives. So please don't send
 anything illegal (like commercial game configs) there.
-
-# How to Help the Open Game Cheating Association
-
-If you like Open Game Cheating and want to show it by becoming
-a member of the Open Game Cheating Association, just write an
-email to the founder Sebastian Parschauer with your request: <br/>
-s.parschauer@gmx.de
-
-https://github.com/OpenGameCheatingAssociation/og-cheating
 
 # Help Wanted
 
