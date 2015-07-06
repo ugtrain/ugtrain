@@ -1,19 +1,20 @@
 ## Description
 
-The ugtrain is an advanced free and universal game trainer for the CLI under
-GPLv3 license on GitHub and Sourceforge.net. It is mostly written in C with
-C++ parts for convenience and some shell scripts. The **dynamic memory support**
-sets it apart. An integrated preloader, a memory discovery and a memory
-hacking library are included for this.
+The ugtrain (say U-G-train) is an advanced free and universal game trainer for
+the command line under GPLv3 license. The **dynamic memory support** sets it
+apart. An integrated preloader, a memory discovery and a memory hacking library
+are included for this.
 
 The ugtrain uses one simple **config file per game** which can be exchanged
 with others. **Example configs** for games which allow cheating are included.
 These also come with **automatic adaption** for dynamic memory so that you can
 use them right away on your system after executing it.
 
-Also security measures like **ASLR and PIE are bypassed**. All this makes
-ugtrain now already the **best game trainer on Linux**. And with **scanmem** it
-integrates the best memory search on Linux.
+Furthermore, security measures like **ASLR and PIE are bypassed**. Together with
+**universal checks**, reliable and stable static memory cheating is provided.
+All this makes ugtrain now already the **best game trainer on Linux**. And
+with **scanmem** it integrates the best memory search on Linux. There is even
+**no need for root privileges**.
 
 What a **game trainer** is: <br/>
 http://en.wikipedia.org/wiki/Trainer_%28games%29
@@ -53,7 +54,7 @@ https://www.youtube.com/watch?v=1GcppQNpdTc
 ## Legal Warning
 
 Don't use game trainers or any other cheating software for commercial
-closed-source, multi-player or online games! Please don't use "ugtrain"
+closed-source, multi-player or online games! Please don't use ugtrain
 for that! You may violate copyright and other laws by doing so. Recording
 videos of doing so makes the situation even worse in terms of law. Please
 always read the end user license agreement (EULA) of the game to be very
