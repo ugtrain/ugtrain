@@ -76,32 +76,24 @@ autotools-dev, autoconf, automake, libtoolize and libtool
 `./autogen.sh`
 
 2. Configure the build to generate the Makefiles: <br/>
-`./configure`
+`./configure --prefix=/usr`
 
 3. Build the ugtrain binaries: <br/>
 `make`
 
-4. install ugtrain, tools and the libs to /usr/local: <br/>
+4. install ugtrain, tools and the libs to /usr: <br/>
 `sudo make install`
 
-5. (optionally) ensure $PATH includes /usr/local/bin: <br/>
-`echo "PATH=$PATH:/usr/local/bin" >> ~/.profile` <br/>
-`source ~/.profile`
+5. regenerate the ld.so cache (see "man ld.so"): <br/>
+`sudo ldconfig -v`
 
-6. (optionally) ensure that the ld.so config includes /usr/local/lib\*: <br/>
-`echo -e "/usr/local/lib\n/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf` <br/>
-`ldconfig -v  # regenerate the ld.so cache`
-
-These paths simplify file usage. Where and how to set these paths is
-distribution-specific. See "man ld.so".
-
-"objdump" and "scanmem" should be installed as well.
+`objdump` (package binutils) and `scanmem` should be installed as well.
 
 Special configure options: <br/>
 Compile hooking libs as 32 and 64 bit (EXPERIMENTAL): <br/>
-`./configure --enable-multilib` <br/>
+`./configure --prefix=/usr --enable-multilib` <br/>
 Compile hooking libs with GLIB function hooking (EXPERIMENTAL): <br/>
-`./configure --enable-glib`
+`./configure --prefix=/usr --enable-glib`
 
 ## How to Use
 
@@ -144,7 +136,7 @@ adaption can be triggered explicitly as well: <br/>
 **Dynamic Memory**
 
 * growing of objects/structures experimental, no documentation yet
-* support for allocations within a library (PIC) limited to discovery so far
+* support for allocations within a library (PIC) limited to discovery/early PIC
 * disassembly within discovery and adaption for x86 and x86\_64 only
 * doesn't work with WINE yet
 
