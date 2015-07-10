@@ -22,15 +22,15 @@ http://en.wikipedia.org/wiki/Trainer_%28games%29
 For **further documentation** see:
 
 * [Questions and Answers]
-(https://github.com/sriemer/ugtrain/blob/master/README_qanda.md)
+(https://github.com/ugtrain/ugtrain/blob/master/README_qanda.md)
 * [Static Memory Cheating Documentation]
-(https://github.com/sriemer/ugtrain/blob/master/doc/ugtrain-statmem.txt)
+(https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-statmem.txt)
 * [Dynamic Memory Cheating Documentation]
-(https://github.com/sriemer/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
+(https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
 * [Config Syntax Description]
-(https://github.com/sriemer/ugtrain/blob/master/examples/README)
+(https://github.com/ugtrain/ugtrain/blob/master/examples/README)
 * [Development TODOs]
-(https://github.com/sriemer/ugtrain/blob/master/TODO)
+(https://github.com/ugtrain/ugtrain/blob/master/TODO)
 
 ## Logo and Screenshots
 <table><tr><td>
@@ -166,7 +166,7 @@ really good git commits after forking ugtrain on GitHub, then please
 **create pull requests** in order to request a review and merging your commits
 into the mainline.
 
-https://github.com/sriemer/ugtrain
+https://github.com/ugtrain/ugtrain
 
 Please **star ugtrain** on GitHub if you like it and **watch it** if you would
 like to get informed about issues and pull requests.
