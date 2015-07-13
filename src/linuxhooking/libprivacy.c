@@ -31,8 +31,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <lib/list.h>
 #include "libcommon.h"
-#include "list.h"
 
 #define PFX "[privacy] "
 #define OLD_PFX "[privacy] "
