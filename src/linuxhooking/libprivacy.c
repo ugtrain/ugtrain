@@ -88,17 +88,17 @@ static bool allow_bind = false;
 /* int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen); */
 
 
-static inline i32 list_add_port (u16 port_num, u8 ip[IP_LEN])
+static inline i32 clist_add_port (u16 port_num, u8 ip[IP_LEN])
 {
 	bool found = false;
 	struct port *port, *tmp;
 
-	list_for_each_entry_safe (port, tmp, &port_list, list) {
+	clist_for_each_entry_safe (port, tmp, &port_list, list) {
 		if (port->num == port_num) {
 			port->ips = (u8 *) realloc(port->ips,
 				port->ips_len + IP_LEN);
 			if (!port->ips) {
-				list_del(&port->list);
+				clist_del(&port->list);
 				free(port);
 				goto err;
 			}
@@ -120,7 +120,7 @@ static inline i32 list_add_port (u16 port_num, u8 ip[IP_LEN])
 		}
 		memcpy(port->ips, ip, IP_LEN);
 		port->ips_len = IP_LEN;
-		list_add_tail(&port->list, &port_list);
+		clist_add_tail(&port->list, &port_list);
 	}
 	return 0;
 err:
@@ -231,7 +231,7 @@ void __attribute ((constructor)) privacy_init (void)
 					goto parse_err;
 				ip[i] = atoi(start);
 			}
-			if (list_add_port(port_num, ip) < 0)
+			if (clist_add_port(port_num, ip) < 0)
 				goto parse_err;
 		} else if (isalpha(*start)) {
 			node = calloc(1, sizeof(*node));
@@ -244,7 +244,7 @@ void __attribute ((constructor)) privacy_init (void)
 			}
 			memcpy(node->name, start, pos - start);
 			node->name[pos - start] = 0;
-			list_add_tail(&node->list, &node_list);
+			clist_add_tail(&node->list, &node_list);
 		} else {
 			goto parse_err;
 		}
@@ -252,9 +252,9 @@ void __attribute ((constructor)) privacy_init (void)
 			break;
 		start = pos + 1;
 	}
-	list_for_each_entry (node, &node_list, list)
+	clist_for_each_entry (node, &node_list, list)
 		pr_dbg("%s\n", node->name);
-	list_for_each_entry (port, &port_list, list) {
+	clist_for_each_entry (port, &port_list, list) {
 		int i;
 		pr_dbg("%u:%u.%u.%u.%u", port->num, port->ips[0],
 			port->ips[1], port->ips[2], port->ips[3]);
@@ -371,7 +371,7 @@ int getaddrinfo (const char *node, const char *service,
 
 	pr_out("%s: node = %s, service = %s\n", __func__, node, service);
 
-	list_for_each_entry (node_en, &node_list, list) {
+	clist_for_each_entry (node_en, &node_list, list) {
 		if (strcmp(node_en->name, node) == 0) {
 			found = true;
 			break;
@@ -390,7 +390,7 @@ int getaddrinfo (const char *node, const char *service,
 			u8 ip[IP_LEN];
 			sa_to_ip(rp->ai_addr, ip);
 			port_num = 0;
-			list_add_port(port_num, ip);
+			clist_add_port(port_num, ip);
 		}
 	}
 out:
@@ -427,7 +427,7 @@ int connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 	port_num = sa_to_port(addr);
 	sa_to_ip(addr, ip);
 
-	list_for_each_entry (port, &port_list, list) {
+	clist_for_each_entry (port, &port_list, list) {
 		if (addr->sa_family != AF_INET)
 			continue;
 		if (port->num != 0 && port->num != port_num)
