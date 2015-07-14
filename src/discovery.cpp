@@ -157,15 +157,15 @@ static inline i32 code_addr_to_region (ptr_t *code_addr,
 	i32 ret = -1;
 
 	clist_for_each_entry (it, rlist, list) {
-		string *fpath = it->file_path;
+		char *fpath = it->file_path;
 		size_t pos;
 
 		if (!it->flags.exec || it->start + it->size < *code_addr ||
-		    fpath->empty() || fpath->at(0) != '/')
+		    !fpath || fpath[0] != '/')
 			continue;
 		if (it->start > *code_addr)
 			break;
-		*bin_path = *fpath;
+		*bin_path = fpath;
 		pos = bin_path->find_last_of('/');
 		*bin_name = bin_path->substr(pos + 1);
 		if (it->type == REGION_TYPE_EXE)

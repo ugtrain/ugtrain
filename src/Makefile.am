@@ -22,7 +22,6 @@ if LINUX
 ugtrain_SOURCES += \
 	lib/getch_l.c \
 	lib/maps_l.c \
-	lib/mapscb_l.cpp \
 	lib/memattach_l.c \
 	lib/preload_l.c \
 	lib/system_l.c

@@ -23,13 +23,6 @@
 #include <stdio.h>
 #include <unistd.h>   /* readlink */
 
-#ifdef __cplusplus
-	#include <iostream>
-	#include <list>
-	#include <string>
-	using namespace std;
-#endif
-
 /* local includes */
 #include "list.h"
 #include "types.h"
@@ -49,8 +42,9 @@ struct map {
 #ifdef __cplusplus
 extern "C" {
 #endif
-	i32 read_maps  (pid_t pid, i32 (*callback)(struct map *map, void *data),
-			void *data);
+	i32 read_maps   (pid_t pid, i32 (*callback)(struct map *map, void *data),
+			 void *data);
+	i32 process_map (struct map *map, void *data);
 #ifdef __cplusplus
 };
 #endif
@@ -93,8 +87,6 @@ static inline ptr_t calc_exe_offs (ulong map_start)
 	return exe_offs;
 }
 
-#ifdef __cplusplus
-
 enum region_type {
 	REGION_TYPE_MISC,
 	REGION_TYPE_CODE,
@@ -121,7 +113,7 @@ struct region {
 		u32 priv:1;
 	} flags;
 	u32 id;             /* unique identifier */
-	string *file_path;  /* associated file path */
+	char file_path[1];  /* associated file, must be last */
 };
 
 /* process_map() parameters */
@@ -130,7 +122,6 @@ struct pmap_params {
 	struct list_head *rlist;
 };
 
-i32 process_map (struct map *map, void *data);
 
 #ifndef list_for_each
 #define list_for_each(list, it) \
@@ -149,7 +140,7 @@ static inline void list_regions (struct list_head *rlist)
 			region->flags.read ? 'r' : '-',
 			region->flags.write ? 'w' : '-',
 			region->flags.exec ? 'x' : '-',
-			region->file_path ? region->file_path->c_str() : "unassociated");
+			region->file_path[0] ? region->file_path : "unassociated");
 }
 
 static inline void rlist_clear (struct list_head *rlist)
@@ -170,6 +161,5 @@ static inline void read_regions (pid_t pid, struct pmap_params *params)
 	if (read_maps(pid, process_map, params))
 		rlist_clear(rlist);
 }
-#endif
 
 #endif

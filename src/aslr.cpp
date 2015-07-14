@@ -182,7 +182,7 @@ static inline void find_lib_region (struct list_head *rlist, char *lib,
 		char *file_name;
 		if (!it->flags.exec || it->type == REGION_TYPE_EXE)
 		       continue;
-		file_name = basename((char *) it->file_path->c_str());
+		file_name = basename(it->file_path);
 		if (strstr(file_name, lib)) {
 			*lib_start = (ptr_t) it->start;
 			*lib_end = (ptr_t) (it->start + it->size);
