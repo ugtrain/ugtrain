@@ -40,6 +40,7 @@
 #include <fifoparser.h>
 #include <options.h>
 // processing
+#include <lib/list.h>
 #include <lib/memattach.h>
 #include <lib/preload.h>
 #include <lib/system.h>
@@ -847,7 +848,9 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ifd = -1, ofd = -1, dfd = -1;
 	bool allow_empty_cfg = false;
 	enum pstate pstate;
-	list<struct region> rlist;
+	struct list_head rlist;
+
+	INIT_LIST_HEAD(&rlist);
 
 	mq->size = 4 * PIPE_BUF;
 	mq->end = 0;

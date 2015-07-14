@@ -22,15 +22,16 @@
 #define ASLR_H
 
 // local includes
+#include <lib/list.h>
 #include <lib/maps.h>
 #include <cfgentry.h>
 #include <common.h>
 #include <options.h>
 
 void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
-		 i32 ofd, pid_t pid, list<struct region> *rlist);
+		 i32 ofd, pid_t pid, struct list_head *rlist);
 
 void do_disc_pic_work (pid_t pid, struct app_options *opt,
-		       i32 ifd, i32 ofd, list<struct region> *rlist);
+		       i32 ifd, i32 ofd, struct list_head *rlist);
 
 #endif

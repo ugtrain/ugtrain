@@ -136,7 +136,7 @@ static inline i32 read_libs_from_fifo (pid_t pid, char *disc_lib,
  * after some cycles of no input from the FIFO.
  */
 void do_disc_pic_work (pid_t pid, struct app_options *opt,
-		       i32 ifd, i32 ofd, list<struct region> *rlist)
+		       i32 ifd, i32 ofd, struct list_head *rlist)
 {
 #define CYCLES_BEFORE_RELOAD 2
 	struct pmap_params params;
@@ -173,12 +173,12 @@ void do_disc_pic_work (pid_t pid, struct app_options *opt,
  * Libraries are always built as position independent code (PIC).
  * So we have to find the start and the end of their code regions.
  */
-static inline void find_lib_region (list<struct region> *rlist, char *lib,
+static inline void find_lib_region (struct list_head *rlist, char *lib,
 				    ptr_t *lib_start, ptr_t *lib_end)
 {
-	list<struct region>::iterator it;
+	struct region *it;
 
-	list_for_each (rlist, it) {
+	clist_for_each_entry (it, rlist, list) {
 		char *file_name;
 		if (!it->flags.exec || it->type == REGION_TYPE_EXE)
 		       continue;
@@ -216,13 +216,13 @@ static inline ptr_t get_exe_offs (struct region *r)
 	return exe_offs;
 }
 
-static inline void find_exe_region (list<struct region> *rlist,
+static inline void find_exe_region (struct list_head *rlist,
 				    ptr_t *exe_start, ptr_t *exe_end,
 				    ptr_t *exe_offs)
 {
-	list<struct region>::iterator it;
+	struct region *it;
 
-	list_for_each (rlist, it) {
+	clist_for_each_entry (it, rlist, list) {
 		if (it->type == REGION_TYPE_EXE && it->flags.exec) {
 			*exe_start = (ptr_t) it->start;
 			*exe_end = (ptr_t) (it->start + it->size);
@@ -237,7 +237,7 @@ static inline void find_exe_region (list<struct region> *rlist,
  * for memory discovery and hacking
  */
 void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
-		 i32 ofd, pid_t pid, list<struct region> *rlist)
+		 i32 ofd, pid_t pid, struct list_head *rlist)
 {
 	struct pmap_params params;
 	char buf[PIPE_BUF];

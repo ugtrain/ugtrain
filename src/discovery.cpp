@@ -148,15 +148,15 @@ static inline i32 disassemble_file (string *ipath, string *opath)
 
 // get the region name, its file path and subtract the load address
 static inline i32 code_addr_to_region (ptr_t *code_addr,
-				       list<struct region> *rlist,
+				       struct list_head *rlist,
 				       string *bin_path,
 				       string *bin_name,
 				       ptr_t exe_offs)
 {
-	list<struct region>::iterator it;
+	struct region *it;
 	i32 ret = -1;
 
-	list_for_each (rlist, it) {
+	clist_for_each_entry (it, rlist, list) {
 		string *fpath = it->file_path;
 		size_t pos;
 
@@ -182,7 +182,7 @@ static inline i32 code_addr_to_region (ptr_t *code_addr,
 struct disc_pp {
 	ptr_t in_addr;
 	struct app_options *opt;
-	list<struct region> *rlist;
+	struct list_head *rlist;
 };
 
 // mf() callback for read_dynmem_buf()
@@ -191,7 +191,7 @@ static void process_disc1234_malloc (MF_PARAMS)
 	struct disc_pp *dpp = (struct disc_pp *) pp->argp;
 	ptr_t in_addr = dpp->in_addr;
 	struct app_options *opt = dpp->opt;
-	list<struct region> *rlist = dpp->rlist;
+	struct list_head *rlist = dpp->rlist;
 	char stage = opt->disc_str[0];
 	ptr_t codes[MAX_BT] = { 0 };
 	ptr_t soffs[MAX_BT] = { 0 };
@@ -281,7 +281,7 @@ static inline void rm_dasm_files (void)
 }
 
 static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
-			       list<struct region> *rlist)
+			       struct list_head *rlist)
 {
 	i32 ifd, pmask = PARSE_S;
 	ptr_t mem_addr;
@@ -329,7 +329,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
 }
 
 i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
-			list<struct region> *rlist, vector<string> *lines)
+			struct list_head *rlist, vector<string> *lines)
 {
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
 		return postproc_stage1234(opt, cfg, rlist);
@@ -439,7 +439,7 @@ void run_stage1234_loop (void *argp)
 
 void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			i32 ifd, i32 dfd, i32 ofd, i32 pid,
-			list<struct region> *rlist)
+			struct list_head *rlist)
 {
 	pid_t worker_pid;
 

@@ -37,7 +37,7 @@ i32 process_map (struct map *map, void *data)
 {
 	struct pmap_params *params = (struct pmap_params *) data;
 	char *exe_path = params->exe_path;
-	list<struct region> *rlist = params->rlist;
+	struct list_head *rlist = params->rlist;
 	struct region *region = NULL;
 	enum region_type type = REGION_TYPE_MISC;
 	static char code_path[MAPS_MAX_PATH];
@@ -143,10 +143,14 @@ i32 process_map (struct map *map, void *data)
 		}
 
 		/* add an unique identifier */
-		region->id = rlist->size();
+		if (clist_empty(rlist))
+			region->id = 0;
+		else
+			region->id = clist_last_entry(rlist,
+				struct region, list)->id + 1;
 
 		/* okay, add this region to our list */
-		rlist->push_back(*region);
+		clist_add_tail(&region->list, rlist);
 	}
 	return 0;
 error:

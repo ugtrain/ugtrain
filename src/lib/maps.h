@@ -19,6 +19,7 @@
 #ifndef MAPS_H
 #define MAPS_H
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>   /* readlink */
 
@@ -30,6 +31,7 @@
 #endif
 
 /* local includes */
+#include "list.h"
 #include "types.h"
 
 /* buffer size for reading symbolic links */
@@ -106,6 +108,7 @@ extern const char *region_type_names[];
 
 /* a region obtained from /proc/pid/maps */
 struct region {
+	struct list_head list;
 	ulong start;
 	ulong size;
 	enum region_type type;
@@ -124,7 +127,7 @@ struct region {
 /* process_map() parameters */
 struct pmap_params {
 	char *exe_path;
-	list<struct region> *rlist;
+	struct list_head *rlist;
 };
 
 i32 process_map (struct map *map, void *data);
@@ -134,11 +137,11 @@ i32 process_map (struct map *map, void *data);
 	for (it = list->begin(); it != list->end(); ++it)
 #endif
 
-static inline void list_regions (list<struct region> *rlist)
+static inline void list_regions (struct list_head *rlist)
 {
-	list<struct region>::iterator region;
+	struct region *region;
 
-	list_for_each (rlist, region)
+	clist_for_each_entry (region, rlist, list)
 		printf("[%2u] %14lx, %7lu bytes, %5s, "
 			"%14lx, %c%c%c, %s\n", region->id,
 			region->start, region->size,
@@ -149,13 +152,23 @@ static inline void list_regions (list<struct region> *rlist)
 			region->file_path ? region->file_path->c_str() : "unassociated");
 }
 
+static inline void rlist_clear (struct list_head *rlist)
+{
+	struct region *region, *tmp;
+
+	clist_for_each_entry_safe (region, tmp, rlist, list) {
+		clist_del(&region->list);
+		free(region);
+	}
+}
+
 static inline void read_regions (pid_t pid, struct pmap_params *params)
 {
-	list<struct region> *rlist = params->rlist;
+	struct list_head *rlist = params->rlist;
 
-	rlist->clear();
+	rlist_clear(rlist);
 	if (read_maps(pid, process_map, params))
-		rlist->clear();
+		rlist_clear(rlist);
 }
 #endif
 
