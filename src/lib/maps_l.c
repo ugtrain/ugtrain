@@ -134,13 +134,6 @@ i32 process_map (struct map *map, void *data)
 		/* save pathname */
 		if (strlen(map->file_path) != 0) {
 			/* the pathname is concatenated with the structure */
-			region = (struct region *) realloc(region,
-				sizeof(*region) + strlen(map->file_path));
-			if (!region) {
-				fprintf(stderr, "Failed to allocate memory.\n");
-				goto error;
-			}
-
 			strcpy(region->file_path, map->file_path);
 		}
 
