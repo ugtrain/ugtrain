@@ -44,54 +44,79 @@ i32 process_map (struct map *map, void *data)
 	struct region *region = NULL;
 	enum region_type type = REGION_TYPE_MISC;
 	static char code_path[MAPS_MAX_PATH];
-	static u32 code_regions = 0;
+	static u32 code_regions = 0, exe_regions = 0;
 	static bool is_exe = false;
 	static ulong prev_end = 0;
-	static ulong load_addr = 0;
+	static ulong load_addr = 0, exe_load = 0;
 
 	/*
-	 * get the load address for regions of the same ELF binary
+	 * get the load address for regions of the same ELF file
 	 *
-	 * When a dynamic loader loads an executable or a library into
-	 * memory, there is one region per binary segment created:
+	 * When the ELF loader loads an executable or a library into
+	 * memory, there is one region per ELF segment created:
 	 * .text (r-x), .rodata (r--), .data (rw-) and .bss (rw-). The
 	 * 'x' permission of .text is used to detect the load address
-	 * (region start) and the end of the binary in memory. All
-	 * these regions have the same file path. The only exception
-	 * is the .bss region. Its file path is empty and it is
+	 * (region start) and the end of the ELF file in memory. All
+	 * these regions have the same filename. The only exception
+	 * is the .bss region. Its filename is empty and it is
 	 * consecutive with the .data region. But the regions .bss and
-	 * .rodata may not be present with some binaries. This is why
+	 * .rodata may not be present with some ELF files. This is why
 	 * we can't rely on other regions to be consecutive in memory.
 	 * There should never be more than these four regions.
 	 * The data regions use their variables relative to the load
 	 * address. So determining it makes sense as we can get the
-	 * variable address used within the binariy with it.
+	 * variable address used within the ELF file with it.
+	 * But for the executable there is the special case that there
+	 * is a gap between .text and .rodata. Other regions might be
+	 * loaded via mmap() to it. So we have to count the number of
+	 * regions belonging to the exe separately to handle that.
 	 * References:
 	 * http://en.wikipedia.org/wiki/Executable_and_Linkable_Format
 	 * http://wiki.osdev.org/ELF
 	 * http://lwn.net/Articles/531148/
 	 */
+
+	/* detect further regions of the same ELF file and its end */
 	if (code_regions > 0) {
 		if (map->exec == 'x' || (strncmp(map->file_path, code_path,
 		    MAPS_MAX_PATH) != 0 && (map->file_path[0] != '\0' ||
 		    map->start != prev_end)) || code_regions >= 4) {
 			code_regions = 0;
 			is_exe = false;
+			/* exe with .text and without .data is impossible */
+			if (exe_regions > 1)
+				exe_regions = 0;
 		} else {
 			code_regions++;
+			if (is_exe)
+				exe_regions++;
 		}
 	}
 	if (code_regions == 0) {
+		/* detect the first region belonging to an ELF file */
 		if (map->exec == 'x' && map->file_path[0] != '\0') {
 			code_regions++;
 			if (strncmp(map->file_path, exe_path,
-			    MAPS_MAX_PATH) == 0)
+			    MAPS_MAX_PATH) == 0) {
+				exe_regions = 1;
+				exe_load = map->start;
 				is_exe = true;
+			}
+			strncpy(code_path, map->file_path, MAPS_MAX_PATH);
+			/* terminate just to be sure */
+			code_path[MAPS_MAX_PATH - 1] = '\0';
+		/* detect the second region of the exe after skipping regions */
+		} else if (exe_regions == 1 && map->file_path[0] != '\0' &&
+		    strncmp(map->file_path, exe_path, MAPS_MAX_PATH) == 0) {
+			code_regions = ++exe_regions;
+			load_addr = exe_load;
+			is_exe = true;
 			strncpy(code_path, map->file_path, MAPS_MAX_PATH);
 			/* terminate just to be sure */
 			code_path[MAPS_MAX_PATH - 1] = '\0';
 		}
-		load_addr = map->start;
+		if (exe_regions < 2)
+			load_addr = map->start;
 	}
 	prev_end = map->end;
 
