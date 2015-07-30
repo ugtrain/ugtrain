@@ -12,6 +12,7 @@
  */
 
 #include <fstream>
+#include <map>
 #include <vector>
 #include <cstring>
 #include <stdlib.h>
@@ -35,6 +36,7 @@ typedef enum {
 	NAME_REGULAR,
 	NAME_CHECK,
 	NAME_CHECK_OBJ,
+	NAME_DEFINE,
 	NAME_DYNMEM_START,
 	NAME_DYNMEM_GROW,
 	NAME_DYNMEM_END,
@@ -111,12 +113,15 @@ static char *parse_proc_name (string *line, u32 *start)
 	return pname;
 }
 
+static map<string,string> macros;
+
 static string parse_value_name (string *line, u32 lnr, u32 *start,
 				bool allow_spaces, name_e *name_type)
 {
 	u32 lidx;
 	string ret;
 
+start:
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (!allow_spaces && line->at(lidx) == ' ') {
 			break;
@@ -187,7 +192,18 @@ static string parse_value_name (string *line, u32 lnr, u32 *start,
 		*name_type = NAME_USE_GBT;
 	} else if (ret == "no_preload") {
 		*name_type = NAME_NO_PRELOAD;
+	} else if (ret == "define") {
+		*name_type = NAME_DEFINE;
 	} else {
+		map<string,string>::iterator it;
+
+		for (it = macros.begin(); it != macros.end(); ++it) {
+			if (ret == it->first) {
+				*line = it->second;
+				*start = 0;
+				goto start;
+			}
+		}
 		*name_type = NAME_REGULAR;
 	}
 
@@ -594,7 +610,7 @@ void read_config (struct app_options *opt,
 		  list<CfgEntry*> *cfgp_map[],
 		  vector<string> *lines)
 {
-	string tmp_str, line;
+	string tmp_str, key, line;
 	CfgEntry cfg_en;
 	CfgEntry *cfg_enp;
 	list<CfgEntry*> *used_cfg_act = NULL;
@@ -815,6 +831,16 @@ void read_config (struct app_options *opt,
 				opt->preload_lib = (char*) "-";
 			break;
 
+		case NAME_DEFINE:
+			if (in_dynmem || in_ptrmem)
+				cfg_parse_err(&line, lnr, start);
+
+			key = parse_value_name(&line, lnr,
+				&start, false, NULL);
+			tmp_str = line.substr(start, string::npos);
+			macros[key] = tmp_str;
+			break;
+
 		default:
 			cfg_en.checks = NULL;
 			cfg_en.dynval = DYN_VAL_OFF;
@@ -875,4 +901,5 @@ void read_config (struct app_options *opt,
 			break;
 		}
 	}
+	macros.clear();
 }
