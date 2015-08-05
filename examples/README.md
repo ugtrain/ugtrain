@@ -5,19 +5,20 @@
 ### GameProcessName
 
 The game process name must always be located in the first line.
-The PID is searched by name with "pidof -s".
+The PID is searched by name with `pidof <GameProcessName> | cut -d ' ' -f 1`.
+This ensures always attaching to the most recently started instance.
 
 ### [ game_call GameProcessCall ]
 
 Sometimes a game is called from a shell script and the call doesn't match
-with the GameProcessName. For this case this optional config entry is
-important (example: "sauerbraten" as it calls "sauer_client"). Without
+the GameProcessName. For this case this optional config entry is important
+(example: "sauerbraten" shell script as it calls "sauer_client"). Without
 this the GameProcessName is assumed.
 
 ### [ game_path AbsGamePath ]
 
 The absolute game path is optional and must end with the GameProcessCall.
-It is used to run the game. Without this it is determined with "which"
+It is used to run the game. Without this it is determined with `which`
 from the GameProcessCall.
 
 ### [ game_binpath GameBinaryPath ]
@@ -31,6 +32,30 @@ configured.
 
 Sometimes it is necessary to add some game command line parameters/options
 and this is the optional config entry to set them.
+
+
+## General Settings
+
+### [ define MacroName LineSubstitute ]
+
+Ugtrain has single-line macro support. This means that lines containing only
+the MacroName get replaced by the LineSubstitute during parsing. This is
+especially useful for repetitive checks.
+
+### [ dynmemfile AbsoluteFilePath ]
+
+Sometimes `/tmp/memhack_file` containing all memory allocations recorded during
+dynamic memory discovery is too big for tmpfs. Then it has to be moved to a
+different location. This is especially required for embedded systems and
+smartphones.
+TODO: Move this to a global config.
+
+### [ use_gbt ]
+
+This configures that GNU backtrace() is used instead of the reverse stack
+offset to detect if certain dynamic memory objects are allocated. This option
+should be used for **testing only** as GNU backtrace() is slow and unreliable.
+
 
 ## Static Memory
 
@@ -165,7 +190,7 @@ as regular user with it. Here, only the code address in the binary where
 the stack with information from inside the game process.
 See doc/ugtrain-dynmem.txt how to discover and adapt it to other versions.
 
-### $ ugtrain -P [lib] <config>
+### $ ugtrain -P [lib] \<config\>
 
 Ugtrain detects a position independent executable (PIE) automatically from
 its load address and converts code addresses between in-binary and
