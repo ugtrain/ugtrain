@@ -8,6 +8,10 @@ PWD = $(shell pwd)
 prefix = $(PWD)/debian/ugtrain/usr
 export prefix
 
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
 num_cpu := $(shell cat /proc/cpuinfo |grep ^processor|wc -l)
 
 build: build-stamp
