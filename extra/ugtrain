@@ -1,0 +1,13 @@
+#
+# ugtrain
+#
+_ugtrain()
+{
+    _opts=$(ls $HOME/.ugtrain)
+    local cur prev
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    COMPREPLY=( $(compgen -W "${_opts}" -- ${cur}) )
+    return 0
+}
+complete -F _ugtrain ugtrain
