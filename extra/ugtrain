@@ -3,7 +3,7 @@
 #
 _ugtrain()
 {
-    _opts=$(ls $HOME/.ugtrain)
+    _opts=$(find $HOME/.ugtrain/ -maxdepth 1 -type f -iname '*.conf' -printf '%P\n')
     local cur prev
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
