@@ -620,11 +620,19 @@ void *calloc (size_t nmemb, size_t size)
 	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
 	void *mem_addr;
 	size_t full_size = nmemb * size;
+	static void *stat_addr = NULL;
 	static void *(*orig_calloc)(size_t nmemb, size_t size) = NULL;
 
 	if (no_hook) {
-		if (!orig_calloc)
-			return stat_calloc(full_size);
+		if (!orig_calloc) {
+			if (stat_addr) {
+				*(void **) (&orig_calloc) =
+					dlsym(RTLD_NEXT, "calloc");
+			} else {
+				stat_addr = stat_calloc(full_size);
+				return stat_addr;
+			}
+		}
 		return orig_calloc(nmemb, size);
 	}
 
