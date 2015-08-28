@@ -28,7 +28,7 @@ For **further documentation** see:
 * [Dynamic Memory Cheating Documentation]
 (https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
 * [Config Syntax Description]
-(https://github.com/ugtrain/ugtrain/blob/master/examples/README)
+(https://github.com/ugtrain/ugtrain/blob/master/examples/README.md)
 * [Development TODOs]
 (https://github.com/ugtrain/ugtrain/blob/master/TODO)
 
@@ -111,7 +111,7 @@ Do e.g. the following: <br/>
 
 This parses the chromium-bsu64.conf from the examples, runs the
 game with libmemhack64.so preloaded and starts freezing the
-configured values. In examples/README the config syntax is described.
+configured values. In examples/README.md the config syntax is described.
 
 If it asks you for automatic adaption, you should accept. The
 adaption can be triggered explicitly as well: <br/>
