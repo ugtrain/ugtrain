@@ -28,7 +28,7 @@
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
-#include <pthread.h>    /* pthread_mutex_lock */
+#include <pthread.h>    /* pthread_rwlock_init */
 #ifdef HAVE_GLIB
 #include <glib.h>       /* g_malloc */
 #endif
@@ -119,7 +119,7 @@ struct cfg {
 	ptr_t *mem_addrs;       /* filled by malloc for free */
 	u32 max_obj;            /* currently allocated memory addresses */
 	u32 insert_idx;         /* lowest mem_addrs index for insertion */
-	pthread_mutex_t mutex;  /* protects mem_addrs, max_obj, insert_idx */
+	pthread_rwlock_t lock;  /* protects mem_addrs, max_obj, insert_idx */
 };
 
 /*
@@ -280,7 +280,7 @@ void __attribute ((constructor)) memhack_init (void)
 
 	pr_dbg("sizeof(config) = %zu\n", (num_cfg + 1) * sizeof(struct cfg *));
 	pr_dbg("sizeof(struct cfg) = %zu\n", sizeof(struct cfg));
-	pr_dbg("sizeof(pthread_mutex_t) = %zu\n", sizeof(pthread_mutex_t));
+	pr_dbg("sizeof(pthread_rwlock_t) = %zu\n", sizeof(pthread_rwlock_t));
 
 	/* read config into config array */
 	for (i = 0; i < num_cfg; i++) {
@@ -311,7 +311,7 @@ void __attribute ((constructor)) memhack_init (void)
 		for (k = 0; k <= config[i]->max_obj; k++)
 			config[i]->mem_addrs[k] = ADDR_INVAL;
 
-		pthread_mutex_init(&config[i]->mutex, NULL);
+		pthread_rwlock_init(&config[i]->lock, NULL);
 
 		/* handle growing config */
 		if (strncmp(start, "grow;", 5) != 0)
@@ -409,15 +409,15 @@ void __attribute ((destructor)) memhack_exit (void)
 	if (!active || !config)
 		return;
 	for (i = 0; config[i] != NULL; i++)
-		pthread_mutex_destroy(&config[i]->mutex);
+		pthread_rwlock_destroy(&config[i]->lock);
 }
 
 static inline void store_mem_addr (struct cfg *cfg, ptr_t mem_addr)
 {
 	u32 j;
 
-	if (pthread_mutex_lock(&cfg->mutex) < 0) {
-		perror("pthread_mutex_lock");
+	if (pthread_rwlock_wrlock(&cfg->lock) < 0) {
+		perror("pthread_rwlock_wrlock");
 		goto out;
 	}
 	if (!cfg->mem_addrs) {
@@ -445,8 +445,8 @@ static inline void store_mem_addr (struct cfg *cfg, ptr_t mem_addr)
 		}
 	}
 out_unlock:
-	if (pthread_mutex_unlock(&cfg->mutex) < 0)
-		perror("pthread_mutex_unlock");
+	if (pthread_rwlock_unlock(&cfg->lock) < 0)
+		perror("pthread_rwlock_unlock");
 out:
 	return;
 }
@@ -520,8 +520,8 @@ static inline void preprocess_free (ptr_t mem_addr)
 		return;
 
 	for (i = 0; config[i] != NULL; i++) {
-		if (pthread_mutex_lock(&config[i]->mutex) < 0) {
-			perror("pthread_mutex_lock");
+		if (pthread_rwlock_rdlock(&config[i]->lock) < 0) {
+			perror("pthread_rwlock_rdlock");
 			goto cont;
 		}
 		if (!config[i]->mem_addrs)
@@ -531,16 +531,16 @@ static inline void preprocess_free (ptr_t mem_addr)
 				goto found;
 		}
 unlock_cont:
-		if (pthread_mutex_unlock(&config[i]->mutex) < 0)
-			perror("pthread_mutex_unlock");
+		if (pthread_rwlock_unlock(&config[i]->lock) < 0)
+			perror("pthread_rwlock_unlock");
 cont:
 		continue;
 found:
 		config[i]->mem_addrs[j] = 0;
 		if (j < config[i]->insert_idx)
 			config[i]->insert_idx = j;
-		if (pthread_mutex_unlock(&config[i]->mutex) < 0)
-			perror("pthread_mutex_unlock");
+		if (pthread_rwlock_unlock(&config[i]->lock) < 0)
+			perror("pthread_rwlock_unlock");
 #if DEBUG_MEM
 		pr_out("free: mem_addr: " PRI_PTR "\n", mem_addr);
 #endif
