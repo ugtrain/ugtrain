@@ -26,6 +26,13 @@ AC_ARG_ENABLE([testing],
   [  --enable-testing        enable code testing support (not for releases)],
   [], [enable_testing=no])
 
+# --with-XX options
+AC_ARG_WITH([bash-completion-dir],
+  AS_HELP_STRING([--with-bash-completion-dir[=PATH]],
+    [Install the bash auto-completion script in this directory. (yes)]),
+  [],
+  [with_bash_completion_dir=yes])
+
 # Checks for programs.
 AC_PROG_CXX([g++])
 AC_LANG_PUSH([C++])
@@ -82,11 +89,25 @@ if test "$enable_multilib" != "no" -a bits64 != "no"; then
 				to install 32-bit development libraries.])])
   CC="$TMP_CC"
 fi
+
 # Test GLIB compile
 AS_IF([test "$enable_glib" != "no"], [
    PKG_CHECK_MODULES([GLIB], [glib-2.0])
    AC_SUBST([GLIB_CFLAGS])
    AC_SUBST([GLIB_LIBS])])
+
+# Test bash completion
+if test "$with_bash_completion_dir" = "yes"; then
+  PKG_CHECK_MODULES([BASH_COMPLETION], [bash-completion >= 2.0],
+  [BASH_COMPLETION_DIR="`pkg-config --variable=completionsdir bash-completion`"],
+  [BASH_COMPLETION_DIR="$datadir/bash-completion/completions"])
+else
+  BASH_COMPLETION_DIR="$with_bash_completion_dir"
+fi
+if test "$with_bash_completion_dir" != "no"; then
+  AC_MSG_NOTICE([Using bash completion directory: $BASH_COMPLETION_DIR])
+fi
+
 AM_CONDITIONAL([LINUX], test `echo "$target_os" | grep -o "linux"` = "linux")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
@@ -96,7 +117,9 @@ AM_CONDITIONAL([BITS_32], test "$bits64" = "no" -o "$enable_multilib" != "no")
 AM_CONDITIONAL([BITS_64], test "$bits64" != "no")
 AM_CONDITIONAL([HAVE_M32], test "$has_m32" != "no")
 AM_CONDITIONAL([HAVE_M64], test "$has_m64" != "no")
+AM_CONDITIONAL([ENABLE_BASH_COMPLETION], test "$with_bash_completion_dir" != "no")
 
+AC_SUBST(BASH_COMPLETION_DIR)
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
