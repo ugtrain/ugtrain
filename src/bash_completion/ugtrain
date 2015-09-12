@@ -1,0 +1,34 @@
+# bash completion for ugtrain                              -*- shell-script -*-
+
+# complete options, ~/.ugtrain/*.conf, directories and *.conf in directories
+
+_completeUgtrain()
+{
+    local cur prev words cword split
+    _init_completion -s || return
+
+    $split && return 0
+
+    COMPREPLY=()
+    cur=${COMP_WORDS[COMP_CWORD]}
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $( compgen -W '-h --help -V --version \
+            -P --preload -D --discover= -S --scanmem -A --adapt \
+            --pre-cmd= --glc --glc=' -- $cur ) )
+    else
+        if [ -d ~/.ugtrain ]; then
+            local cwd="$(pwd)"
+            cd ~/.ugtrain
+            local configs="$(ls *.conf 2>/dev/null)"
+            cd "${cwd}"
+        fi
+
+        COMPREPLY=( $(compgen -W "${configs}" -- $cur) )
+        _filedir '@(conf)'
+    fi
+}
+
+complete -F _completeUgtrain $filenames ugtrain
+
+# ex: ts=4 sw=4 et filetype=sh
