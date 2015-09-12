@@ -38,3 +38,8 @@ AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
 if TESTING
 AM_CPPFLAGS += -DTESTING=1
 endif
+
+if ENABLE_BASH_COMPLETION
+bashcompletiondir = $(BASH_COMPLETION_DIR)
+dist_bashcompletion_DATA = bash_completion/ugtrain
+endif
