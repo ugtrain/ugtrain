@@ -40,6 +40,7 @@
 #define DASM_DIR "/tmp/"
 #define DASM_SUF "_dasm"
 #define MAX_BT 11
+#define MAX_MATCHES 15
 #define DISC_DEBUG 0
 
 
@@ -197,9 +198,15 @@ static void process_disc1234_malloc (MF_PARAMS)
 	ptr_t soffs[MAX_BT] = { 0 };
 	char *sep_pos;
 	i32 i, ret, num_codes = 0;
+	static u32 matches_left = MAX_MATCHES;
 
 	if (in_addr >= mem_addr &&
 	    in_addr < mem_addr + mem_size) {
+		// limit the number of printed matches
+		if (matches_left == 0)
+			return;
+		matches_left--;
+
 		cout << "m0x" << hex << mem_addr << dec << ";" << "s"
 		     << mem_size << " contains 0x" << hex << in_addr
 		     << ", offs: 0x" << in_addr - mem_addr
