@@ -367,6 +367,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		perror(PFX "fopen discovery output");
 		exit(1);
 	}
+	pr_dbg("ofile: %p\n", ofile);
 
 	if (ofd >= 0)
 		goto out;
@@ -376,9 +377,6 @@ void __attribute ((constructor)) memdisc_init (void)
 		exit(1);
 	}
 	pr_dbg("ofd: %d\n", ifd);
-
-	atexit(flush_output);
-	pr_dbg("ofile: %p\n", ofile);
 
 	if (read_input(ibuf, 1) != 0)
 		goto read_err;
@@ -554,6 +552,9 @@ void __attribute ((constructor)) memdisc_init (void)
 	default:
 		goto stage_unknown;
 	}
+
+	/* Register final output flushing */
+	atexit(flush_output);
 
 	if (heap_eaddr <= heap_saddr)
 		heap_eaddr = UINTPTR_MAX;
