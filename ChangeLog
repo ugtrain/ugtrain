@@ -26,6 +26,6 @@
 * implemented compilation by autotools
 * config parsing implemented
 * lookup PID by process name implemented
-* freezing of static memory values supported
+* locking of static memory values supported
 * universal memory checks supported
 * nonblocking getch for activation toggling by key press

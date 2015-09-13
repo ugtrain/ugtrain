@@ -17,17 +17,18 @@ GUIs change more frequently.
 
 ### How does Static Memory Cheating work with ugtrain?
 
-The ugtrain freezes memory values but doesn't search for them to make it
+The ugtrain locks memory values but doesn't search for them to make it
 simple. You have to know the memory addresses already and to put them into a
 config file.
 You can search for the memory values e.g. with the CLI tool "scanmem".
+Ugtrain integrates scanmem to avoid requiring root privileges (-S option).
 
 See doc/ugtrain-statmem.txt for details!
 
 ### Where is the difference compared to other tools?
 
 At the moment ugtrain is the only game trainer for the CLI on Linux. Most other
-tools are GUI tools, have their own static memory search and can only freeze
+tools are GUI tools, have their own static memory search and can only lock
 just found memory values. This is lame!
 **A REAL game trainer doesn't require own static memory search and works
 each game run reliably!**
@@ -36,7 +37,7 @@ multi-platform and the simple config files give you a lot of flexibility.
 
 There are universal checks implemented. These prevent changing values e.g.
 while being in the game main menu or making an opponent immortal by accident in
-an array. This makes static memory freezing a lot safer.
+an array. This makes static memory locking a lot safer.
 
 It is also planned to provide static memory adaption. But this can be quite
 difficult as memory is accessed directly and we have to use a debugger to find
@@ -77,7 +78,7 @@ prefers API hooking.
 
 With libmemdisc preloaded and static memory search in parallel you can
 easily discover the code address and register with libmemhack as well as
-ugtrain on it to freeze the memory values within the allocated object. The
+ugtrain on it to lock the memory values within the allocated object. The
 preloaded game communicates via FIFOs with ugtrain and tells it exactly when
 the relevant malloc/free call occurred. This is especially useful if your
 distribution requires ptrace and therefore ugtrain to be run as root. Then,

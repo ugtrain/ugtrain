@@ -110,8 +110,8 @@ Do e.g. the following: <br/>
 `ugtrain -P examples/chromium-bsu64`
 
 This parses the chromium-bsu64.conf from the examples, runs the
-game with libmemhack64.so preloaded and starts freezing the
-configured values. In examples/README.md the config syntax is described.
+game with libmemhack64.so preloaded and starts locking the configured
+values. In examples/README.md the config syntax is described.
 
 If it asks you for automatic adaption, you should accept. The
 adaption can be triggered explicitly as well: <br/>

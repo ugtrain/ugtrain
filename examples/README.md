@@ -72,13 +72,13 @@ checks: 'l' = "less than", 'g' = "greater than", '' = unchecked
 
 Static wish values are in decimal (e.g. 42). But the dynamic wish values
 'min', 'max' and 'watch' are also possible. 'min' and 'max' start with 0
-and if the value gets less than min or greater than max, they are frozen
-at that value. This is good to find out the possible limits within the
+and if the value gets less than min or greater than max, they are locked
+to that value. This is good to find out the possible limits within the
 game. 'watch' makes KeyBindings and ActState useless. The line ends here
-then and the value is watched but never frozen. Another possibility is
+then and the value is watched but never locked. Another possibility is
 to use an absolute address or in dynamic memory an offset in the object
 (e.g. 0xdeadbeef). Then, the wish value is read from that location each
-time before checking and freezing it. The name of another configured and
+time before checking and locking it. The name of another configured and
 already parsed value is the last possibility. Its value is used then or
 0 in case that this value hasn't been read, yet.
 

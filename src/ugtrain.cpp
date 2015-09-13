@@ -1,4 +1,4 @@
-/* ugtrain.cpp:    freeze values in process memory (game trainer)
+/* ugtrain.cpp:    lock values in process memory (game trainer)
  *
  * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
  *

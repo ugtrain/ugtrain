@@ -35,7 +35,7 @@ Trainer:
 + enhance support for growing memory objects (adaption, not only realloc(), ...)
 + add keys to disable all configured values and to enable all of them
     (we can only toggle values so far)
-+ support external control (start/stop freezing)
++ support external control (start/stop locking values)
 
 Testing:
 + implement (semi-)automatic testing with live-images and (3D enabled) VMs

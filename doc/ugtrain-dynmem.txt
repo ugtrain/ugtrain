@@ -233,7 +233,7 @@ $ ugtrain -P test.conf
 Now run your discovered config with memory hacking and watch how the lives
 value changes. When being sure about it, you can add the checks and the
 wish value, assign one or more comma-separated activation keys and set
-the initial activation state. The lives are frozen to the wish value then.
+the initial activation state. The lives are locked to the wish value then.
 
 ...
 Lives 0xbc i32 l 9 1,0 a
@@ -262,7 +262,7 @@ Lives at 0x7fbc13df9ffc, Data: 0x9 (9)
 ...
 ===> Obj. HeroAircraft freed 1 time(s); remaining: 0
 
-The lives are frozen to 9. So freezing your first value in dynamic memory works.
+The lives are locked to 9. So locking your first value in dynamic memory works.
 This is with PIE as the load address of the executable has to be added back
 to the configured code address. Without PIE the load address of the executable
 would be always at 0x400000 on x86_64 and would be configured as is without
