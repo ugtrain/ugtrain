@@ -14,16 +14,76 @@
 #ifndef GETCH_H
 #define GETCH_H
 
+#ifdef __linux__
+#include <fcntl.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 	int  prepare_getch (void);
-	int  prepare_getch_nb (void);
-	char do_getch      (void);
-	void set_getch_nb  (int nb);
 	void restore_getch (void);
 #ifdef __cplusplus
 };
+#endif
+
+#ifdef __linux__
+static inline int prepare_getch_nb (void)
+{
+	int rc;
+
+	rc = prepare_getch();
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	return rc;
+}
+
+static inline char do_getch (void)
+{
+	char ch;
+	int cnt = 1;
+
+	cnt = read(STDIN_FILENO, &ch, cnt);
+
+	tcflush(STDIN_FILENO, TCIFLUSH);
+	if (cnt < 0)
+		return -1;
+	return ch;
+}
+
+static inline void set_getch_nb (int nb)
+{
+	int flags;
+
+	if (!nb) {
+		flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+		fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+	} else {
+		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	}
+}
+
+#else
+
+static inline int prepare_getch_nb (void)
+{
+	int rc;
+
+	rc = prepare_getch();
+	return rc;
+}
+
+static inline char do_getch (void)
+{
+	char ch = '\0';
+	return ch;
+}
+
+static inline void set_getch_nb (int nb)
+{
+}
 #endif
 
 #endif

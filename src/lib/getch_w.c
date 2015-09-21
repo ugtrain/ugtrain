@@ -21,24 +21,6 @@ int prepare_getch (void)
 	return 0;
 }
 
-int prepare_getch_nb (void)
-{
-	int rc;
-
-	rc = prepare_getch();
-	return rc;
-}
-
-char do_getch (void)
-{
-	char ch = '\0';
-	return ch;
-}
-
-void set_getch_nb (int nb)
-{
-}
-
 void restore_getch (void)
 {
 }

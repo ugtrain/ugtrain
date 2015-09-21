@@ -13,11 +13,7 @@
 
 #ifdef __linux__
 
-#include <fcntl.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <termios.h>
-#include <unistd.h>
 
 /* local includes */
 #include "getch.h"
@@ -52,40 +48,6 @@ int prepare_getch (void)
 
 	signal(SIGINT, exit_handler);
 	return 0;
-}
-
-int prepare_getch_nb (void)
-{
-	int rc;
-
-	rc = prepare_getch();
-	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-	return rc;
-}
-
-char do_getch (void)
-{
-	char ch;
-	int cnt = 1;
-
-	cnt = read(STDIN_FILENO, &ch, cnt);
-
-	tcflush(STDIN_FILENO, TCIFLUSH);
-	if (cnt < 0)
-		return -1;
-	return ch;
-}
-
-void set_getch_nb (int nb)
-{
-	int flags;
-
-	if (!nb) {
-		flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-		fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
-	} else {
-		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-	}
 }
 
 void restore_getch (void)
