@@ -859,7 +859,11 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	mq->data[0] = '\0';
 	mq->data[mq->size - 1] = '\0';
-	atexit(restore_getch);
+
+	if (atexit(restore_getch) != 0) {
+		cerr << "Error while registering exit handler!" << endl;
+		return -1;
+	}
 
 	parse_options(argc, argv, opt);
 	test_optparsing(opt);
