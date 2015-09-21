@@ -21,10 +21,20 @@
 static struct termios saved_tty, raw_tty;
 static int tty_changed = 0;
 
+/*
+ * Only use async-signal-safe functions here!
+ * Don't call exit() here! So use _exit().
+ * The GNU implementation flushes and closes fds.
+ *
+ * See: https://www.securecoding.cert.org/
+ * confluence/display/c/SIG30-C.+Call+only
+ * +asynchronous-safe+functions+within
+ * +signal+handlers
+ */
 static void exit_handler (int signum)
 {
 	restore_getch();
-	exit(-1);
+	_exit(-1);
 }
 
 int prepare_getch (void)
@@ -50,6 +60,7 @@ int prepare_getch (void)
 	return 0;
 }
 
+/* Only use async-signal-safe functions here! */
 void restore_getch (void)
 {
 	int flags;
