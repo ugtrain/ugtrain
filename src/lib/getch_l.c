@@ -42,9 +42,9 @@ int prepare_getch (void)
 	struct termios new_tty;
 
 	if (tty_changed)
-		return 0;
+		goto out;
 	if (tcgetattr(STDIN_FILENO, &saved_tty) == -1)
-		return -1;
+		goto err;
 	new_tty = saved_tty;
 	new_tty.c_lflag &= ~(ICANON | ECHO);
 	new_tty.c_oflag &= ~(TAB3);
@@ -53,11 +53,15 @@ int prepare_getch (void)
 
 	tty_changed = 1;
 	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_tty) == -1)
-		return -1;
+		goto err;
 	tcgetattr(STDIN_FILENO, &raw_tty);
 
-	signal(SIGINT, exit_handler);
+	if (signal(SIGINT, exit_handler) == SIG_ERR)
+		goto err;
+out:
 	return 0;
+err:
+	return -1;
 }
 
 /* Only use async-signal-safe functions here! */
