@@ -536,7 +536,6 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 {
 	pid_t pid = -1;
 	pid_t old_game_pid = proc_to_pid(opt->proc_name);
-	pid_t game_pid;
 	u32 i, pos;
 	enum pstate pstate;
 	string cmd_str, game_path;
@@ -604,15 +603,18 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 	if (pid < 0)
 		goto err;
 
+	pid = -1;
 	for (i = 0; i < 100; i++) {
 		sleep_msec(50);
+		// handling of a loader which may end very late after forking
+		pid = proc_to_pid(opt->proc_name);
+		if (pid == old_game_pid)
+			pid = -1;
+		if (pid < 0)
+			continue;
 		pstate = check_process(pid, opt->proc_name);
 		if (pstate == PROC_RUNNING)
 			break;
-		// handling of a loader which may end very late after forking
-		game_pid = proc_to_pid(opt->proc_name);
-		if (game_pid != old_game_pid)
-			pid = game_pid;
 	}
 	return pid;
 err:
