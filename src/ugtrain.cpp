@@ -534,10 +534,15 @@ static void reset_terminal (void)
 
 static pid_t run_game (struct app_options *opt, char *preload_lib)
 {
+#define SCANMEM_DELAY_S    3
+#define PROC_CHECK_TMO_MS  2800
+#define PROC_CHECK_POLL_MS 50
+#define PROC_CHECK_CYCLES  (PROC_CHECK_TMO_MS / PROC_CHECK_POLL_MS)
+
 	pid_t pid = -1;
 	pid_t old_game_pid = proc_to_pid(opt->proc_name);
 	u32 i, pos;
-	enum pstate pstate;
+	enum pstate pstate = PROC_ERR;
 	string cmd_str, game_path;
 	const char *cmd;
 	char prev_ch;
@@ -587,8 +592,8 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 		     << "$ " << cmd_str << " &" << endl;
 
 		cmd = cmd_str.c_str();
-		pid = run_pgrp_bg(pcmd, pcmdv, cmd, NULL,
-				  pid_str, opt->proc_name, 3,
+		pid = run_pgrp_bg(pcmd, pcmdv, cmd, NULL, pid_str,
+				  opt->proc_name, SCANMEM_DELAY_S,
 				  false, preload_lib);
 		if (pid > 0)
 			opt->scanmem_pid = pid;
@@ -604,8 +609,8 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 		goto err;
 
 	pid = -1;
-	for (i = 0; i < 100; i++) {
-		sleep_msec(50);
+	for (i = 0; i < PROC_CHECK_CYCLES; i++) {
+		sleep_msec(PROC_CHECK_POLL_MS);
 		// handling of a loader which may end very late after forking
 		pid = proc_to_pid(opt->proc_name);
 		if (pid == old_game_pid)
@@ -616,10 +621,18 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 		if (pstate == PROC_RUNNING)
 			break;
 	}
+	if (pid < 0 || pstate != PROC_RUNNING)
+		goto err;
+
 	return pid;
 err:
 	cerr << "Error while running the game!" << endl;
 	return -1;
+
+#undef PROC_CHECK_CYCLES
+#undef PROC_CHECK_POLL_MS
+#undef PROC_CHECK_TMO_MS
+#undef SCANMEM_DELAY_S
 }
 
 #ifdef __linux__
