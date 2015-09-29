@@ -21,7 +21,6 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <dirent.h>
-#include <libgen.h>
 #include <errno.h>
 
 /* local includes */
@@ -90,27 +89,34 @@ enum pstate check_process (pid_t pid, char *proc_name)
 	} else {
 		closedir(dir);
 	}
-	/* check process name from 'exe' symlink */
-	pr_len = sprintf((cmd_str + cmd_len), "/exe");
+
+	/* insert 'cat ' */
+	pr_len = sizeof("cat ") - 1;
+	memmove(cmd_str + pr_len, cmd_str, cmd_len);
+	pr_len = sprintf(cmd_str, "cat %s", (cmd_str + pr_len));
+        if (pr_len <= 0)
+		goto err;
+	cmd_len = pr_len;
+
+	/* check process name from 'status' file */
+	pr_len = sprintf((cmd_str + cmd_len),
+		"/status 2>/dev/null | sed -n 1p | "
+		"sed \'s/Name:	//g\' | tr -d \'\n\'");
 	if (pr_len <= 0)
 		goto err;
-	if (readlink(cmd_str, pbuf, sizeof(pbuf)) <= 0)
-		goto skip_exe_check;  /* skip for zombies */
-	pname = basename(pbuf);
+	cmd = cmd_str;
+
+	/* run the shell cmd */
+	if (run_cmd_pipe(cmd, NULL, pbuf, sizeof(pbuf)) <= 0)
+		goto err;
+	pname = pbuf;
 	if (!pname)
 		goto err;
 	if (proc_name && strcmp(pname, proc_name) != 0)
 		return PROC_WRONG;
 
-skip_exe_check:
-	/* remove '/exe', insert 'cat ', append '/status' + shell cmds */
+	/* remove '/status' + shell cmds, append '/status' + shell cmds */
 	memset(cmd_str + cmd_len, 0, pr_len);
-	pr_len = sizeof("cat ") - 1;
-	memmove(cmd_str + pr_len, cmd_str, cmd_len);
-	pr_len = sprintf(cmd_str, "cat %s", (cmd_str + pr_len));
-	if (pr_len <= 0)
-		goto err;
-	cmd_len = pr_len;
 	pr_len = sprintf((cmd_str + cmd_len),
 		"/status 2>/dev/null | sed -n 2p | sed \'s/State:	//g\'");
 	if (pr_len <= 0)
