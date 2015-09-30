@@ -535,9 +535,8 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 	char stage;
 	i32 ret;
 	list<CfgEntry>::iterator it;
-	ptr_t heap_soffs = 0, heap_eoffs = 0;
 	ptr_t code_addr = 0;
-	ulong mem_size;
+	ulong mem_size = 0;
 
 	if (!opt->disc_str)
 		return 0;
@@ -564,17 +563,11 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		disc_part++;
 		if (disc_part[0] == '\0') {
 			disc_str = opt->disc_str;
-			disc_str += ";0x0;0x0;0";
+			disc_str += ";0";
 			opt->disc_str = to_c_str(&disc_str);
 		} else {
-			ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;",
-				&heap_soffs, &heap_eoffs, &mem_size);
-			if (ret == 0 && stage == '2') {
-				ret = sscanf(disc_part, ";%lu;", &mem_size);
-				if (ret == 1)
-					ret += 2;
-			}
-			if (ret < 2) {
+			ret = sscanf(disc_part, ";%lu", &mem_size);
+			if (ret < 0) {
 				cerr << "Syntax error in discovery string!"
 				     << endl;
 				cerr << "disc_str: " << opt->disc_str << endl;
@@ -593,19 +586,12 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 		disc_part++;
 		if (parse_bt_filter(&disc_part, &opt->disc_lib, stage))
 			goto err;
-		ret = sscanf(disc_part, ";" SCN_PTR ";" SCN_PTR ";%lu;" SCN_PTR,
-			     &heap_soffs, &heap_eoffs, &mem_size, &code_addr);
-		if (ret == 0) {
-			ret = sscanf(disc_part, ";%lu;" SCN_PTR, &mem_size,
-				     &code_addr);
-			if (ret >= 1)
-				ret += 2;
-		}
-		opt->code_addr = code_addr;
-		if (ret < 3) {
+		ret = sscanf(disc_part, ";%lu;" SCN_PTR, &mem_size, &code_addr);
+		if (ret < 1) {
 			stage34_args_err(stage);
 			goto err;
 		}
+		opt->code_addr = code_addr;
 		if (mem_size == 0) {
 			cerr << "Error: Too much data! Please discover the "
 				"size first!" << endl;
@@ -638,7 +624,7 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			goto err;
 found:
 			disc_str = opt->disc_str[0];
-			disc_str += ";exe;0x0;0x0;";
+			disc_str += ";exe;";
 			disc_str += to_string(it->dynmem->adp_size);
 			disc_str += ";0x";
 			disc_str += to_xstring(it->dynmem->adp_addr);
