@@ -109,28 +109,27 @@ Discovery is done in the following stages:
 The ugtrain option '-D' helps with that. It assumes '-P' and libmemdisc. All
 what is needed are the following stage parameters for the '-D' option:
 
-1. "StageNr[;HeapStartOffs;HeapEndOffs]"
-2. "StageNr[[;HeapStartOffs;HeapEndOffs];MemSize]"
-3. "StageNr[;gbt][;CodeFilter][;HeapStartOffs;HeapEndOffs];MemSize[;CodeAddr]"
-4. "StageNr[;CodeFilter][;HeapStartOffs;HeapEndOffs];MemSize[;CodeAddr]"
+1. "StageNr"
+2. "StageNr[;MemSize]"
+3. "StageNr[;gbt][;CodeFilter];MemSize[;CodeAddr]"
+4. "StageNr[;CodeFilter];MemSize[;CodeAddr]"
 
 Examples:
 
-1. "1", "1;0x200000;0x350000"
-2. "2", "2;0", "2;288", "2;0x200000;0x350000;288"
-3. "3;288", "3;exe;288", "3;gbt;exe;0x200000;0x350000;288"
-4. "4;288", "4;exe;288", "4;exe;0x200000;0x350000;288;0x40f4e7"
+1. "1"
+2. "2", "2;0", "2;288", "2;288"
+3. "3;288", "3;exe;288", "3;gbt;exe;288"
+4. "4;288", "4;exe;288", "4;exe;288;0x40f4e7"
 
 You see, this can also be done in only two stages: stages 2 and 4. Size 0 means
 that all sizes are recorded in stage 2. The ugtrain expands the first example
-string to the second in stage 2. The heap filter is completely optional and
-rarely used. The libmemdisc tells you about heap start and stack end. In stages
-3 and 4 ugtrain finds out the code start and end for you for the code filter
-you have specified. It reads from /proc/$pid/maps to find them. Use "exe" to
-filter the backtrace output to the executable. A library name like e.g.
-"libbt_objects.so" filters the backtrace to a library. Without a code filter
-set ugtrain shows all code addresses it finds in the backtrace. Only the malloc
-size is important in these stages.
+string to the second in stage 2. The libmemdisc tells you about heap start and
+stack end. In stages 3 and 4 ugtrain finds out the code start and end for you
+for the code filter you have specified. It reads from /proc/$pid/maps to find
+them. Use "exe" to filter the backtrace output to the executable. A library
+name like e.g. "libbt_objects.so" filters the backtrace to a library. Without
+a code filter set ugtrain shows all code addresses it finds in the backtrace.
+Only the malloc size is important in these stages.
 
 Returns:
 
