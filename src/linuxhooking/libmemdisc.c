@@ -89,9 +89,6 @@ static i32 stage = 0;  /* 0: no output */
 /* Input parameters */
 /* Output filtering */
 
-/* relevant start and end memory addresses on the heap */
-static ptr_t heap_saddr = 0, heap_eaddr = 0;
-
 /* malloc size */
 static size_t malloc_size = 0;
 
@@ -307,7 +304,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	char ibuf[BUF_SIZE] = { 0 };
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	void *heap_ptr;
-	ptr_t heap_start = 0, heap_soffs = 0, heap_eoffs = 0;
+	ptr_t heap_start = 0;
 
 #if USE_DEBUG_LOG
 	if (!DBG_FILE_VAR) {
@@ -346,7 +343,6 @@ void __attribute ((constructor)) memdisc_init (void)
 	if (heap_ptr) {
 		heap_start = (ptr_t) heap_ptr;
 		pr_out("Heap start: " PRI_PTR "\n", heap_start);
-		heap_saddr = heap_eaddr = heap_start;
 		free(heap_ptr);
 	}
 
@@ -408,71 +404,56 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	switch (*(ibuf + ioffs)) {
 	/*
-	 * stage 1: Find malloc size  (together with static memory search)
+	 * stage 1: Find the malloc size  (with memory search in parallel)
+	 *
 	 *	There are lots of mallocs and frees - we need to filter the
-	 *	output for a distinct memory area (on the heap) determined
-	 *	by static memory search. The interesting bit is the last malloc
-	 *	to that area where (mem_addr <= found_addr < mem_addr+size).
+	 *	output for a distinct memory object on the heap. Memory search
+	 *	provides a heap memory address on a variable within the object.
+	 *	That is used for finding the matching memory object.
+	 *	The interesting bit is the last matching malloc in that area
+	 *	where (mem_addr <= found_addr < mem_addr+size).
+	 *
+	 *	This is rarely used as the frees aren't required.
 	 */
 	case '1':
 		ioffs += 1;
-		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR,
-			&heap_soffs, &heap_eoffs);
-		if (scanned == 0 || scanned == 2) {
-			heap_saddr += heap_soffs;
-			heap_eaddr += heap_eoffs;
-			stage = 1;
-			pr_dbg("stage 1 cfg: " PRI_PTR ";" PRI_PTR "\n",
-				heap_soffs, heap_eoffs);
-		} else {
-			goto parse_err;
-		}
+		stage = 1;
+		pr_dbg("stage 1 selected\n");
 		break;
 	/*
-	 * stage 2: Verify malloc size
-	 *	If we are lucky, the found malloc size is a rare value in the
-	 *	selected memory area. So we shouldn't find it too often. We
-	 *	don't want to see the frees here anymore. Repeating this step
-	 *	also shows us if our heap filters are always applicable.
+	 * stage 2: Verify the malloc size
+	 *
+	 *	If we are lucky, the found malloc size is a rare value on the
+	 *	heap. So we shouldn't find it too often. We don't want to see
+	 *	the frees here.
 	 *
 	 *	With the malloc size 0, this can also be used like stage 1 but
 	 *	with ignoring the frees.
 	 */
 	case '2':
 		ioffs += 1;
-		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd",
-			&heap_soffs, &heap_eoffs, &malloc_size);
-		if (scanned == 0) {
-			scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
-			if (scanned != 1)
-				goto parse_err;
-			scanned += 2;
-		}
-		if (scanned == 3) {
-			heap_saddr += heap_soffs;
-			heap_eaddr += heap_eoffs;
-			stage = 2;
-			pr_dbg("stage 2 cfg: " PRI_PTR ";" PRI_PTR ";%zd\n",
-				heap_soffs, heap_eoffs, malloc_size);
-		} else {
+		scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
+		if (scanned < 0)
 			goto parse_err;
-		}
+		stage = 2;
+		pr_dbg("stage 2 cfg: %zd\n", malloc_size);
 		break;
 	/*
 	 * stage 3: Get the code address  (by backtracing)
+	 *
 	 *	By default we search the stack memory reverse for code
 	 *	addresses. While doing so we don't respect stack frames in
 	 *	contrast to what GNU backtrace does to be less error prone.
-	 *	But the downside is that we find a lot of false positives.
+	 *	But the downside is that we might find some false positives.
 	 *
-	 *	GNU backtrace is better suited for automated adaption. If
-	 *	it works here without crashing with SIGSEGV, then it works
-	 *	in libmemhack as well and stage 4 is not required anymore.
-	 *	Insert 'gbt;' after '3;' to activate it.
+	 *	GNU backtrace would be better suited for automated adaption,
+	 *	can be also used with libmemhack but it is unreliable as it
+	 *	requires the stack frames and often crashes with SIGSEGV. It
+	 *	is also slower. So use it for testing only.
+	 *	Insert 'gbt;' behind '3;' to activate it.
 	 *
-	 *	You need to disassemble the victim binary to get the
-	 *	code address area which is within the .text segment.
-	 *	With that we can ignore invalid code addresses.
+	 *	Ugtrain reads from /proc/$pid/maps to filter out invalid code
+	 *	addresses.
 	 */
 	case '3':
 		ioffs += 1;
@@ -483,31 +464,20 @@ void __attribute ((constructor)) memdisc_init (void)
 		}
 		if (parse_bt_filter(ibuf, &ioffs))
 			goto parse_err;
-		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd",
-			&heap_soffs, &heap_eoffs, &malloc_size);
-		if (scanned == 0) {
-			scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
-			if (scanned != 1)
-				goto parse_err;
-			scanned += 2;
-		}
-		if (scanned == 3) {
-			heap_saddr += heap_soffs;
-			heap_eaddr += heap_eoffs;
-			if (malloc_size < 1)
-				use_gbt = false;
-			if (use_gbt)
-				pr_out("Using GNU backtrace(). "
-					"This might crash with SIGSEGV!\n");
-			stage = 3;
-			pr_dbg("stage 3 cfg: " PRI_PTR ";" PRI_PTR ";%zd\n",
-				heap_soffs, heap_eoffs, malloc_size);
-		} else {
+		scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
+		if (scanned < 1)
 			goto parse_err;
-		}
+		if (malloc_size < 1)
+			use_gbt = false;
+		if (use_gbt)
+			pr_out("Using GNU backtrace(). "
+				"This might crash with SIGSEGV!\n");
+		stage = 3;
+		pr_dbg("stage 3 cfg: %zd\n", malloc_size);
 		break;
 	/*
 	 * stage 4/5: Get the reverse stack offset  (not for GNU backtrace)
+	 *
 	 *	We can use this stage directly and skip stage 3 if we aren't
 	 *	using GNU backtrace. Reverse stack offsets are determined
 	 *	relative to the current stack frame pointer. The advantage of
@@ -527,26 +497,13 @@ void __attribute ((constructor)) memdisc_init (void)
 		ioffs += 1;
 		if (parse_bt_filter(ibuf, &ioffs))
 			goto parse_err;
-		scanned = sscanf(ibuf + ioffs, ";" SCN_PTR ";" SCN_PTR ";%zd;"
-			SCN_PTR, &heap_soffs, &heap_eoffs, &malloc_size,
+		scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR, &malloc_size,
 			&code_addr);
-		if (scanned == 0) {
-			scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR,
-				&malloc_size, &code_addr);
-			if (scanned < 1)
-				goto parse_err;
-			scanned += 2;
-		}
-		if (scanned >= 3) {
-			heap_saddr += heap_soffs;
-			heap_eaddr += heap_eoffs;
-			stage = 4;
-			pr_dbg("stage 4 cfg: " PRI_PTR ";" PRI_PTR ";%zd;"
-				PRI_PTR "\n", heap_soffs, heap_eoffs,
-				malloc_size, code_addr);
-		} else {
+		if (scanned < 1)
 			goto parse_err;
-		}
+		stage = 4;
+		pr_dbg("stage 4 cfg: %zd;" PRI_PTR "\n", malloc_size,
+			code_addr);
 		break;
 	/* stage 0: static memory search: do nothing */
 	default:
@@ -556,8 +513,6 @@ void __attribute ((constructor)) memdisc_init (void)
 	/* Register final output flushing */
 	atexit(flush_output);
 
-	if (heap_eaddr <= heap_saddr)
-		heap_eaddr = UINTPTR_MAX;
 	if (!code_addr && bt_eaddr <= bt_saddr)
 		bt_eaddr = UINTPTR_MAX;
 
@@ -599,9 +554,7 @@ void __attribute ((constructor)) memdisc_init (void)
 			set_bt_addrs();
 		}
 	}
-	pr_dbg("new cfg: %d;" PRI_PTR ";" PRI_PTR ";%zd;"
-		PRI_PTR "\n", stage, heap_saddr, heap_eaddr, malloc_size,
-		code_addr);
+	pr_dbg("new cfg: %d;%zd;" PRI_PTR "\n", stage, malloc_size, code_addr);
 
 	/* Send out the heap start */
 	fprintf(ofile, "h" PRI_PTR "\n", heap_start);
@@ -816,43 +769,40 @@ static inline void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 	i32 obuf_offs = 0;
 	bool found;
 
-	if (active && mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
-		if (size == 0 || (malloc_size > 0 && size != malloc_size &&
-		    size != ptr_cfg.mem_size))
+	if (!active)
+		goto out;
+
+	if (size == 0 || (malloc_size > 0 && size != malloc_size &&
+	    size != ptr_cfg.mem_size))
+		goto out;
+	wbytes = snprintf(obuf, BUF_SIZE, "m" PRI_PTR ";s%zd", mem_addr, size);
+	if (wbytes < 0)
+		perror(PFX "snprintf");
+	else
+		obuf_offs += wbytes;
+
+	if (stage >= 3) {
+		dump_stack_raw(ffp);  /* debugging only */
+		if (use_gbt)
+			found = run_gnu_backtrace(obuf, &obuf_offs);
+		else
+			found = find_code_addresses(ffp, obuf, &obuf_offs);
+		if (!found)
 			goto out;
-		wbytes = snprintf(obuf, BUF_SIZE, "m" PRI_PTR ";s%zd",
-				  mem_addr, size);
-		if (wbytes < 0)
-			perror(PFX "snprintf");
-		else
-			obuf_offs += wbytes;
-
-		if (stage >= 3) {
-			dump_stack_raw(ffp);  /* debugging only */
-			if (use_gbt)
-				found = run_gnu_backtrace(obuf, &obuf_offs);
-			else
-				found = find_code_addresses(ffp, obuf,
-					&obuf_offs);
-			if (!found)
-				goto out;
-		}
-		wbytes = snprintf(obuf + obuf_offs, BUF_SIZE - obuf_offs,
-				  "\n");
-		if (wbytes < 0)
-			perror(PFX "snprintf");
-		else
-			obuf_offs += wbytes;
-
-		if (discover_ptr)
-			get_ptr_to_heap(size, mem_addr, ffp, obuf, &obuf_offs);
-		/* only send out terminated messages */
-		if (obuf_offs >= 1 && obuf[obuf_offs - 1] == '\n')
-			write_obuf(obuf);
-		else
-			pr_err("%s: not terminated message detected!\n",
-				__func__);
 	}
+	wbytes = snprintf(obuf + obuf_offs, BUF_SIZE - obuf_offs, "\n");
+	if (wbytes < 0)
+		perror(PFX "snprintf");
+	else
+		obuf_offs += wbytes;
+
+	if (discover_ptr)
+		get_ptr_to_heap(size, mem_addr, ffp, obuf, &obuf_offs);
+	/* only send out terminated messages */
+	if (obuf_offs >= 1 && obuf[obuf_offs - 1] == '\n')
+		write_obuf(obuf);
+	else
+		pr_err("%s: not terminated message detected!\n", __func__);
 out:
 	return;
 }
@@ -865,15 +815,13 @@ static inline void preprocess_free (ptr_t mem_addr)
 	i32 wbytes;
 	char obuf[BUF_SIZE + 1] = { 0 };
 
-	if (active) {
-		if (mem_addr >= heap_saddr && mem_addr < heap_eaddr) {
-			wbytes = snprintf(obuf, BUF_SIZE, "f" PRI_PTR "\n",
-				mem_addr);
-			if (wbytes < 0)
-				perror(PFX "snprintf");
-			write_obuf(obuf);
-		}
-	}
+	if (!active)
+		return;
+
+	wbytes = snprintf(obuf, BUF_SIZE, "f" PRI_PTR "\n", mem_addr);
+	if (wbytes < 0)
+		perror(PFX "snprintf");
+	write_obuf(obuf);
 }
 
 /* void *malloc (size_t size); */
