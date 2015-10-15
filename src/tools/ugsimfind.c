@@ -53,7 +53,7 @@ i32 main (i32 argc, char **argv)
 	if (argc < 2) {
 		fprintf(stderr, "%s", Help);
 		return -1;
-	} else if (argc >= MAX_FILES) {
+	} else if (argc > MAX_FILES + 1) {
 		fprintf(stderr, "Too many files!\n");
 		return -1;
 	}
