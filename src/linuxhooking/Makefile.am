@@ -22,8 +22,8 @@ endif
 endif
 
 if BITS_32
-libmemdisc32_la_SOURCES = libcommon.c libmemdisc.c
-libmemhack32_la_SOURCES = libcommon.c libmemhack.c
+libmemdisc32_la_SOURCES = libcommon.c memhooks.c libmemdisc.c
+libmemhack32_la_SOURCES = libcommon.c memhooks.c libmemhack.c
 libprivacy32_la_SOURCES = libprivacy.c
 libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
@@ -50,8 +50,8 @@ libprivacy32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION)
 endif
 
 if BITS_64
-libmemdisc64_la_SOURCES = libcommon.c libmemdisc.c
-libmemhack64_la_SOURCES = libcommon.c libmemhack.c
+libmemdisc64_la_SOURCES = libcommon.c memhooks.c libmemdisc.c
+libmemhack64_la_SOURCES = libcommon.c memhooks.c libmemhack.c
 libprivacy64_la_SOURCES = libprivacy.c
 libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
