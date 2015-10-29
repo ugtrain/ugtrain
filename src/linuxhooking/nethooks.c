@@ -1,4 +1,4 @@
-/* libprivacy.c:    block network connections
+/* nethooks.c:    block network connections
  *
  * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
  *
