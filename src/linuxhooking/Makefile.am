@@ -13,8 +13,8 @@ lib_LTLIBRARIES = libmemdisc32.la libmemhack32.la
 endif
 
 if BITS_32
-libmemdisc32_la_SOURCES = libcommon.c memhooks.c libmemdisc.c
-libmemhack32_la_SOURCES = libcommon.c memhooks.c libmemhack.c
+libmemdisc32_la_SOURCES = libcommon.c memhooks.c nethooks.c libmemdisc.c
+libmemhack32_la_SOURCES = libcommon.c memhooks.c nethooks.c libmemhack.c
 libmemdisc32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack32_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemdisc32_la_LIBADD = $(DEPS_LIBS)
@@ -36,8 +36,8 @@ libmemhack32_la_LDFLAGS = -ldl -version-info $(LIB_VERSION) $(PTHREAD_LIBS)
 endif
 
 if BITS_64
-libmemdisc64_la_SOURCES = libcommon.c memhooks.c libmemdisc.c
-libmemhack64_la_SOURCES = libcommon.c memhooks.c libmemhack.c
+libmemdisc64_la_SOURCES = libcommon.c memhooks.c nethooks.c libmemdisc.c
+libmemhack64_la_SOURCES = libcommon.c memhooks.c nethooks.c libmemhack.c
 libmemdisc64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemhack64_la_CFLAGS = $(DEPS_CFLAGS) -Wall -I ..
 libmemdisc64_la_LIBADD = $(DEPS_LIBS)
