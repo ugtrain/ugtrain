@@ -54,10 +54,6 @@ enum grow_type {
 
 /* Common functions */
 #ifdef __cplusplus
-	template <class T>
-	string to_string (T val);
-	template <class T>
-	string to_xstring (T val);
 	char *to_c_str(string *str);
 #endif
 
