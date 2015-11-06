@@ -33,11 +33,13 @@ ugtrain_SOURCES += \
 endif
 
 ugtrain_LDADD = $(DEPS_LIBS)
-AM_CPPFLAGS = $(DEPS_CPPFLAGS) \
-              -Wall -g -O2 -I .
+AM_CFLAGS = $(DEPS_CFLAGS) -Wall
 if TESTING
-AM_CPPFLAGS += -DTESTING=1
+AM_CFLAGS += -DTESTING=1
 endif
+# use the same compiler flags for C and C++
+# (required for hardening builds)
+AM_CXXFLAGS = $(AM_CFLAGS) $(CFLAGS)
 
 if ENABLE_BASH_COMPLETION
 bashcompletiondir = $(BASH_COMPLETION_DIR)
