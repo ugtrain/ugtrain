@@ -9,7 +9,6 @@ ugtrain_SOURCES = \
 	cfgoutput.cpp \
 	cfgparser.cpp \
 	common.cpp \
-	commont.cpp \
 	control.cpp \
 	discovery.cpp \
 	dump.cpp \
