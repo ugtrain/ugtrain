@@ -1,86 +1,8 @@
 #!/usr/bin/make -f
 
-# Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
-
-PWD = $(shell pwd)
-
-prefix = $(PWD)/debian/ugtrain/usr
-export prefix
-
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
 
-num_cpu := $(shell cat /proc/cpuinfo |grep ^processor|wc -l)
-
-build: build-stamp
-build-stamp:
-	dh_testdir
-
-	# Add here commands to compile the package.
-	./configure --prefix=$(prefix)
-	$(MAKE) -j $(num_cpu)
-
-	touch build-stamp
-
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-
-	# Add here commands to clean up after the build process.
-	cd src; rm -rf .libs .deps Makefile *.o ugtrain
-	cd src/linuxhooking; rm -rf .libs .deps Makefile *.o *.la *.lo
-	cd src/tools; rm -rf .libs .deps Makefile *.o ugsimfind
-
-	dh_clean
-
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
-
-	# Add here commands to install the package into debian/ugtrain.
-	$(MAKE) install
-
-	touch install-stamp
-
-# Build architecture-independent files here.
-binary-indep: build install
-# We have nothing to do by default.
-
-# Build architecture-dependent files here.
-binary-arch: build install
-#	dh_testversion
-	dh_testdir
-	dh_testroot
-#	dh_installdebconf
-	dh_installchangelogs
-	dh_installdocs
-	dh_installexamples
-#	dh_installmenu
-#	dh_installemacsen
-#	dh_installpam
-#	dh_installinit
-#	dh_installcron
-#	dh_installman *.1 *.8
-#	dh_installinfo
-#	dh_undocumented
-	dh_link
-	dh_strip
-	dh_compress
-	dh_fixperms
-	# You may want to make some executables suid here.
-#	dh_suidregister
-	dh_makeshlibs
-	dh_installdeb
-#	dh_perl
-	dh_shlibdeps
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
+%:
+	dh $@
