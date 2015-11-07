@@ -847,6 +847,46 @@ static inline bool tool_is_available (char *name)
 	return ret;
 }
 
+static void init_user_cfg_dir (char *home)
+{
+#define EXAMPLES_DIR "/usr/share/doc/ugtrain/examples"
+	i32 ret;
+	const char *user_cfg_dir;
+	string dir_str, cmd_str;
+
+	dir_str = home;
+	dir_str += "/.ugtrain";
+	user_cfg_dir = dir_str.c_str();
+	if (dir_exists(user_cfg_dir))
+		return;
+
+	cout << "First run of " << PROG_NAME << " detected:" << endl;
+	cout << "+ Creating \""<< user_cfg_dir << "/\"." << endl;
+	ret = create_dir(user_cfg_dir);
+	if (ret || !dir_exists(EXAMPLES_DIR))
+		goto out;
+	cout << "+ Copying examples to \"" << user_cfg_dir << "/\"." << endl;
+	cmd_str = "cp -R " EXAMPLES_DIR "/* ";
+	cmd_str += dir_str;
+	ret = run_cmd(cmd_str.c_str(), NULL);
+	if (ret < 0) {
+		cerr << "Command \"" << cmd_str << "\" failed." << endl;
+		goto out;
+	}
+	if (!tool_is_available((char *) "find") ||
+	    !tool_is_available((char *) "gunzip"))
+		goto out;
+	cout << "+ Extracting examples in \"" << user_cfg_dir << "/\"." << endl;
+	cmd_str = "find ";
+	cmd_str += user_cfg_dir;
+	cmd_str += " -name \"*.gz\" -exec gunzip {} \\; 2>/dev/null";
+	run_cmd(cmd_str.c_str(), NULL);
+out:
+	cout << endl;
+	return;
+#undef EXAMPLES_DIR
+}
+
 i32 main (i32 argc, char **argv, char **env)
 {
 	vector<string> __lines, *lines = &__lines;
@@ -860,6 +900,7 @@ i32 main (i32 argc, char **argv, char **env)
 	char def_home[] = "~";
 	i32 ret, pmask = PARSE_S | PARSE_C;
 	char ch;
+	char *home;
 	i32 ifd = -1, ofd = -1, dfd = -1;
 	bool allow_empty_cfg = false;
 	enum pstate pstate;
@@ -880,12 +921,15 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
+	home = getenv(HOME_VAR);
+	if (!home)
+		home = def_home;
+	if (dir_exists(home))
+		init_user_cfg_dir(home);
+
 	parse_options(argc, argv, opt);
 	test_optparsing(opt);
-
-	opt->home = getenv(HOME_VAR);
-	if (!opt->home)
-		opt->home = def_home;
+	opt->home = home;
 
 	read_config(opt, cfg, cfg_act, cfgp_map, lines);
 	test_cfgparsing(opt, cfg, cfg_act, cfgp_map);
