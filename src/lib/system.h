@@ -17,6 +17,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #ifdef __linux__
+#include <dirent.h>
+#include <errno.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/select.h>
@@ -64,6 +66,27 @@ static inline pid_t run_cmd (const char *cmd, char *const cmdv[])
 }
 
 #ifdef __linux__
+static inline bool dir_exists (const char *path)
+{
+	DIR *dir;
+
+	dir = opendir(path);
+	if (dir) {
+		closedir(dir);
+		return true;
+	} else if (errno == ENOENT) {
+		return false;
+	} else {
+		/* assume that dir does not exist */
+		return false;
+	}
+}
+
+static inline i32 create_dir (const char *path)
+{
+	return mkdir(path, 0755);
+}
+
 static inline bool file_exists (const char *path)
 {
 	struct stat buf;
@@ -192,6 +215,16 @@ static inline void reset_sigint (void)
 }
 
 #else
+
+static inline bool dir_exists (const char *path)
+{
+	return false;
+}
+
+static inline i32 create_dir (const char *path)
+{
+	return -1;
+}
 
 static inline bool file_exists (const char *path)
 {
