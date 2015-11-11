@@ -112,7 +112,7 @@ enum pstate check_process (pid_t pid, char *proc_name)
 	pname = pbuf;
 	if (!pname)
 		goto err;
-	if (proc_name && strcmp(pname, proc_name) != 0)
+	if (proc_name && strncmp(pname, proc_name, 15) != 0)
 		return PROC_WRONG;
 
 	/* remove '/status' + shell cmds, append '/status' + shell cmds */
