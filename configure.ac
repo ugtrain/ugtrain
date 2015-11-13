@@ -40,14 +40,35 @@ AC_PROG_CC
 AM_PROG_CC_STDC
 AM_PROG_CC_C_O
 
-# Check pthread lib
-HAVE_PTHREADS="no"
-AX_PTHREAD([HAVE_PTHREADS="yes"],[exit 1])
-if test "$HAVE_PTHREADS" != "no"; then
+# Detect Linux
+linux="no"
+target_os_str="`echo $target_os | grep -o linux`"
+if test -n "$target_os_str" -a "$target_os_str" = "linux"; then
+  linux="yes"
+  AC_MSG_NOTICE([Linux detected!])
+fi
+
+# Detect Windows
+windows="no"
+AC_CHECK_HEADER(windows.h, [windows="yes"])
+
+if test "$windows" = "yes"; then
+  # Disable Linux specific features
+  HAVE_PTHREADS="no"
+  enable_glib="no"
+  enable_multilib="no"
+  with_bash_completion_dir="no"
+  AC_MSG_NOTICE([Windows detected!])
+else
+  # Check pthread lib
+  HAVE_PTHREADS="no"
+  AX_PTHREAD([HAVE_PTHREADS="yes"],[exit 1])
+  if test "$HAVE_PTHREADS" != "no"; then
     CC="$PTHREAD_CC"
     CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
     LIBS="$LIBS $PTHREAD_LIBS"
     AC_SUBST(PTHREAD_LIBS)
+  fi
 fi
 
 # check compiler flags
@@ -88,10 +109,11 @@ if test "$enable_multilib" != "no" -a bits64 != "no"; then
 fi
 
 # Test GLIB compile
-AS_IF([test "$enable_glib" != "no"], [
-   PKG_CHECK_MODULES([GLIB], [glib-2.0])
-   AC_SUBST([GLIB_CFLAGS])
-   AC_SUBST([GLIB_LIBS])])
+if test "$enable_glib" != "no"; then
+  PKG_CHECK_MODULES([GLIB], [glib-2.0])
+  AC_SUBST([GLIB_CFLAGS])
+  AC_SUBST([GLIB_LIBS])
+fi
 
 # Test bash completion
 if test "$with_bash_completion_dir" = "yes"; then
@@ -105,7 +127,7 @@ if test "$with_bash_completion_dir" != "no"; then
   AC_MSG_NOTICE([Using bash completion directory: $BASH_COMPLETION_DIR])
 fi
 
-AM_CONDITIONAL([LINUX], test `echo "$target_os" | grep -o "linux"` = "linux")
+AM_CONDITIONAL([LINUX], test "$linux" != "no")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
 AM_CONDITIONAL([TESTING], test "$enable_testing" != "no")
@@ -134,8 +156,6 @@ AC_TYPE_UINTPTR_T
 # Checks for library functions.
 AC_FUNC_STAT
 AC_CHECK_FUNCS(ptrace memcpy memcmp getenv setenv)
-
-AC_CHECK_HEADER(windows.h)
 
 AC_CONFIG_FILES([
 	Makefile
