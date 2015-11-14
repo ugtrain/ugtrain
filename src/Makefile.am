@@ -27,6 +27,7 @@ ugtrain_SOURCES += \
 else
 ugtrain_SOURCES += \
 	lib/getch_w.c \
+	lib/maps_w.c \
 	lib/memattach_w.c \
 	lib/system_w.c
 endif
