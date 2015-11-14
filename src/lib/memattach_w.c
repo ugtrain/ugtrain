@@ -40,12 +40,12 @@ i32 memdetach (pid_t pid)
 	return -1;
 }
 
-i32 memread (pid_t pid, ptr_t addr, void *buf, ulong buf_len)
+i32 memread (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 {
 	return -1;
 }
 
-i32 memwrite (pid_t pid, ptr_t addr, void *buf, ulong buf_len)
+i32 memwrite (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 {
 	return -1;
 }
