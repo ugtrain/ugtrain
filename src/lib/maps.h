@@ -50,6 +50,10 @@ extern "C" {
 #endif
 
 
+#if defined(__WINNT__) || defined (__WIN32__)
+static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
+					size_t path_size) {}
+#else
 /* Assumption: sizeof(exe_path) >= MAPS_MAX_PATH */
 static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 					size_t path_size)
@@ -67,6 +71,7 @@ static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 		exe_path[0] = '\0';
 	}
 }
+#endif
 
 /* PIE detection - check for known static load addresses */
 static inline ptr_t calc_exe_offs (ulong map_start)
