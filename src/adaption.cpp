@@ -21,6 +21,7 @@
 #include <cstring>
 #include <fstream>
 #include <stdio.h>
+#include <libgen.h>   // basename
 
 // local includes
 #include <lib/getch.h>
