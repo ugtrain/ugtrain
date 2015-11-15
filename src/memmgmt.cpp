@@ -230,7 +230,8 @@ out:
 // ff() callback for read_dynmem_buf()
 void clear_dynmem_addr (FF_PARAMS)
 {
-	struct mqueue *mq = (struct mqueue *) argp;
+	struct dynmem_params *dp = (struct dynmem_params *) argp;
+	struct mqueue *mq = dp->mqueue;
 	list<CfgEntry>::iterator it;
 	vector<ptr_t> *mvec;
 	vector<size_t> *svec;
@@ -295,7 +296,8 @@ void alloc_dynmem_addr (MF_PARAMS)
 // write a message including '\n' to the malloc queue
 void queue_dynmem_addr (MF_PARAMS)
 {
-	struct mqueue *mq = (struct mqueue *) pp->argp;
+	struct dynmem_params *dp = (struct dynmem_params *) pp->argp;
+	struct mqueue *mq = dp->mqueue;
 	char *msg_start = pp->ibuf;
 	char *msg_end = pp->msg_end;
 	char *mq_start = mq->data + mq->end;

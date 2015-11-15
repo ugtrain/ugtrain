@@ -433,7 +433,8 @@ static inline void process_mallocs (list<CfgEntry> *cfg, struct mqueue *mq,
 
 // TIME CRITICAL! Read the memory allocations and freeings from the input FIFO.
 // If the buffer fills, the game process hangs.
-static inline void read_dynmem_fifo (list<CfgEntry> *cfg, struct mqueue *mq,
+static inline void read_dynmem_fifo (list<CfgEntry> *cfg,
+				     struct dynmem_params *dp,
 				     i32 ifd, i32 pmask)
 {
 	ssize_t rbytes;
@@ -443,7 +444,7 @@ static inline void read_dynmem_fifo (list<CfgEntry> *cfg, struct mqueue *mq,
 	pcb.ff = clear_dynmem_addr;
 
 	do {
-		rbytes = read_dynmem_buf(cfg, mq, ifd, pmask, false,
+		rbytes = read_dynmem_buf(cfg, dp, ifd, pmask, false,
 			0, &pcb);
 	} while (rbytes > 0);
 }
@@ -896,6 +897,8 @@ i32 main (i32 argc, char **argv, char **env)
 #define CFGP_MAP_SIZE 128
 	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
 	struct mqueue __mq, *mq = &__mq;
+	struct lf_params __lfparams, *lfparams = &__lfparams;
+	struct dynmem_params __dmparams, *dmparams = &__dmparams;
 	pid_t pid = -1;
 	char def_home[] = "~";
 	i32 ret, pmask = PARSE_S | PARSE_C;
@@ -915,6 +918,9 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	mq->data[0] = '\0';
 	mq->data[mq->size - 1] = '\0';
+
+	dmparams->mqueue = mq;
+	dmparams->lfparams = lfparams;
 
 	if (atexit(restore_getch) != 0) {
 		cerr << "Error while registering exit handler!" << endl;
@@ -1055,6 +1061,11 @@ prepare_dynmem:
 	handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
 	handle_statmem_pie(opt->code_offs, cfg);
 
+	lfparams->cfg = cfg;
+	lfparams->pid = pid;
+	lfparams->ofd = ofd;
+	lfparams->rlist = &rlist;
+
 	// use sleep_sec_unless_input2() also for pure static memory
 	if (ifd < 0)
 		ifd = STDIN_FILENO;
@@ -1067,7 +1078,7 @@ prepare_dynmem:
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		if (!opt->pure_statmem) {
-			read_dynmem_fifo(cfg, mq, ifd, pmask);
+			read_dynmem_fifo(cfg, dmparams, ifd, pmask);
 			// print freed object counts
 			ret = output_dynmem_changes(cfg);
 			if (ret)
@@ -1100,7 +1111,7 @@ prepare_dynmem:
 		// R/W to invalid heap addresses crashes the game (SIGSEGV).
 		// There could have been free() calls before freezing the game.
 		if (!opt->pure_statmem)
-			read_dynmem_fifo(cfg, mq, ifd, pmask);
+			read_dynmem_fifo(cfg, dmparams, ifd, pmask);
 
 		// TIME CRITICAL! Process all activated config entries
 		process_act_cfg(pid, cfg_act);
