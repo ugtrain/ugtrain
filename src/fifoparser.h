@@ -32,6 +32,14 @@ struct mqueue {
 	ssize_t end;
 };
 
+// late PIC handling parameters
+struct lf_params {
+	list<CfgEntry>   *cfg;
+	struct list_head *rlist;
+	pid_t pid;
+	i32   ofd;
+};
+
 struct post_parse {
 	char	*ibuf;
 	ssize_t	ppos;
