@@ -543,6 +543,7 @@ static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 	// parse backtracing
 	grow_enp->code_addr =
 		parse_address(NULL, NULL, line, lnr, start);
+	grow_enp->code_offs = grow_enp->code_addr;
 	grow_enp->stack_offs =
 		parse_address(NULL, NULL, line, lnr, start);
 	grow_enp->lib = parse_pic_lib(line, start);
@@ -557,6 +558,7 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 	if (from_grow) {
 		dynmem_enp->mem_size = 0;
 		dynmem_enp->code_addr = 0;
+		dynmem_enp->code_offs = 0;
 		dynmem_enp->stack_offs = 0;
 		dynmem_enp->cfg_line = 0;
 		dynmem_enp->lib = NULL;
@@ -564,6 +566,7 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->mem_size = parse_u32_value(line, lnr, start);
 		dynmem_enp->code_addr =
 			parse_address(NULL, NULL, line, lnr, start);
+		dynmem_enp->code_offs = dynmem_enp->code_addr;
 		dynmem_enp->stack_offs =
 			parse_address(NULL, NULL, line, lnr, start);
 		dynmem_enp->cfg_line = lnr;
