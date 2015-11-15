@@ -28,6 +28,7 @@ public:
 	enum grow_type type;
 	u32 add;
 	ptr_t code_addr;
+	ptr_t code_offs;              // for late PIC support
 	ptr_t stack_offs;
 	char *lib;                    // for PIC support
 
@@ -42,6 +43,7 @@ public:
 	string name;
 	size_t mem_size;
 	ptr_t code_addr;
+	ptr_t code_offs;              // for late PIC support
 	ptr_t stack_offs;
 	char *lib;                    // for PIC support
 	GrowEntry *grow;
