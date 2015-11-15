@@ -21,13 +21,6 @@
 #include <common.h>
 #include <fifoparser.h>
 
-// malloc queue to delay malloc processing
-struct mqueue {
-	char    *data;
-	ssize_t size;
-	ssize_t end;
-};
-
 void queue_dynmem_addr (MF_PARAMS);
 void alloc_dynmem_addr (MF_PARAMS);
 void clear_dynmem_addr (FF_PARAMS);

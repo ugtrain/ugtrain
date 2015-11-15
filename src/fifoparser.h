@@ -25,6 +25,13 @@
 #define PARSE_C (1 << 1)
 #define PARSE_O (1 << 2)
 
+// malloc queue to delay malloc processing
+struct mqueue {
+	char    *data;
+	ssize_t size;
+	ssize_t end;
+};
+
 struct post_parse {
 	char	*ibuf;
 	ssize_t	ppos;
