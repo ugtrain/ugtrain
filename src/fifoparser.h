@@ -25,6 +25,13 @@
 #define PARSE_C (1 << 1)
 #define PARSE_O (1 << 2)
 
+// late PIC discovery handling parameters
+struct lf_disc_params {
+	char  *disc_lib;
+	pid_t pid;
+	i32   ofd;
+};
+
 // malloc queue to delay malloc processing
 struct mqueue {
 	char    *data;

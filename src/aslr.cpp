@@ -32,12 +32,6 @@
 // ############ PIC handling ##############
 // ########################################
 
-struct lf_disc_params {
-	pid_t pid;
-	i32 ofd;
-	char *disc_lib;
-};
-
 static inline void _send_bt_addrs (i32 ofd, ptr_t lib_start, ptr_t lib_end)
 {
 	char obuf[PIPE_BUF];
