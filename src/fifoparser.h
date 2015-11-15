@@ -47,6 +47,12 @@ struct lf_params {
 	i32   ofd;
 };
 
+// parameter for the FIFO parser
+struct dynmem_params {
+	struct mqueue    *mqueue;
+	struct lf_params *lfparams;
+};
+
 struct post_parse {
 	char	*ibuf;
 	ssize_t	ppos;
