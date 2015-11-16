@@ -29,10 +29,12 @@
 
 
 // ########################################
-// ############ PIC handling ##############
+// ########## late PIC handling ###########
 // ########################################
 
-static inline void _send_bt_addrs (i32 ofd, ptr_t lib_start, ptr_t lib_end)
+// ##### Memory Discovery #####
+
+static inline void send_lib_bounds (i32 ofd, ptr_t lib_start, ptr_t lib_end)
 {
 	char obuf[PIPE_BUF];
 	i32 osize = 0;
@@ -69,7 +71,7 @@ static inline i32 send_bt_addrs (struct map *map, void *data)
 
 	lib_start = (ptr_t) map->start;
 	lib_end = (ptr_t) map->end;
-	_send_bt_addrs(ofd, lib_start, lib_end);
+	send_lib_bounds(ofd, lib_start, lib_end);
 	return 1;
 out:
 	return 0;
@@ -90,7 +92,7 @@ static void handle_disc_pic (LF_PARAMS)
 	    strstr(lib_name, disc_lib)) {
 		ret = read_maps(pid, send_bt_addrs, lfp);
 		if (!ret)
-			_send_bt_addrs(ofd, 0, UINTPTR_MAX);
+			send_lib_bounds(ofd, 0, UINTPTR_MAX);
 	}
 }
 
