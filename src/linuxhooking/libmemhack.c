@@ -73,6 +73,7 @@ struct grow {
 	enum grow_type type;
 	u32 add;
 	ptr_t code_addr;
+	ptr_t code_offs;
 	ptr_t stack_offs;
 	char *lib;
 };
@@ -81,6 +82,7 @@ struct grow {
 struct cfg {
 	size_t mem_size;
 	ptr_t code_addr;
+	ptr_t code_offs;
 	ptr_t stack_offs;
 	char *lib;
 	struct grow *grow;
@@ -263,6 +265,7 @@ void __attribute ((constructor)) memhack_init (void)
 			&config[i]->stack_offs);
 		if (scanned != 3)
 			goto err;
+		config[i]->code_offs = config[i]->code_addr;
 		for (j = 3; j > 0; --j)
 			SET_IBUF_START(start);
 		SET_CODE_LIB(start, config[i]->lib);
@@ -301,6 +304,7 @@ void __attribute ((constructor)) memhack_init (void)
 			free(grow);
 			goto err;
 		}
+		grow->code_offs = grow->code_addr;
 		grow->type = GROW_ADD;
 		for (j = 5; j > 0; --j)
 			SET_IBUF_START(start);
