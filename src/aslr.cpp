@@ -190,6 +190,48 @@ static inline void find_lib_region (struct list_head *rlist, char *lib,
 	*lib_end = UINTPTR_MAX;
 }
 
+// lf() callback for read_dynmem_buf()
+void get_lib_load_addr (LF_PARAMS)
+{
+	struct dynmem_params *dmparams = (struct dynmem_params *) argp;
+	struct lf_params *lfparams = dmparams->lfparams;
+	list<CfgEntry> *cfg = lfparams->cfg;
+	pid_t pid = lfparams->pid;
+	i32 ofd = lfparams->ofd;
+	struct list_head *rlist = lfparams->rlist;
+	struct pmap_params params;
+	char exe_path[MAPS_MAX_PATH];
+	ptr_t lib_start = 0, lib_end = 0;
+	list<CfgEntry>::iterator cfg_it;
+	DynMemEntry *old_dynmem = NULL;
+
+	// reload the memory regions
+	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
+	params.exe_path = exe_path;
+	params.rlist = rlist;
+	read_regions(pid, &params);
+
+	// update the game trainer config
+	find_lib_region(rlist, lib_name, &lib_start, &lib_end);
+	if (!lib_start)
+		goto out;
+	list_for_each (cfg, cfg_it) {
+		DynMemEntry *dynmem = cfg_it->dynmem;
+		GrowEntry *grow;
+		if (!dynmem || dynmem == old_dynmem)
+			continue;
+		grow = dynmem->grow;
+		old_dynmem = dynmem;
+		if (dynmem->lib && strstr(dynmem->lib, lib_name))
+			dynmem->code_addr = dynmem->code_offs + lib_start;
+		if (grow && grow->lib && strstr(grow->lib, lib_name))
+			grow->code_addr = grow->code_offs + lib_start;
+	}
+	send_lib_bounds(ofd, lib_start, lib_end);
+out:
+	return;
+}
+
 // ########################################
 // ###### PIE and early PIC handling ######
 // ########################################
