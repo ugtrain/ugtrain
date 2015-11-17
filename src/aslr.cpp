@@ -161,9 +161,7 @@ void do_disc_pic_work (pid_t pid, struct app_options *opt,
 #undef CYCLES_BEFORE_RELOAD
 }
 
-// ########################################
-// ###### PIE and early PIC handling ######
-// ########################################
+// ##### Memory Hacking #####
 
 /*
  * Libraries are always built as position independent code (PIC).
@@ -186,11 +184,15 @@ static inline void find_lib_region (struct list_head *rlist, char *lib,
 		}
 	}
 	cout << "Couldn't find load address of " << lib
-	     << " for early PIC." << endl;
+	     << " for PIC handling." << endl;
 
 	*lib_start = 0;
 	*lib_end = UINTPTR_MAX;
 }
+
+// ########################################
+// ###### PIE and early PIC handling ######
+// ########################################
 
 /*
  * Some Linux distributions use the GCC options -pie and -fPIE
