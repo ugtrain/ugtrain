@@ -131,10 +131,17 @@ static inline void output_cfg (void)
 
 #define SET_CODE_LIB(start, lib) {			\
 	char *pos = strchr(start, ';');			\
+	size_t size;					\
 	if (pos)					\
 		*pos = '\0';				\
-	if (strcmp(start, "exe") != 0)			\
-		lib = start;				\
+	if (strcmp(start, "exe") != 0) {		\
+		size = strlen(start) + 1;		\
+		lib = (char *) malloc(size);		\
+		if (lib) {				\
+			memcpy(lib, start, size - 1);	\
+			lib[size - 1] = '\0';		\
+		}					\
+	}						\
 	if (pos)					\
 		start = pos + 1;			\
 }
