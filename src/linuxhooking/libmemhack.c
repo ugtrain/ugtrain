@@ -539,6 +539,31 @@ found:
 /* ##### late PIC handling ##### */
 /* ############################# */
 
+static inline i32 send_lib_name (const char *lib_name)
+{
+	i32 wbytes;
+	char obuf[BUF_SIZE + 1] = { 0 };
+
+	pr_dbg("PIC: Sending lib_name %s.\n", lib_name);
+
+	wbytes = snprintf(obuf, BUF_SIZE, "l;%s\n", lib_name);
+	if (wbytes < 0) {
+		perror(PFX "snprintf");
+		goto err;
+	}
+#if DEBUG_MEM
+	pr_out("%s", obuf);
+#endif
+	wbytes = write(ofd, obuf, wbytes);
+	if (wbytes < 0) {
+		perror("dlopen write");
+		goto err;
+	}
+	return 0;
+err:
+	return -1;
+}
+
 static inline i32 get_lib_load_addr (const char *lib_name, ptr_t *lib_load)
 {
 	return -1;
