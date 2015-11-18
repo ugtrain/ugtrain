@@ -24,6 +24,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>     /* sigignore */
+#include <libgen.h>     /* basename */
 #include <unistd.h>     /* read */
 #include <limits.h>     /* PIPE_BUF */
 #include <execinfo.h>   /* backtrace */
@@ -534,10 +535,65 @@ found:
 	}
 }
 
+/* ############################# */
+/* ##### late PIC handling ##### */
+/* ############################# */
+
+static inline i32 get_lib_load_addr (const char *lib_name, ptr_t *lib_load)
+{
+	return -1;
+}
+
 /*
  * Inform ugtrain about loading of a library (late PIC handling).
  */
 void postprocess_dlopen (const char *lib_path)
 {
-	/*TODO: implement late PIC support */
+	i32 ret, i;
+	char *lib_name;
+	ptr_t lib_load = 0;
+
+	if (!active)
+		return;
+
+	lib_name = basename((char *) lib_path);
+	if (lib_name[0] == '\0')
+		return;
+
+	for (i = 0; config[i] != NULL; i++) {
+		struct grow *grow;
+
+		if (!config[i]->lib || !strstr(config[i]->lib, lib_name))
+			goto handle_grow;
+		if (lib_load) {
+			config[i]->code_addr = config[i]->code_offs + lib_load;
+			goto handle_grow;
+		}
+		ret = get_lib_load_addr(lib_name, &lib_load);
+		if (ret)
+			break;
+		if (lib_load) {
+			pr_out("PIC: New load address of %s: "
+				PRI_PTR "\n", lib_name, lib_load);
+			config[i]->code_addr = config[i]->code_offs + lib_load;
+		}
+handle_grow:
+		if (!config[i]->grow)
+			continue;
+		grow = config[i]->grow;
+		if (!grow->lib || !strstr(grow->lib, lib_name))
+			continue;
+		if (lib_load) {
+			grow->code_addr = grow->code_offs + lib_load;
+			continue;
+		}
+		ret = get_lib_load_addr(lib_name, &lib_load);
+		if (ret)
+			break;
+		if (lib_load) {
+			pr_out("PIC: New load address of %s: "
+				PRI_PTR "\n", lib_name, lib_load);
+			grow->code_addr = grow->code_offs + lib_load;
+		}
+	}
 }
