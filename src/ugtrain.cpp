@@ -440,6 +440,7 @@ static inline void read_dynmem_fifo (list<CfgEntry> *cfg,
 	ssize_t rbytes;
 	struct parse_cb pcb = { NULL };
 
+	pcb.lf = get_lib_load_addr;
 	pcb.mf = queue_dynmem_addr;
 	pcb.ff = clear_dynmem_addr;
 
