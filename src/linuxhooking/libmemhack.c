@@ -566,6 +566,31 @@ err:
 
 static inline i32 get_lib_load_addr (const char *lib_name, ptr_t *lib_load)
 {
+	i32 ret;
+	char ibuf[BUF_SIZE] = { 0 };
+	ptr_t lib_start = 0, lib_end = 0;
+
+	ret = send_lib_name(lib_name);
+	if (ret)
+		goto err;
+
+	pr_dbg("PIC: Reading load address of %s.\n", lib_name);
+
+	ret = read_input(ibuf, sizeof(ibuf) - 1);
+	if (ret) {
+		pr_err("PIC: %s: Couldn't read from FIFO!\n", lib_name);
+		goto err;
+	}
+	ret = sscanf(ibuf, SCN_PTR ";" SCN_PTR, &lib_start, &lib_end);
+	if (ret < 2) {
+		pr_err("PIC: %s: Library load address parsing error!\n",
+			lib_name);
+		goto err;
+	}
+	*lib_load = lib_start;
+
+	return 0;
+err:
 	return -1;
 }
 
