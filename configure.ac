@@ -4,7 +4,7 @@
 AC_INIT([ugtrain], [0.3.0~pre], [ugtrain-devel@lists.sourceforge.net])
 
 AC_CONFIG_MACRO_DIR(m4)
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_HOST
 
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_MAINTAINER_MODE
@@ -40,13 +40,17 @@ AC_PROG_CC
 AM_PROG_CC_STDC
 AM_PROG_CC_C_O
 
-# Detect Linux
+# Detect host OS
 linux="no"
-target_os_str="`echo $target_os | grep -o linux`"
-if test -n "$target_os_str" -a "$target_os_str" = "linux"; then
-  linux="yes"
-  AC_MSG_NOTICE([Linux detected!])
-fi
+case "$host_os" in
+  linux*)
+    linux="yes"
+    AC_MSG_NOTICE([Linux detected!])
+    ;;
+  *)
+    AC_MSG_NOTICE([Your platform is not currently supported!])
+    ;;
+esac
 
 # Detect Windows
 windows="no"
