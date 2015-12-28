@@ -6,7 +6,7 @@
 
 The game process name must always be located in the first line.
 The PID is searched by name with `pidof <GameProcessName> | cut -d ' ' -f 1`.
-This ensures always attaching to the most recently started instance.
+This ensures always attaching to the most recently started game instance.
 
 ### [ game_call GameProcessCall ]
 
@@ -108,11 +108,14 @@ compared combined with 'or' and upto four checks (e.g. "e 1 e 2" means
 Dynamic memory cheating is used for objects on the heap allocated by a
 memory allocation function like malloc() or a C++ constructor.
 
-### dynmemstart ObjName ObjSize CodeJumpBackAddrOfMalloc RevOffsOfCodeAddrOnStack
+### dynmemstart ObjName ObjSize CodeJumpBackAddrOfMalloc RevOffsOfCodeAddrOnStack [LibName]
 
 The object size is in decimal. The rest are addresses starting with "0x".
 These come from the dynamic memory discovery (libmemdisc) or from the
-dynamic memory adaption.
+dynamic memory adaption. By default it is assumed that memory allocations
+come from the game executable. If that is not the case, then the name of the
+library which allocates the memory objects can be put at the end of this
+config line. E.g. the game "Battle Tanks" uses "libbt_objects.so".
 
 ### < Values + checks like in static memory but with ObjOffset as Addr >
 
@@ -148,11 +151,15 @@ follow.
 ### adapt_script RelScriptPath
 
 A script can be run if requested by ugtrain (-A) to automatically adapt
-the code address of a dynamic object in the config. Compilers and their
-options differ from distribution to distribution. Also the game version
-may differ. But if the object size is still the same, then there is a
-good chance to adapt by searching for the allocation in the disassembly.
+the code addresses of dynamic memory allocations in the config. Compilers
+and their options differ from distribution to distribution. Also the game
+version may differ. But if the object size is still the same, then there
+is a good chance to adapt by searching for the allocation in the disassembly.
 The path is relative to the config path.
+
+By now, adaption can also modify the memory size, the GameProcessName and
+the GameBinaryPath. Only memory allocations done from within the executable
+can be adapted for now.
 
 ### adapt_required 1
 
@@ -184,14 +191,16 @@ follow.
 
 ## Additional Info
 
-Dynamic memory always needs preloading (-P option). Ugtrain runs the game
-as regular user with it. Here, only the code address in the binary where
-"malloc" is called remains static. We have to find it and its location on
-the stack with information from inside the game process.
+Dynamic memory cheating always needs preloading (-P option). Ugtrain runs
+the game as regular user with it. Here, only the code address in the binary
+where "malloc" is called remains static. We have to find it and its location
+on the stack with information from inside the game process.
 See doc/ugtrain-dynmem.txt how to discover and adapt it to other versions.
 
 ### $ ugtrain -P [lib] \<config\>
 
 Ugtrain detects a position independent executable (PIE) automatically from
-its load address and converts code addresses between in-binary and
-in-memory.
+its load address and converts static memory and code addresses between
+in-binary and in-memory. Also the load address of libraries using position
+independent code (PIC) is handled like this. The only exception is that it
+is still missing for static memory.
