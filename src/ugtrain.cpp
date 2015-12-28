@@ -534,6 +534,27 @@ static void reset_terminal (void)
 	prepare_getch_nb();
 }
 
+static const char *abuse_names[] = { "steam", NULL };
+/*
+ * This can only stop noobs but that is already enough.
+ * Professionals know what they do and don't let others
+ * catch them too easily.
+ */
+static void detect_abuse (struct app_options *opt)
+{
+	i32 i;
+
+	for (i = 0; abuse_names[i] != NULL; i++) {
+		if (strcmp(opt->game_call, abuse_names[i]) == 0 ||
+		    strcmp(opt->proc_name, abuse_names[i]) == 0)
+			goto err;
+	}
+	return;
+err:
+	cerr << "Abuse detected! Cannot allow this." << endl;
+	exit(-1);
+}
+
 static pid_t run_game (struct app_options *opt, char *preload_lib)
 {
 #define SCANMEM_DELAY_S    3
@@ -548,6 +569,8 @@ static pid_t run_game (struct app_options *opt, char *preload_lib)
 	string cmd_str, game_path;
 	const char *cmd;
 	char prev_ch;
+
+	detect_abuse(opt);
 
 	if (opt->pre_cmd) {
 		if (opt->use_glc) {
