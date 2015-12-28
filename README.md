@@ -136,7 +136,7 @@ adaption can be triggered explicitly as well: <br/>
 **Dynamic Memory**
 
 * growing of objects/structures experimental, no documentation yet
-* support for allocations within a library (PIC) limited to discovery/early PIC
+* no adaption for allocations within a library (PIC) yet
 * disassembly within discovery and adaption for x86 and x86\_64 only
 * doesn't work with WINE yet
 
@@ -151,12 +151,13 @@ adaption can be triggered explicitly as well: <br/>
 
 **Packaging**
 
-* only Debian packaging for MeeGo 1.2 Harmattan (Nokia N9)
+* only Debian packaging
+* packaging is limited to PCs and MeeGo 1.2 Harmattan (Nokia N9)
 
 **Testing**
 
-* testing limited to manual tests so far
-* tests mostly based on Debian/Ubuntu distributions
+* testing is limited to manual tests so far
+* tests are mostly based on Debian/Ubuntu distributions
 
 # How to Contribute
 
