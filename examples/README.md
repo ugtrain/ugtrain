@@ -21,13 +21,6 @@ The absolute game path is optional and must end with the GameProcessCall.
 It is used to run the game. Without this it is determined with `which`
 from the GameProcessCall.
 
-### [ game_binpath GameBinaryPath ]
-
-The absolute game binary path is used for discovery as well as adaption.
-It is optional and must end with the GameProcessName. Without this the
-AbsGamePath is assumed. This is only important if the GameProcessCall is
-configured.
-
 ### [ game_params CommandLineOptions ]
 
 Sometimes it is necessary to add some game command line parameters/options
@@ -36,11 +29,12 @@ and this is the optional config entry to set them.
 
 ## General Settings
 
-### [ define MacroName LineSubstitute ]
+### [ game_binpath GameBinaryPath ]
 
-Ugtrain has single-line macro support. This means that lines containing only
-the MacroName get replaced by the LineSubstitute during parsing. This is
-especially useful for repetitive checks.
+The absolute game binary path is used for dynamic memory discovery as well
+as adaption. It is optional and must end with the GameProcessName. Without
+this the AbsGamePath is assumed. This is only important if the GameProcessCall
+is configured.
 
 ### [ dynmemfile AbsoluteFilePath ]
 
@@ -55,6 +49,12 @@ TODO: Move this to a global config.
 This configures that GNU backtrace() is used instead of the reverse stack
 offset to detect if certain dynamic memory objects are allocated. This option
 should be used for **testing only** as GNU backtrace() is slow and unreliable.
+
+### [ define MacroName LineSubstitute ]
+
+Ugtrain has single-line macro support. This means that lines containing only
+the MacroName get replaced by the LineSubstitute during parsing. This is
+especially useful for repetitive checks.
 
 
 ## Static Memory
