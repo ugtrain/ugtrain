@@ -29,13 +29,6 @@ and this is the optional config entry to set them.
 
 ## General Settings
 
-### [ game_binpath GameBinaryPath ]
-
-The absolute game binary path is used for dynamic memory discovery as well
-as adaption. It is optional and must end with the GameProcessName. Without
-this the AbsGamePath is assumed. This is only important if the GameProcessCall
-is configured.
-
 ### [ dynmemfile AbsoluteFilePath ]
 
 Sometimes `/tmp/memhack_file` containing all memory allocations recorded during
@@ -147,6 +140,13 @@ Here, the memory class is closed. Static, dynamic or pointer memory can
 follow.
 
 ## Dynamic Memory Adaption
+
+### [ game_binpath GameBinaryPath ]
+
+The absolute game binary path is used for auto-disassembly during adaption.
+It is optional and must end with the GameProcessName. Without this the
+AbsGamePath is assumed. This is only important if the GameProcessCall
+is configured.
 
 ### adapt_script RelScriptPath
 
