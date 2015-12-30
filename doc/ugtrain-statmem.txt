@@ -1,52 +1,57 @@
 === Static Memory Cheating ===
 
 Modifying static memory is very easy. Between two game runs the memory value of
-interest stays at the same memory location. In general this is everything which
-is not stored on the heap or the stack but in the .data or .bss section of the
-ELF binary instead. These have own regions in memory. Only security measures
-like ASLR/PIC/PIE make this more complex. Ugtrain supports ASLR with PIE but
-PIC (static memory in a library) isn't supported, yet. But let us start simple.
+interest stays at the same location in static memory. In general this is
+everything which is not stored on the heap or the stack but in the .data or
+.bss section of the ELF binary instead. These have own regions in memory. Only
+security measures like ASLR/PIC/PIE make this more complex. Ugtrain supports
+ASLR with PIE but PIC (static memory within a library) isn't supported, yet.
+But let us start simple.
 
-All you need is the value name, absolute memory address, value type, wish
+All you need is the value name, absolute memory address, data type, wish
 value, key bindings, the initial activation state and optional checks. The
-checks are used for stability as in game main menu these could be on invalid
-value or with a new game binary the location could have changed.
+checks are used for stability as in the main menu of the game the variables to
+be modified could have an invalid value or with a new game binary their memory
+locations could have changed.
 
-With a pure static memory config ugtrain attaches to the first running instance
-of the game. So make sure it is running when calling "ugtrain <config>".
-Otherwise, use the '-P' option to allow ugtrain to run it (recommended).
+Ugtrain always attaches to the most recently started instance of the game. Make
+sure it is running when calling "ugtrain <config>". Unfortunately, this likely
+requires root privileges and is therefore not recommended.
+Rather use the '-P' option to allow ugtrain to run the game (recommended).
 Looks like this: "ugtrain -P <config>"
 
 The value is set to its wish value every second. Ugtrain uses the syscall
-"ptrace" for that.
+"ptrace()" for that.
 
-PLEASE NOTE: ptrace likely requires root permission if not called in the same
-process group as the game. It even must be called in the parent. So letting
-ugtrain run the game with -P makes much sense!
+PLEASE NOTE: ptrace() very likely requires root privileges if not called from
+the parent process of the game. The reason for this limitation is the Yama
+security module with its 'ptrace_scope' parameter set to >= 1.
+See: https://www.kernel.org/doc/Documentation/security/Yama.txt
 
 
 === Static Memory Discovery ===
 
 We always recommend the tool "scanmem" for static memory search. It uses
-"ptrace" as well and is a very sophisticated CLI tool. If the value is
-displayed the same way it is stored, it is easy to find it by entering its
+ptrace() as well and is a very sophisticated CLI tool. If the value is
+displayed the same way it is stored, then it is easy to find it by entering its
 value as numbers into scanmem until there is a single match. The default scan
-data type is int32. Try with float if nothing is found this way.
+data type is int32. Try with "float" or "number" if nothing is found this way.
 
-Use a more recent version of scanmem in case it doesn't support the region
-type detection which is required for ASLR/PIC/PIE and is described here.
+Scanmem version >= 0.15.3 is recommended for the region type detection which is
+required for ASLR/PIC/PIE. It contains an important bugfix for latest kernels.
+The region type detection is described here.
 
 If you are guessing that there is a static bool, then try to search for 0 for
 false and 1 for true. It may take quite some cycles to reduce the number of
-matches. C++ and standard C likely use the u8 datatype for bool but there is no
-guarantee for that. If you only see a bar, then try the commands "snapshot",
+matches. C++ and standard C likely use the u8 data type for bool but there is
+no guarantee for that. If you only see a bar, then try the commands "snapshot",
 "<", ">" and "=". If the bar decreases but you can't find it with "<", try the
 inverse logic.
 
-Please note that also scanmem likely requires root permission if not run in the
-same process group as the game. This is why ugtrain supports running a process
-group in the background consisting of scanmem and the game (-S option). As
-scanmem must be the parent, this is some kind of chicken and egg problem.
+Please note that also scanmem likely requires root privileges if it is not run
+as the parent process of the game. This is why ugtrain supports running a
+process group consisting of scanmem and the game (-S option). As scanmem must
+be the parent, this is some kind of chicken and egg problem.
 
 And this is how it works:
 fork() -> [fork() -> exec() game] -> sleep(3) -> exec() scanmem
@@ -102,7 +107,7 @@ info: setting *0x7f9d7e623d44 to 0x1388...
 We see here that this is part of the executable and this is PIE here.
 So what you put into the config is the match offset 0xc3cd44. Ugtrain
 adds the load address again when running the game with PIE. Without
-PIE we would be able to put the memory address directly into the config.
+PIE, we would be able to put the memory address directly into the config.
 
 After building the research facility the value is at 4900. So we've
 found the correct memory location.
@@ -139,9 +144,10 @@ $ ugtrain -P test.conf
 Now, we see that it is 0 in main menu and 1300 upon campaign start. Now, we
 would see the latest if the variable wouldn't be static. But it is.
 
-It is okay to modify it and we only want to set it if it is lower than the
-wish value and greater than 0 or a bit greater. Let's say 10. We want to
-toggle it with the key '1' or '0' and it should be activated upon game start.
+It is okay to modify it. Let's lock it to at least 5000. We only want to set
+it if it is lower than that wish value and greater than 0 or a bit greater.
+Let's say 10. We want to toggle it with the key '1' or '0' and it should be
+activated upon game start.
 
 The new config looks like this:
 
@@ -168,7 +174,7 @@ Adapting static memory is quite difficult as the game code accesses it directly
 without a library call. We need to set a memory breakpoint with a debugger like
 "gdb" upon write to the found memory address. The moment the debugger halts the
 game process, we dump the related assembly code. The difficulty is then to find
-an unique similar code part in another binary of the game like different
+a unique similar code part in another binary of the game like different
 compiler options, distribution or other game version. There we have to extract
 the memory address it accesses. This address has to be set into the config
 afterwards. But we don't support this, yet.
