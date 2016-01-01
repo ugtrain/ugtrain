@@ -1,3 +1,26 @@
+0.3.0 (dynmem PIC release, 2016-01-01)
+* attaching to the most recently called game instance now
+* always running the game in a shell now to support spaces in paths
+* resetting the terminal if output fails
+* important stability improvements
+* enhanced error handling
+* delaying malloc() processing, checking for free()s when attached
+* libmemhack config now stored on the heap with growing
+* implemented ARM support tested on MeeGo 1.2 harmattan and Raspberry Pi
+* implemented Debian packaging for MeeGo and PCs
+* implemented support for growing memory objects
+* implemented support for memory allocations from within a library (PIC)
+* implemented single-line macro support
+* implemented bash completion for options and config files
+* backups of dump files to compare two states
+* several simplifications to improve usability a bit
+* adapt mem_size, game_binpath and proc_name
+* conversion of documentation to Markdown
+* improvements in documentation (e.g. added images)
+* many more configs (most of them without adaption)
+* anti-abuse implementation
+* license change to GPLv3
+
 0.2.0 (Dietmar release, 2014-08-01)
 * several autotools improvements
 * getting the game PID with 'pidof -s'
