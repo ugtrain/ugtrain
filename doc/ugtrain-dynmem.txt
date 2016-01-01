@@ -2,9 +2,9 @@
 
 Before you start: You should have read the static memory doc.
 
-Dynamic memory cheating always requires a preloader which loads a memory
-hacking library into the game process. Ugtrain has a preloader feature and
-"libmemhack" for that. The library gets the unique code addresses of unique
+Dynamic memory cheating with ugtrain always requires a preloader which loads a
+memory hacking library into the game process. Ugtrain has a preloader feature
+and "libmemhack" for that. The library gets the unique code addresses of unique
 "malloc()" calls and their reverse stack offsets as a config through a FIFO.
 The lib reports back through another FIFO which objects have been allocated
 to which memory addresses. It also keeps track of these memory addresses and
@@ -12,7 +12,8 @@ sends the information about the freeing of these memory objects through the
 output FIFO. This is required for stability.
 You can call this "dynamic memory spying" if you will. This is completely
 different from the default method of Cheat Engine. They follow access pointers
-to one on static memory. But static memory is difficult to adapt.
+to one on static memory. But static memory is difficult to adapt and that
+is only reliable for a single memory object.
 
 == Details ==
 
@@ -97,7 +98,7 @@ afterwards. E.g. Ubuntu uses PIE on everything since version 13.04.
 === Dynamic Memory Discovery ===
 
 For discovery another library is required ("libmemdisc"). This one takes a
-stage number and the stage parameters as config and is preloaded as well.
+stage number and the stage parameters as config. It is preloaded as well.
 
 Discovery is done in the following stages:
 
@@ -128,7 +129,7 @@ stack end. In stages 3 and 4 ugtrain finds out the code start and end for you
 for the code filter you have specified. It reads from /proc/$pid/maps to find
 them. Use "exe" to filter the backtrace output to the executable. A library
 name like e.g. "libbt_objects.so" filters the backtrace to a library. Without
-a code filter set ugtrain shows all code addresses it finds in the backtrace.
+a code filter set, ugtrain shows all code addresses it finds in the backtrace.
 Only the malloc size is important in these stages.
 
 Returns:
@@ -186,8 +187,9 @@ m0x7f776a6398e0;s8192 contains 0x7f776a639a8c, offs: 0x1ac, heap offs: 0x988410
 m0x7f776a639170;s8192 contains 0x7f776a639a8c, offs: 0x91c, heap offs: 0x987ca0
 ...
 
-This shows you that the malloc size is 288 bytes and the offset in the object
-is 0xbc (used the lives in the HeroAircraft object in Chromium B.S.U. 64 bit).
+The lives in the HeroAircraft object in Chromium B.S.U. 64 bit have been used
+here to discover this information. This shows you that the malloc size is 288
+bytes and the offset within the object is 0xbc.
 You also get to know the heap offset.
 
 Example stage 4:
@@ -208,17 +210,18 @@ Only <*@plt> direct library calls are displayed and "_Znwm" on the second
 position is exactly what to look for. It is a GNU C++ internal function
 (part of the "new" operator) which calls "malloc" internally. On 32 bit systems
 it is called "_Znwj".
-You can see the reverse stack offset is 0x28. It would be lower if "malloc"
-would have been called directly from the game binary (e.g. 0x8). You also
-get to know the jump-back code address 0x14b57.
+You get to know the jump-back code address 0x14b57 and the reverse stack offset
+0x28 here. The stack offset would be lower if "malloc" would have been called
+directly from the game executable (e.g. 0x8). The allocation is done from
+within the executable.
 
 That is it! You can write a basic config for the lives in chromium-bsu.
 Start with a watcher in order to verify that your findings are correct. It
 is often better to use the smallest possible data type. Later it can be
 possibly discovered that a larger type is used. E.g. here when letting
 too many enemies through, the lives are set to -1 (0xffffffff). When hex
-dumping this (pressing the '>' key), you would see that there is actually
-a 32 bit signed integer here.
+dumping this (pressing the '>' key), then you would see that there is
+actually a 32 bit signed integer here.
 
 chromium-bsu
 dynmemstart HeroAircraft 288 0x14b57 0x28
@@ -240,7 +243,7 @@ check 0xbc i32 g 0
 ...
 
 Here you would want the lives to be updated to 9 only if they are less than 9
-and also greater than 0. Otherwise, unexpected behavior could happen. This also
+and also greater than 0. Otherwise, unexpected behavior could occur. This also
 ensures being on the correct memory address in case of adaption.
 With the keys '1' and '0' you can toggle the activation of this value. The
 ugtrain uses non-blocking getchar() just like the Linux command "top". In the
@@ -250,14 +253,16 @@ $ ugtrain -P test.conf
 ...
 Starting game with libmemhack64.so preloaded..
 ...
-[memhack] config[0]: mem_size: 288; code_addr: 0x14b57; stack_offs: 0x28
-exe_offs: 0x7fbc12ded000
+[memhack] config[0]: mem_size: 288; code_addr: 0x14b57; stack_offs: 0x28; exe
+exe_offs: 0x7f6ceee2c000
 PIE (position independent executable) detected!
+[memhack] Config after early PIC/PIE handling:
+[memhack] config[0]: mem_size: 288; code_addr: 0x7f6ceee40b57; stack_offs: 0x28; exe
 ===> Obj. HeroAircraft created 1 time(s); now: 1
-*HeroAircraft[0] = 0x7fbc13df9f40, 1 obj.
-Lives at 0x7fbc13df9ffc, Data: 0x4 (4)
-*HeroAircraft[0] = 0x7fbc13df9f40, 1 obj.
-Lives at 0x7fbc13df9ffc, Data: 0x9 (9)
+*HeroAircraft[0] = 0x7f6cf0ca33e0, 1 obj.
+Lives at 0x7f6cf0ca349c, Data: 0x4 (4)
+*HeroAircraft[0] = 0x7f6cf0ca33e0, 1 obj.
+Lives at 0x7f6cf0ca349c, Data: 0x9 (9)
 ...
 ===> Obj. HeroAircraft freed 1 time(s); remaining: 0
 
