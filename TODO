@@ -6,7 +6,7 @@ Autotools:
 
 Config files:
 + make search paths for config files configurable
-+ support static memory and memory allocations within a library (PIC)
++ support static memory within a library (PIC)
 + provide separate config compatibility files (distribution, game version, ...)
 
 Options:
@@ -29,8 +29,9 @@ Multi-platform support:
 + add dyn. mem. support for WINE (Inline Hooking)
 
 Trainer:
-+ support PIC in dynamic memory hacking and adaption (discovery works already)
++ support PIC in adaption (discovery and hacking work already)
 + support PIC for static memory
++ support pointer following from static memory as well
 + enhance support for growing memory objects (adaption, not only realloc(), ...)
 + add keys to disable all configured values and to enable all of them
     (we can only toggle values so far)
@@ -63,8 +64,8 @@ Other:
 + evaluate "Cheat Engine" (source code) for Windows stuff
 
 Roadmap:
-0.4.0: Usability improvements
+0.4.0: Usability improvements, first GUI frontend support
 1.0.0: Full Linux support with a lot of configs for FOSS games
-2.0.0: GUI frontend support
+2.0.0: Full GUI frontend support
 3.0.0: Windows support
 4.0.0: WINE support
