@@ -193,20 +193,15 @@ i32 read_maps (pid_t pid, i32 (*callback)(struct map *map, void *data),
 	       void *data)
 {
 	FILE *maps;
-	char maps_path[128];
 	char *line = NULL;
 	size_t len = 0;
 	i32 ret = -1;
 
-	/* construct the maps file path */
-	snprintf(maps_path, sizeof(maps_path), "/proc/%u/maps", pid);
-
 	/* attempt to open the maps file */
-	maps = fopen(maps_path, "r");
-	if (!maps) {
-		fprintf(stderr, "Failed to open maps file %s.\n", maps_path);
+	ret = fopen_maps(&maps, pid);
+	if (ret)
 		goto out;
-	}
+
 	/* read every line of the maps file, parse them and call the callback */
 	while (getline(&line, &len, maps) != -1) {
 		struct map map;

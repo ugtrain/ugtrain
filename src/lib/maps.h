@@ -53,6 +53,7 @@ extern "C" {
 #if defined(__WINNT__) || defined (__WIN32__)
 static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 					size_t path_size) {}
+static inline i32 fopen_maps (FILE *maps, pid_t pid) { return -1; }
 #else
 /* Assumption: sizeof(exe_path) >= MAPS_MAX_PATH */
 static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
@@ -70,6 +71,22 @@ static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 		/* readlink() may fail for special processes, treat as empty */
 		exe_path[0] = '\0';
 	}
+}
+
+static inline i32 fopen_maps (FILE **maps, pid_t pid)
+{
+	char maps_path[128];
+
+	/* construct the maps file path */
+	snprintf(maps_path, sizeof(maps_path), "/proc/%u/maps", pid);
+
+	/* attempt to open the maps file */
+	*maps = fopen(maps_path, "r");
+	if (!*maps) {
+		fprintf(stderr, "Failed to open maps file %s.\n", maps_path);
+		return -1;
+	}
+	return 0;
 }
 #endif
 
