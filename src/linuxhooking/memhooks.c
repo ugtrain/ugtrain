@@ -29,8 +29,6 @@
 /* local includes */
 #include <common.h>
 
-#define BUF_SIZE PIPE_BUF
-
 /* Malloc hooks */
 #define HOOK_MALLOC 1
 #define HOOK_CALLOC 1

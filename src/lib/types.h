@@ -79,4 +79,11 @@ typedef uintptr_t ptr_t;
 	#define strtoptr strtoul
 #endif
 
+/* for Windows as not in limits.h */
+#ifndef PIPE_BUF
+	#define PIPE_BUF 4096
+#endif
+
+#define BUF_SIZE PIPE_BUF
+
 #endif

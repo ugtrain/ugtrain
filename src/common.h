@@ -34,11 +34,6 @@ enum grow_type {
 #define UGT_GAME_PROC_NAME     "UGT_GAME_PROC_NAME"
 #define DBG_FILE_NAME "/tmp/lib_dbg.txt"
 
-/* for Windows as not in limits.h */
-#ifndef PIPE_BUF
-	#define PIPE_BUF 4096
-#endif
-
 /* Common macros */
 #define PTR_ADD(type, x, y)  (type) ((ptr_t)x + (ptr_t)y)
 #define PTR_ADD2(type, x, y, z)  (type) ((ptr_t)x + (ptr_t)y + (ptr_t)z)

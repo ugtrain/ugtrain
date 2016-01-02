@@ -36,7 +36,6 @@
 #include "libcommon.h"
 
 #define PFX "[memhack] "
-#define BUF_SIZE PIPE_BUF
 #define DYNMEM_IN  "/tmp/memhack_in"
 #define DYNMEM_OUT "/tmp/memhack_out"
 
