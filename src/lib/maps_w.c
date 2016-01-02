@@ -17,6 +17,11 @@
 #include "maps.h"
 
 
+i32 write_maps_to_file (const char *path, pid_t pid)
+{
+	return -1;
+}
+
 const char *region_type_names[] = REGION_TYPE_NAMES;
 
 /*

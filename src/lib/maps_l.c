@@ -28,6 +28,49 @@
 /* local includes */
 #include "maps.h"
 
+/*
+ * Read all maps from /proc/pid/maps as is and write
+ * them to the given file
+ *
+ * returns:
+ *  0: everything successfully read and written,
+ * -1: fopen(), fread() or fwrite() error
+ */
+i32 write_maps_to_file (const char *path, pid_t pid)
+{
+	FILE *maps, *ofile;
+	char buf[BUF_SIZE];
+	size_t nread, nwritten;
+	i32 ret = -1;
+
+	/* attempt to open the maps file */
+	ret = fopen_maps(&maps, pid);
+	if (ret)
+		goto out;
+	ret = -1;
+	/* attempt to open the output file */
+	ofile = fopen(path, "w");
+	if (!ofile) {
+		fprintf(stderr, "Failed to open output file %s.\n", path);
+		goto close_in;
+	}
+	do {
+		nread = fread(buf, sizeof(buf), 1, maps);
+		if (nread < 1 && ferror(maps))
+			goto close_all;
+		nwritten = fwrite(buf, sizeof(buf), 1, ofile);
+		if (nwritten < 1 && ferror(ofile))
+			goto close_all;
+	} while (!feof(maps));
+
+	ret = 0;
+close_all:
+	fclose(ofile);
+close_in:
+	fclose(maps);
+out:
+	return ret;
+}
 
 const char *region_type_names[] = REGION_TYPE_NAMES;
 
