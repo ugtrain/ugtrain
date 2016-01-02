@@ -16,6 +16,7 @@
 #include <stdio.h>
 
 // local includes
+#include <lib/maps.h>
 #include <lib/memattach.h>
 #include <common.h>
 #include <commont.cpp>
@@ -110,11 +111,36 @@ err:
 	return;
 }
 
+static inline void dump_maps (pid_t pid)
+{
+	i32 fd, ret;
+	string fname = "maps.dump.txt";
+	string backup = "maps~.dump.txt";
+
+	// store a backup if file exists for keeping two states to compare
+	fd = open(fname.c_str(), O_RDONLY);
+	if (fd >= 0) {
+		close(fd);
+		ret = rename(fname.c_str(), backup.c_str());
+		if (ret) {
+			cerr << "renaming " << fname << " to "
+			     << backup << " failed!" << endl;
+			goto out;
+		}
+	}
+	cout << ">>> Dumping memory maps to " << fname << endl;
+	write_maps_to_file(fname.c_str(), pid);
+out:
+	return;
+}
+
 void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 {
 	DynMemEntry *old_dynmem = NULL;
 	u32 class_id = 0, obj_id = 0, ptr_id = 0, i;
 	list<CfgEntry>::iterator it;
+
+	dump_maps(pid);
 
 	list_for_each (cfg, it) {
 		if (it->dynmem && it->dynmem != old_dynmem) {
