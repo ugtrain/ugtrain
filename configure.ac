@@ -40,6 +40,14 @@ AC_PROG_CC
 AM_PROG_CC_STDC
 AM_PROG_CC_C_O
 
+# Detect host CPU
+bits64="no"
+case $host_cpu in
+  x86_64)
+    bits64="yes"
+    ;;
+esac
+
 # Detect host OS
 linux="no"
 case "$host_os" in
@@ -91,14 +99,6 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE(
     [has_m64="no"; echo no])
 CXXFLAGS=""
 AC_LANG_POP([C++])
-
-# Check for 64-bit CPU
-bits64="no"
-case $target_cpu in
-  x86_64)
-    bits64="yes"
-    ;;
-esac
 
 # Test multilib compile
 if test "$enable_multilib" != "no" -a bits64 != "no"; then
