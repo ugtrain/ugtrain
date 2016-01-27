@@ -1,6 +1,6 @@
 /* memhooks.c:    hooking memory allocation functions
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -69,33 +69,71 @@ extern void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr);
 extern void preprocess_free (ptr_t mem_addr);
 extern void postprocess_dlopen (const char *lib_path);
 
+/* get e.g. the original malloc() as __orig() */
+#define GET_DLSYM(__name_str)						\
+	*(void **)(&__orig) = dlsym(RTLD_NEXT, __name_str)
+
+/* universal function hooking template */
+#define __HOOK_FUNCTION(__type, __name, __name_str, __params,		\
+			__raw_params, __vars, __ret1, __ret2,		\
+			__no_hook_code, __pre_code, __post_code)	\
+__type __name (__params)						\
+{									\
+	__vars								\
+	static void *(*__orig)(__params) = NULL;			\
+									\
+	if (no_hook) {							\
+		if (!__orig) {						\
+			__no_hook_code					\
+		}							\
+		__ret1 __orig(__raw_params);				\
+		return __ret2;						\
+	}								\
+									\
+	/* get the original libc function */				\
+	no_hook = true;							\
+	__pre_code							\
+									\
+	if (!__orig)							\
+		GET_DLSYM(__name_str);					\
+									\
+	__ret1 __orig(__raw_params);					\
+									\
+	__post_code							\
+	no_hook = false;						\
+									\
+	return __ret2;							\
+}
+
+/* __HOOK_FUNCTION() with default __no_hook_code */
+#define _HOOK_FUNCTION(__type, __name, __name_str, __params,		\
+		       __raw_params, __vars, __ret1, __ret2,		\
+		       __pre_code, __post_code)				\
+	__HOOK_FUNCTION(						\
+		__type, __name, __name_str, __params,			\
+		__raw_params, __vars, __ret1, __ret2,			\
+		GET_DLSYM(__name_str);,					\
+		__pre_code, __post_code					\
+	)
+
+/* hook any function with malloc() type and parameters */
+#define HOOK_MALLOC_FUNCTION(__name, __name_str)			\
+	_HOOK_FUNCTION(							\
+		void *, __name, __name_str, size_t size, size,		\
+		ptr_t ffp = (ptr_t)FIRST_FRAME_POINTER;			\
+		void *mem_addr;,					\
+		mem_addr =, mem_addr,					\
+		/* no pre code */,					\
+		postprocess_malloc(ffp, size, (ptr_t)mem_addr);		\
+	)
+
 /* void *malloc (size_t size); */
 /* void *calloc (size_t nmemb, size_t size); */
 /* void *realloc (void *ptr, size_t size); */
 /* void free (void *ptr); */
 
 #ifdef HOOK_MALLOC
-void *malloc (size_t size)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	void *mem_addr;
-	static void *(*orig_malloc)(size_t size) = NULL;
-
-	if (no_hook)
-		return orig_malloc(size);
-
-	/* get the libc malloc function */
-	no_hook = true;
-	if (!orig_malloc)
-		*(void **) (&orig_malloc) = dlsym(RTLD_NEXT, "malloc");
-
-	mem_addr = orig_malloc(size);
-
-	postprocess_malloc(ffp, size, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+HOOK_MALLOC_FUNCTION(malloc, "malloc")
 #endif
 
 #ifdef HOOK_CALLOC
