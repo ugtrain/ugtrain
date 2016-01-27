@@ -159,7 +159,7 @@ static void *stat_calloc (size_t size) {
 	static off_t offs = 0;
 	void *mem_addr;
 
-	mem_addr = (void *) (stat_calloc_space + offs);
+	mem_addr = (void *)(stat_calloc_space + offs);
 	offs += size;
 
 	if (offs >= sizeof(stat_calloc_space)) {
@@ -169,39 +169,23 @@ static void *stat_calloc (size_t size) {
 	return mem_addr;
 }
 
-void *calloc (size_t nmemb, size_t size)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
+#define CALLOC_PARAMS		size_t nmemb, size_t size
+#define CALLOC_RAW_PARAMS	nmemb, size
+__HOOK_FUNCTION(
+	void *, calloc, "calloc", CALLOC_PARAMS, CALLOC_RAW_PARAMS,
+	ptr_t ffp = (ptr_t)FIRST_FRAME_POINTER;
 	void *mem_addr;
 	size_t full_size = nmemb * size;
-	static void *stat_addr = NULL;
-	static void *(*orig_calloc)(size_t nmemb, size_t size) = NULL;
-
-	if (no_hook) {
-		if (!orig_calloc) {
-			if (stat_addr) {
-				*(void **) (&orig_calloc) =
-					dlsym(RTLD_NEXT, "calloc");
-			} else {
-				stat_addr = stat_calloc(full_size);
-				return stat_addr;
-			}
-		}
-		return orig_calloc(nmemb, size);
-	}
-
-	/* get the libc calloc function */
-	no_hook = true;
-	if (!orig_calloc)
-		*(void **) (&orig_calloc) = dlsym(RTLD_NEXT, "calloc");
-
-	mem_addr = orig_calloc(nmemb, size);
-
-	postprocess_malloc(ffp, full_size, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+	static void *stat_addr = NULL;,
+	mem_addr =, mem_addr,
+	if (stat_addr) {
+		GET_DLSYM("calloc");
+	} else {
+		stat_addr = stat_calloc(full_size);
+		return stat_addr;
+	}, /* no pre code */,
+	postprocess_malloc(ffp, full_size, (ptr_t)mem_addr);
+)
 #endif
 
 #ifdef HOOK_REALLOC
