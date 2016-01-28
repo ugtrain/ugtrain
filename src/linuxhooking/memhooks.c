@@ -189,49 +189,26 @@ __HOOK_FUNCTION(
 #endif
 
 #ifdef HOOK_REALLOC
-void *realloc (void *ptr, size_t size)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	void *mem_addr;
-	static void *(*orig_realloc)(void *ptr, size_t size) = NULL;
-
-	if (no_hook)
-		return orig_realloc(ptr, size);
-
-	no_hook = true;
-	preprocess_free((ptr_t) ptr);
-	/* get the libc realloc function */
-	if (!orig_realloc)
-		*(void **) (&orig_realloc) = dlsym(RTLD_NEXT, "realloc");
-
-	mem_addr = orig_realloc(ptr, size);
-
-	postprocess_malloc(ffp, size, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+#define REALLOC_PARAMS		void *ptr, size_t size
+#define REALLOC_RAW_PARAMS	ptr, size
+__HOOK_FUNCTION(
+	void *, realloc, "realloc", REALLOC_PARAMS, REALLOC_RAW_PARAMS,
+	ptr_t ffp = (ptr_t)FIRST_FRAME_POINTER;
+	void *mem_addr;,
+	mem_addr =, mem_addr,
+	GET_DLSYM("realloc");,
+	preprocess_free((ptr_t)ptr);,
+	postprocess_malloc(ffp, size, (ptr_t)mem_addr);
+)
 #endif
 
 #ifdef HOOK_FREE
-void free (void *ptr)
-{
-	static void (*orig_free)(void *ptr) = NULL;
-
-	if (no_hook) {
-		orig_free(ptr);
-		return;
-	}
-
-	no_hook = true;
-	preprocess_free((ptr_t) ptr);
-	/* get the libc free function */
-	if (!orig_free)
-		*(void **) (&orig_free) = dlsym(RTLD_NEXT, "free");
-
-	orig_free(ptr);
-	no_hook = false;
-}
+_HOOK_FUNCTION(
+	void, free, "free", void *ptr, ptr,
+	/* no vars */,;,;,
+	preprocess_free((ptr_t) ptr);,
+	/* no post code */
+)
 #endif
 
 /* late PIC handling */
