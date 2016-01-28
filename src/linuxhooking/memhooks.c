@@ -206,32 +206,23 @@ __HOOK_FUNCTION(
 _HOOK_FUNCTION(
 	void, free, "free", void *ptr, ptr,
 	/* no vars */,;,;,
-	preprocess_free((ptr_t) ptr);,
+	preprocess_free((ptr_t)ptr);,
 	/* no post code */
 )
 #endif
 
 /* late PIC handling */
 #ifdef HOOK_DLOPEN
-void *dlopen (const char *filename, int flag)
-{
-	void *handle;
-	static void *(*orig_dlopen)(const char *filename, int flag) = NULL;
-
-	if (no_hook)
-		return orig_dlopen(filename, flag);
-
-	no_hook = true;
-	/* get the libdl dlopen function */
-	if (!orig_dlopen)
-		*(void **) (&orig_dlopen) = dlsym(RTLD_NEXT, "dlopen");
-
-	handle = orig_dlopen(filename, flag);
+#define DLOPEN_PARAMS		const char *filename, int flag
+#define DLOPEN_RAW_PARAMS	filename, flag
+__HOOK_FUNCTION(
+	void *, dlopen, "dlopen", DLOPEN_PARAMS, DLOPEN_RAW_PARAMS,
+	void *handle;,
+	handle =, handle,
+	GET_DLSYM("dlopen");,
+	/* no pre code */,
 	postprocess_dlopen(filename);
-	no_hook = false;
-
-	return handle;
-}
+)
 #endif
 
 
