@@ -229,6 +229,17 @@ __HOOK_FUNCTION(
 /* Glib hooks */
 #ifdef HAVE_GLIB
 
+/* hook any function with g_malloc() type and parameters */
+#define HOOK_G_MALLOC_FUNCTION(__name, __name_str)			\
+	_HOOK_FUNCTION(							\
+		gpointer, __name, __name_str, gsize n_bytes, n_bytes,	\
+		ptr_t ffp = (ptr_t)FIRST_FRAME_POINTER;			\
+		gpointer mem_addr;,					\
+		mem_addr =, mem_addr,					\
+		/* no pre code */,					\
+		postprocess_malloc(ffp, n_bytes, (ptr_t)mem_addr);	\
+	)
+
 /* gpointer g_malloc (gsize n_bytes); */
 /* gpointer g_malloc0 (gsize n_bytes); */
 /* gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes) */
@@ -239,196 +250,70 @@ __HOOK_FUNCTION(
 /* gpointer g_slice_free1 (gsize block_size, gpointer mem_block); */
 
 #ifdef HOOK_G_MALLOC
-gpointer g_malloc (gsize n_bytes)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	gpointer mem_addr;
-	static gpointer (*orig_g_malloc)(gsize n_bytes) = NULL;
-
-	if (no_hook)
-		return orig_g_malloc(n_bytes);
-
-	/* get the glib g_malloc function */
-	no_hook = true;
-	if (!orig_g_malloc)
-		*(void **) (&orig_g_malloc) = dlsym(RTLD_NEXT, "g_malloc");
-
-	mem_addr = orig_g_malloc(n_bytes);
-
-	postprocess_malloc(ffp, n_bytes, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+HOOK_G_MALLOC_FUNCTION(g_malloc, "g_malloc")
 #endif
 
 #ifdef HOOK_G_MALLOC0
-gpointer g_malloc0 (gsize n_bytes)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	gpointer mem_addr;
-	static gpointer (*orig_g_malloc0)(gsize n_bytes) = NULL;
-
-	if (no_hook)
-		return orig_g_malloc0(n_bytes);
-
-	/* get the glib g_malloc0 function */
-	no_hook = true;
-	if (!orig_g_malloc0)
-		*(void **) (&orig_g_malloc0) = dlsym(RTLD_NEXT, "g_malloc0");
-
-	mem_addr = orig_g_malloc0(n_bytes);
-
-	postprocess_malloc(ffp, n_bytes, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+HOOK_G_MALLOC_FUNCTION(g_malloc0, "g_malloc0")
 #endif
 
+#define G_MALLOC_N_PARAMS	gsize n_blocks, gsize n_block_bytes
+#define G_MALLOC_N_RAW_PARAMS	n_blocks, n_block_bytes
+
 #ifdef HOOK_G_MALLOC_N
-gpointer g_malloc_n (gsize n_blocks, gsize n_block_bytes)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	gpointer mem_addr;
-	static gpointer (*orig_g_malloc_n)
-		(gsize n_blocks, gsize n_block_bytes) = NULL;
-
-	if (no_hook)
-		return orig_g_malloc_n(n_blocks, n_block_bytes);
-
-	/* get the glib g_malloc_n function */
-	no_hook = true;
-	if (!orig_g_malloc_n)
-		*(void **) (&orig_g_malloc_n) = dlsym(RTLD_NEXT, "g_malloc_n");
-
-	mem_addr = orig_g_malloc_n(n_blocks, n_block_bytes);
-
-	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+__HOOK_FUNCTION(
+	gpointer, g_malloc_n, "g_malloc_n", G_MALLOC_N_PARAMS,
+	G_MALLOC_N_RAW_PARAMS,
+	ptr_t ffp = (ptr_t)FIRST_FRAME_POINTER;
+	gpointer mem_addr;,
+	mem_addr =, mem_addr,
+	GET_DLSYM("g_malloc_n");,
+	/* no pre code */,
+	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t)mem_addr);
+)
 #endif
 
 #ifdef HOOK_G_MALLOC0_N
-gpointer g_malloc0_n (gsize n_blocks, gsize n_block_bytes)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	gpointer mem_addr;
-	static gpointer (*orig_g_malloc0_n)
-		(gsize n_blocks, gsize n_block_bytes) = NULL;
-
-	if (no_hook)
-		return orig_g_malloc0_n(n_blocks, n_block_bytes);
-
-	/* get the glib g_malloc0_n function */
-	no_hook = true;
-	if (!orig_g_malloc0_n)
-		*(void **) (&orig_g_malloc0_n) =
-			dlsym(RTLD_NEXT, "g_malloc0_n");
-
-	mem_addr = orig_g_malloc0_n(n_blocks, n_block_bytes);
-
-	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+__HOOK_FUNCTION(
+	gpointer, g_malloc0_n, "g_malloc0_n", G_MALLOC_N_PARAMS,
+	G_MALLOC_N_RAW_PARAMS,
+	ptr_t ffp = (ptr_t)FIRST_FRAME_POINTER;
+	gpointer mem_addr;,
+	mem_addr =, mem_addr,
+	GET_DLSYM("g_malloc0_n");,
+	/* no pre code */,
+	postprocess_malloc(ffp, n_blocks * n_block_bytes, (ptr_t)mem_addr);
+)
 #endif
 
 #ifdef HOOK_G_FREE
-void g_free (gpointer mem)
-{
-	static void (*orig_g_free)(gpointer mem) = NULL;
-
-	if (no_hook) {
-		orig_g_free(mem);
-		return;
-	}
-
-	no_hook = true;
-	preprocess_free((ptr_t) mem);
-	/* get the glib g_free function */
-	if (!orig_g_free)
-		*(void **) (&orig_g_free) = dlsym(RTLD_NEXT, "g_free");
-
-	orig_g_free(mem);
-	no_hook = false;
-}
+_HOOK_FUNCTION(
+	void, g_free, "g_free", gpointer mem, mem,
+	/* no vars */,;,;,
+	preprocess_free((ptr_t)mem);,
+	/* no post code */
+)
 #endif
 
 #ifdef HOOK_G_SLICE_ALLOC
-gpointer g_slice_alloc (gsize block_size)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	gpointer mem_addr;
-	static gpointer (*orig_g_slice_alloc)(gsize block_size) = NULL;
-
-	if (no_hook)
-		return orig_g_slice_alloc(block_size);
-
-	/* get the glib g_slice_alloc function */
-	no_hook = true;
-	if (!orig_g_slice_alloc)
-		*(void **) (&orig_g_slice_alloc) =
-			dlsym(RTLD_NEXT, "g_slice_alloc");
-
-	mem_addr = orig_g_slice_alloc(block_size);
-
-	postprocess_malloc(ffp, block_size, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+HOOK_G_MALLOC_FUNCTION(g_slice_alloc, "g_slice_alloc")
 #endif
 
 #ifdef HOOK_G_SLICE_ALLOC0
-gpointer g_slice_alloc0 (gsize block_size)
-{
-	ptr_t ffp = (ptr_t) FIRST_FRAME_POINTER;
-	gpointer mem_addr;
-	static gpointer (*orig_g_slice_alloc0)(gsize block_size) = NULL;
-
-	if (no_hook)
-		return orig_g_slice_alloc0(block_size);
-
-	/* get the glib g_slice_alloc0 function */
-	no_hook = true;
-	if (!orig_g_slice_alloc0)
-		*(void **) (&orig_g_slice_alloc0) =
-			dlsym(RTLD_NEXT, "g_slice_alloc0");
-
-	mem_addr = orig_g_slice_alloc0(block_size);
-
-	postprocess_malloc(ffp, block_size, (ptr_t) mem_addr);
-	no_hook = false;
-
-	return mem_addr;
-}
+HOOK_G_MALLOC_FUNCTION(g_slice_alloc0, "g_slice_alloc0")
 #endif
 
 #ifdef HOOK_G_SLICE_FREE1
-void g_slice_free1 (gsize block_size, gpointer mem_block)
-{
-	static void (*orig_g_slice_free1)
-		(gsize block_size, gpointer mem_block) = NULL;
-
-	if (no_hook) {
-		orig_g_slice_free1(block_size, mem_block);
-		return;
-	}
-
-	no_hook = true;
-	preprocess_free((ptr_t) mem_block);
-	/* get the glib g_slice_free1 function */
-	if (!orig_g_slice_free1)
-		*(void **) (&orig_g_slice_free1) =
-			dlsym(RTLD_NEXT, "g_slice_free1");
-
-	orig_g_slice_free1(block_size, mem_block);
-	no_hook = false;
-}
+#define G_SLICE_FREE1_PARAMS		gsize block_size, gpointer mem_block
+#define G_SLICE_FREE1_RAW_PARAMS	block_size, mem_block
+__HOOK_FUNCTION(
+	void, g_slice_free1, "g_slice_free1", G_SLICE_FREE1_PARAMS,
+	G_SLICE_FREE1_RAW_PARAMS,
+	/* no vars */,;,;,
+	GET_DLSYM("g_slice_free1");,
+	preprocess_free((ptr_t)mem_block);,
+	/* no post code */
+)
 #endif
 
 #endif /* HAVE_GLIB */
