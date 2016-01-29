@@ -31,6 +31,8 @@
 
 /* Malloc hooks */
 #define HOOK_MALLOC 1
+#define HOOK__ZNWM 1
+#define HOOK__ZNWJ 1
 #define HOOK_CALLOC 1
 #define HOOK_REALLOC 1
 #define HOOK_FREE 1
@@ -90,10 +92,10 @@ __type __name (__params)						\
 		return __ret2;						\
 	}								\
 									\
-	/* get the original libc function */				\
 	no_hook = true;							\
 	__pre_code							\
 									\
+	/* get the original libc function */				\
 	if (!__orig)							\
 		GET_DLSYM(__name_str);					\
 									\
@@ -134,6 +136,16 @@ __type __name (__params)						\
 
 #ifdef HOOK_MALLOC
 HOOK_MALLOC_FUNCTION(malloc, "malloc")
+#endif
+
+/* C++ "new" operator 64-bit */
+#ifdef HOOK__ZNWM
+HOOK_MALLOC_FUNCTION(_Znwm, "_Znwm")
+#endif
+
+/* C++ "new" operator 32-bit */
+#ifdef HOOK__ZNWJ
+HOOK_MALLOC_FUNCTION(_Znwj, "_Znwj")
 #endif
 
 #ifdef HOOK_CALLOC
