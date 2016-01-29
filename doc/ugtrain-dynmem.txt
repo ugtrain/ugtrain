@@ -140,7 +140,7 @@ the object, 's' is the size in bytes
 2. "m0x87acd0;s288"
 3. "m0x87acd0;s288;c0x40f4e7;c0x417801"
 --> 'c' is the code address in the backtrace
-4. "m0x87acd0;s288;c0x40f4e7;o0x28;c0x417801;o0x48"
+4. "m0x87acd0;s288;c0x40f4e7;o0x8;c0x417801;o0x28"
 --> 'o' is the reverse stack offset of the code address
 
 The results are written with caching directly from /tmp/memhack_out into the
@@ -199,21 +199,20 @@ $ ugtrain -D "4;288" -S test.conf
 Memory address (e.g. 0xdeadbeef): 0x7fb14577b95c
 Searching reverse for 0x7fb14577b95c in discovery output..
 m0x7fb14577b8a0;s288 contains 0x7fb14577b95c, offs: 0xbc, heap offs: 0x97e5b0
-c0x5ef2d;o0x8 libstdc++.so.6.0.19 <malloc@plt>
-c0x14b57;o0x28 chromium-bsu <_Znwm@plt>
-c0x1d667;o0x48 chromium-bsu
+c0x14b57;o0x8 chromium-bsu <_Znwm@plt>
+c0x1d667;o0x28 chromium-bsu
 
 The names of libraries and the executable are only shown if their code addresses
 are found on the stack. Their load address is subtracted automatically from
 their found code addresses then.
-Only <*@plt> direct library calls are displayed and "_Znwm" on the second
+Only <*@plt> direct library calls are displayed and "_Znwm" on the first
 position is exactly what to look for. It is a GNU C++ internal function
 (part of the "new" operator) which calls "malloc" internally. On 32 bit systems
 it is called "_Znwj".
 You get to know the jump-back code address 0x14b57 and the reverse stack offset
-0x28 here. The stack offset would be lower if "malloc" would have been called
-directly from the game executable (e.g. 0x8). The allocation is done from
-within the executable.
+0x8 here. The stack offset is low and always the same as _Znwm() and _Znwj()
+are hooked additionally to malloc(). The allocation is done from within the
+executable.
 
 That is it! You can write a basic config for the lives in chromium-bsu.
 Start with a watcher in order to verify that your findings are correct. It
@@ -224,7 +223,7 @@ dumping this (pressing the '>' key), then you would see that there is
 actually a 32 bit signed integer here.
 
 chromium-bsu
-dynmemstart HeroAircraft 288 0x14b57 0x28
+dynmemstart HeroAircraft 288 0x14b57 0x8
 Lives 0xbc i32 watch
 dynmemend
 
@@ -253,11 +252,11 @@ $ ugtrain -P test.conf
 ...
 Starting game with libmemhack64.so preloaded..
 ...
-[memhack] config[0]: mem_size: 288; code_addr: 0x14b57; stack_offs: 0x28; exe
+[memhack] config[0]: mem_size: 288; code_addr: 0x14b57; stack_offs: 0x8; exe
 exe_offs: 0x7f6ceee2c000
 PIE (position independent executable) detected!
 [memhack] Config after early PIC/PIE handling:
-[memhack] config[0]: mem_size: 288; code_addr: 0x7f6ceee40b57; stack_offs: 0x28; exe
+[memhack] config[0]: mem_size: 288; code_addr: 0x7f6ceee40b57; stack_offs: 0x8; exe
 ===> Obj. HeroAircraft created 1 time(s); now: 1
 *HeroAircraft[0] = 0x7f6cf0ca33e0, 1 obj.
 Lives at 0x7f6cf0ca349c, Data: 0x4 (4)
@@ -405,7 +404,7 @@ so that you do not get bothered with the adaption wish again.
 
 ...
 Class HeroAircraft:
-old_offs: 0x28, new_offs: 0x28
+old_offs: 0x8, new_offs: 0x8
 Discovery successful!
 Writing back config..
 ...
