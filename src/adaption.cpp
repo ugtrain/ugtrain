@@ -1,6 +1,6 @@
 /* adaption.cpp:    adapt the config by running a script
  *
- * Copyright (c) 2012..2014 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -50,8 +50,8 @@ static i32 write_config_vect (char *path, vector<string> *lines)
 	return 0;
 }
 
-i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
-		       vector<string> *lines)
+static i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
+			     vector<string> *lines)
 {
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
