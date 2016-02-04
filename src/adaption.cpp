@@ -64,8 +64,6 @@ i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 		tmp = cfg_it->dynmem;
 		tmp->mem_size = tmp->adp_size;
 		tmp->code_addr = tmp->adp_addr;
-		if (tmp->adp_soffs)
-			tmp->stack_offs = tmp->adp_soffs;
 		lnr = tmp->cfg_line;
 		lines->at(lnr) = "dynmemstart " + tmp->name + " "
 			+ to_string(tmp->mem_size) + " 0x"
@@ -290,22 +288,9 @@ i32 process_adaption (struct app_options *opt, list<CfgEntry> *cfg,
 			     << endl;
 			goto out;
 		}
-		if (opt->use_gbt) {
-			ret = take_over_config(opt, cfg, lines);
-			if (ret)
-				goto out;
-		} else {
-			cout << "Adapt reverse stack offset(s) (y/n)? : ";
-			fflush(stdout);
-			ch = 'n';
-			ch = do_getch();
-			cout << ch << endl;
-			if (ch != 'y') {
-				ret = take_over_config(opt, cfg, lines);
-				if (ret)
-					goto out;
-			}
-		}
+		ret = take_over_config(opt, cfg, lines);
+		if (ret)
+			goto out;
 	}
 out:
 	return ret;
