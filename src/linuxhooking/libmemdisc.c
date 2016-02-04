@@ -1,6 +1,6 @@
 /* libmemdisc.c:    discovery of an unique malloc call
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -361,7 +361,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		pr_dbg("ptr_cfg: %zd;" PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
 			ptr_cfg.mem_size, ptr_cfg.code_addr,
 			ptr_cfg.stack_offs, ptr_cfg.ptr_offs);
-	} else if (ibuf[0] >= '1' && ibuf[0] <= '5') {
+	} else if (ibuf[0] >= '1' && ibuf[0] <= '4') {
 		READ_STAGE_CFG();
 		ioffs = 0;
 	}
@@ -440,24 +440,16 @@ void __attribute ((constructor)) memdisc_init (void)
 		pr_dbg("stage 3 cfg: %zd\n", malloc_size);
 		break;
 	/*
-	 * stage 4/5: Get the reverse stack offset  (not for GNU backtrace)
+	 * stage 4: Get the reverse stack offset  (not for GNU backtrace)
 	 *
 	 *	We can use this stage directly and skip stage 3 if we aren't
 	 *	using GNU backtrace. Reverse stack offsets are determined
 	 *	relative to the current stack frame pointer. The advantage of
 	 *	knowing the reverse stack offset is that we can directly check
 	 *	in libmemhack if the code address is at this location which
-	 *	gives us better performance and stability. But the downside is
-	 *	that we have to do one more step to discover and adapt them.
-	 *
-	 *	The difference between the stages 4 and 5 can only be found in
-	 *	ugtrain. Stage 5 is used for the automatic adaption there
-	 *	instead of initial discovery. For successful adaption we need
-	 *	to trigger allocation of at least one memory object per class
-	 *	in the game.
+	 *	gives us better performance and stability.
 	 */
 	case '4':
-	case '5':
 		ioffs += 1;
 		if (parse_bt_filter(ibuf, &ioffs))
 			goto parse_err;
