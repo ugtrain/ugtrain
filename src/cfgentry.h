@@ -1,6 +1,6 @@
 /* cfgentry.h:     classes for config read from a file
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -58,7 +58,6 @@ public:
 	// adaption
 	u32  adp_size;                // adapted object size
 	ptr_t adp_addr;               // adapted code address
-	ptr_t adp_soffs;              // adapted reverse stack offset
 	u32 cfg_line;                 // to write back new cfg
 };
 

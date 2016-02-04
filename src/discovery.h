@@ -1,6 +1,6 @@
 /* discovery.h:    discover dynamic memory objects
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -28,17 +28,10 @@
 #include <common.h>
 #include <options.h>
 
-#define DISC_EXIT	0
-#define DISC_NEXT	1
-#define DISC_OKAY	2
-
 i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
 void process_discovery  (struct app_options *opt, list<CfgEntry> *cfg,
 			 i32 ifd, i32 dfd, i32 ofd, i32 pid,
 			 struct list_head *rlist);
-void run_stage1234_loop (void *argp);
-void run_stage5_loop    (list<CfgEntry> *cfg, i32 ifd, i32 dfd, i32 pmask,
-			 pid_t pid, ptr_t code_offs);
 i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 			 struct list_head *rlist, vector<string> *lines);
 

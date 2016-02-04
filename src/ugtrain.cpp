@@ -1,6 +1,6 @@
 /* ugtrain.cpp:    lock values in process memory (game trainer)
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -1019,11 +1019,9 @@ i32 main (i32 argc, char **argv, char **env)
 	if (ret)
 		return ret;
 
-discover_next:
 	if (prepare_discovery(opt, cfg) != 0)
 		return -1;
 
-prepare_dynmem:
 	ret = prepare_dynmem(opt, cfg, &ifd, &ofd, &dfd, &pid);
 	if (ret == 2) {
 		opt->pure_statmem = true;
@@ -1052,19 +1050,8 @@ prepare_dynmem:
 		process_discovery(opt, cfg, ifd, dfd, ofd, pid, &rlist);
 		//list_regions(&rlist);
 		ret = postproc_discovery(opt, cfg, &rlist, lines);
-		switch (ret) {
-		case DISC_NEXT:
-			goto discover_next;
-			break;
-		case DISC_OKAY:
-			pmask = PARSE_S | PARSE_C;
-			goto prepare_dynmem;
-			break;
-		case DISC_EXIT:
-			break;
-		default:
+		if (ret)
 			return -1;
-		}
 	} else if (opt->scanmem_pid > 0) {
 		wait_orphan(pid, opt->proc_name);
 		wait_proc(opt->scanmem_pid);

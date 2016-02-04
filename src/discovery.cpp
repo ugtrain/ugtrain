@@ -1,6 +1,6 @@
 /* discovery.cpp:    discover dynamic memory objects
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -43,62 +43,6 @@
 #define MAX_MATCHES 15
 #define DISC_DEBUG 0
 
-
-static void process_stage5_result (DynMemEntry *dynmem)
-{
-	cout << "Class " << dynmem->name << ":" << endl;
-	cout << "old_offs: 0x" << hex << dynmem->stack_offs
-	     << ", new_offs: 0x" << dynmem->adp_soffs << dec << endl;
-}
-
-static i32 postproc_stage5 (struct app_options *opt, list<CfgEntry> *cfg,
-			    vector<string> *lines)
-{
-	list<CfgEntry>::iterator cfg_it;
-	DynMemEntry *tmp = NULL;
-	bool discovered = false;
-	char ch;
-	i32 ret;
-
-	list_for_each (cfg, cfg_it) {
-		if (!cfg_it->dynmem || cfg_it->dynmem == tmp)
-			continue;
-		tmp = cfg_it->dynmem;
-
-		if (tmp->adp_addr && opt->disc_addr == tmp->adp_addr &&
-		    tmp->adp_soffs) {
-			process_stage5_result(tmp);
-			discovered = true;
-			continue;
-		}
-		if (!(tmp->adp_addr && tmp->adp_soffs)) {
-			if (discovered) {
-				cout << "Continue with class " << tmp->name
-				     << " (y/n)? : ";
-				fflush(stdout);
-				ch = 'n';
-				ch = do_getch();
-				cout << ch << endl;
-				if (ch == 'y') {
-					opt->disc_str[1] = '\0';
-					return DISC_NEXT;
-				} else {
-					goto out_wb;
-				}
-			}
-			cerr << "Discovery failed!" << endl;
-			return -1;
-		}
-	}
-	cout << "Discovery successful!" << endl;
-
-out_wb:
-	// Take over discovery
-	ret = take_over_config(opt, cfg, lines);
-	if (ret)
-		return ret;
-	return DISC_OKAY;
-}
 
 // read a text file with a disassembly included and
 // search for a library function call in front of the code address
@@ -340,57 +284,7 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 {
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
 		return postproc_stage1234(opt, cfg, rlist);
-	if (opt->disc_str[0] != '5')
-		return -1;
-	return postproc_stage5(opt, cfg, lines);
-}
-
-// mf() callback for read_dynmem_buf()
-static void process_disc5_output (MF_PARAMS)
-{
-	list<CfgEntry>::iterator it;
-
-	code_addr -= code_offs;
-	cout << "Discovery output: " << endl;
-	cout << "m0x" << hex << mem_addr << dec << ";s"
-	     << mem_size << ";c0x" << hex << code_addr
-	     << ";o0x" << stack_offs << dec << endl;
-
-	// find object and set adp_soffs
-	list_for_each (cfg, it) {
-		if (it->dynmem &&
-		    it->dynmem->adp_addr == code_addr) {
-			if (it->dynmem->adp_soffs == stack_offs) {
-				goto out;
-			} else if (!it->dynmem->adp_soffs) {
-				it->dynmem->adp_soffs = stack_offs;
-				goto out;
-			}
-			break;
-		}
-	}
-out:
-	return;
-}
-
-static void run_stage5_loop (list<CfgEntry> *cfg, i32 ifd, i32 dfd,
-			     pid_t pid, ptr_t code_offs)
-{
-	i32 pmask = PARSE_S | PARSE_C | PARSE_O;
-	enum pstate pstate;
-	struct parse_cb pcb = { NULL };
-
-	pcb.mf = process_disc5_output;
-
-	while (true) {
-		sleep_sec_unless_input2(1, ifd, dfd);
-		read_dynmem_buf(cfg, NULL, dfd, pmask, 0, code_offs, &pcb);
-		// just make the FIFO empty - do nothing else for now
-		read_dynmem_buf(NULL, NULL, ifd, 0, 0, 0, NULL);
-		pstate = check_process(pid, NULL);
-		if (pstate == PROC_DEAD || pstate == PROC_ZOMBIE)
-			break;
-	}
+	return -1;
 }
 
 // parameter for run_stage1234_loop()
@@ -404,7 +298,7 @@ struct disc_params {
  * worker process
  * changed values aren't available in the parent
  */
-void run_stage1234_loop (void *argp)
+static void run_stage1234_loop (void *argp)
 {
 	struct disc_params *params = (struct disc_params *) argp;
 	i32 ifd = params->ifd;
@@ -479,9 +373,6 @@ void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 		kill_proc(worker_pid);
 		if (worker_pid < 0)
 			exit(-1);
-	} else if (opt->disc_str[0] == '5') {
-		handle_pie(opt, cfg, ifd, ofd, pid, rlist);
-		run_stage5_loop(cfg, ifd, dfd, pid, opt->code_offs);
 	}
 }
 
@@ -598,43 +489,6 @@ i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
 			goto err;
 		}
 		cout << "disc_str: " << opt->disc_str << endl;
-		break;
-	case '5':
-		opt->disc_lib = (char *) "\0";
-		if (!opt->do_adapt) {
-			list_for_each (cfg, it) {
-				if (it->dynmem && !it->dynmem->adp_addr) {
-					it->dynmem->adp_size = it->dynmem->mem_size;
-					it->dynmem->adp_addr = it->dynmem->code_addr;
-				}
-			}
-		}
-		if (strlen(opt->disc_str) != 1) {
-			cerr << "Sorry, but this stage is reserved for "
-				"auto-adaption!" << endl;
-			goto err;
-		} else {
-			list_for_each (cfg, it) {
-				if (it->dynmem && it->dynmem->adp_addr &&
-				    !it->dynmem->adp_soffs) {
-					opt->disc_addr = it->dynmem->adp_addr;
-					goto found;
-				}
-			}
-			goto err;
-found:
-			disc_str = opt->disc_str[0];
-			disc_str += ";exe;";
-			disc_str += to_string(it->dynmem->adp_size);
-			disc_str += ";0x";
-			disc_str += to_xstring(it->dynmem->adp_addr);
-			opt->disc_str = to_c_str(&disc_str);
-			cout << "Discovering class " << it->dynmem->name
-			     << " stack offset." << endl
-			     << "Please ensure that such objects get "
-				"allocated!" << endl
-			     << "disc_str: " << opt->disc_str << endl;
-		}
 		break;
 	default:
 		goto err;
