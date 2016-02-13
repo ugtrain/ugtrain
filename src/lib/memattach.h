@@ -1,6 +1,6 @@
 /* memattach.h:    functions to attach/read/write victim proc. memory
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -23,17 +23,7 @@
 
 /* local includes */
 #include "types.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-	i32 memattach_test (pid_t pid);
-	i32 memattach (pid_t pid);
-	i32 memdetach (pid_t pid);
-	i32 memread   (pid_t pid, ptr_t addr, void *buf, size_t buf_len);
-	i32 memwrite  (pid_t pid, ptr_t addr, void *buf, size_t buf_len);
-#ifdef __cplusplus
-};
-#endif
+#include "memattach_l.h"
+#include "memattach_w.h"
 
 #endif

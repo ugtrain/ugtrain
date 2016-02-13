@@ -1,7 +1,7 @@
-/* memattach_l.c:    functions to attach/read/write victim proc. memory
+/* memattach_l.h:    functions to attach/read/write victim proc. memory
  * This file is for Linux only.
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * inspired by libgcheater by Alf <h980501427@hotmail.com>
  *
@@ -22,6 +22,8 @@
  */
 
 #ifdef __linux__
+#ifndef MEMATTACH_L_H
+#define MEMATTACH_L_H
 
 #include <unistd.h>
 #include <string.h>
@@ -31,10 +33,8 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-/* local includes */
-#include "memattach.h"
 
-
+static inline
 i32 memattach_test (pid_t pid)
 {
 	if (pid <= 1)
@@ -56,6 +56,7 @@ err:
 	return -1;
 }
 
+static inline
 i32 memattach (pid_t pid)
 {
 	if (pid <= 1)
@@ -76,6 +77,7 @@ err:
 	return -1;
 }
 
+static inline
 i32 memdetach (pid_t pid)
 {
 	if (pid <= 1)
@@ -91,6 +93,7 @@ err:
 	return -1;
 }
 
+static inline
 i32 memread (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 {
 	ptr_t read_val = 0;
@@ -124,6 +127,7 @@ err:
 	return -1;
 }
 
+static inline
 i32 memwrite (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 {
 	ptr_t rw_val = 0;
@@ -160,4 +164,5 @@ err:
 	return -1;
 }
 
+#endif /* MEMATTACH_L_H */
 #endif
