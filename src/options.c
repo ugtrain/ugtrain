@@ -72,7 +72,7 @@ PROG_NAME " is the universal elite game trainer for the CLI\n"
 				LIB_END "\' is assumed\n"
 "			(depending on \'sizeof(void *)\', ignored for root)\n"
 "			- starts the game for pure static memory as well\n"
-"--discover, -D <str>:	do discovery by sending the string to the discovery\n"
+"--discover, -D [str]:	do discovery by sending the string to the discovery\n"
 "			library - without \'-P\', \'-P "
 				LDISC_PRE "32/64" LIB_END "\'\n"
 "			is assumed depending on \'sizeof(void *)\'\n"
@@ -108,12 +108,12 @@ enum {
 	TESTING_OPT_CHARS
 };
 
-static const char short_options[] = "-hVAD:P::S";
+static const char short_options[] = "-hVAD::P::S";
 static struct option long_options[] = {
 	{"help",           0, 0, 'h'},
 	{"version",        0, 0, 'V'},
 	{"adapt",          0, 0, 'A'},
-	{"discover",       1, 0, 'D'},
+	{"discover",       2, 0, 'D'},
 	{"preload",        2, 0, 'P'},
 	{"scanmem",        0, 0, 'S'},
 	{"pre-cmd",        1, 0, PreCmd },
@@ -163,9 +163,10 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			opt->do_adapt = true;
 			break;
 		case 'D':
-			if (optind == argc)
-				usage();
-			opt->disc_str = optarg;
+			if (optind == argc || !optarg)
+				opt->disc_str = (char *) "2";
+			else
+				opt->disc_str = optarg;
 			break;
 		case 'P':
 			if (optind == argc || !optarg)
@@ -191,6 +192,9 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			if (optind != argc) {
 				/* optional argument handling */
 				switch (prev_ch) {
+				case 'D':
+					opt->disc_str = argv[optind - 1];
+					break;
 				case 'P':
 					opt->preload_lib = argv[optind - 1];
 					break;
