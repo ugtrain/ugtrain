@@ -94,10 +94,11 @@ err:
 }
 
 static inline
-i32 memread (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
+i32 memread (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 {
+	char *buf = (char *) _buf;
 	ptr_t read_val = 0;
-	off_t pos = 0;      /* position in sizeof(ptr_t) steps */
+	size_t pos = 0;      /* position in sizeof(ptr_t) steps */
 	size_t len = buf_len / sizeof(ptr_t);
 
 	if (pid <= 1 || addr == 0 || buf == NULL || buf_len <= 0)
@@ -109,7 +110,7 @@ i32 memread (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 			addr + pos * sizeof(ptr_t), read_val);
 		if (errno != 0)
 			goto err;
-		memcpy(buf + pos * sizeof(ptr_t), &read_val, sizeof(ptr_t));
+		memcpy(&buf[pos * sizeof(ptr_t)], &read_val, sizeof(ptr_t));
 	}
 
 	/* remainder processing */
@@ -119,7 +120,7 @@ i32 memread (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 			addr + pos * sizeof(ptr_t), read_val);
 		if (errno != 0)
 			goto err;
-		memcpy(buf + pos * sizeof(ptr_t), &read_val, len);
+		memcpy(&buf[pos * sizeof(ptr_t)], &read_val, len);
 	}
 
 	return 0;
@@ -128,10 +129,11 @@ err:
 }
 
 static inline
-i32 memwrite (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
+i32 memwrite (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 {
+	char *buf = (char *) _buf;
 	ptr_t rw_val = 0;
-	off_t pos = 0;      /* position in sizeof(ptr_t) steps */
+	size_t pos = 0;      /* position in sizeof(ptr_t) steps */
 	size_t len = buf_len / sizeof(ptr_t);
 
 	if (pid <= 1 || addr == 0 || buf == NULL || buf_len <= 0)
@@ -139,7 +141,7 @@ i32 memwrite (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 
 	errno = 0;
 	for (pos = 0; pos < len; pos++) {
-		memcpy(&rw_val, buf + pos * sizeof(ptr_t), sizeof(ptr_t));
+		memcpy(&rw_val, &buf[pos * sizeof(ptr_t)], sizeof(ptr_t));
 		ptrace(PTRACE_POKEDATA, pid,
 			addr + pos * sizeof(ptr_t), rw_val);
 		if (errno != 0)
@@ -152,7 +154,7 @@ i32 memwrite (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
 		rw_val = ptrace(PTRACE_PEEKDATA, pid, addr, rw_val);
 		if (errno != 0)
 			goto err;
-		memcpy(&rw_val, buf + pos * sizeof(ptr_t), len);
+		memcpy(&rw_val, &buf[pos * sizeof(ptr_t)], len);
 		ptrace(PTRACE_POKEDATA, pid,
 			addr + pos * sizeof(ptr_t), rw_val);
 		if (errno != 0)

@@ -43,13 +43,13 @@ i32 memdetach (pid_t pid)
 }
 
 static inline
-i32 memread (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
+i32 memread (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 {
 	return -1;
 }
 
 static inline
-i32 memwrite (pid_t pid, ptr_t addr, void *buf, size_t buf_len)
+i32 memwrite (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 {
 	return -1;
 }
