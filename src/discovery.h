@@ -28,6 +28,7 @@
 #include <common.h>
 #include <options.h>
 
+i32  check_beginner_stage4 (struct app_options *opt);
 i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
 void process_discovery  (struct app_options *opt, list<CfgEntry> *cfg,
 			 i32 ifd, i32 dfd, i32 ofd, i32 pid,

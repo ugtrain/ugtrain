@@ -966,6 +966,8 @@ i32 main (i32 argc, char **argv, char **env)
 	cout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
 	if (opt->disc_str) {
+		if (check_beginner_stage4(opt) != 0)
+			return -1;
 		if (opt->disc_str[0] >= '0' && opt->disc_str[0] <= '4') {
 			if (opt->run_scanmem &&
 			    !tool_is_available((char *) "scanmem"))

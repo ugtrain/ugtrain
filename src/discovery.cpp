@@ -499,3 +499,26 @@ err:
 	cerr << "Error while preparing discovery!" << endl;
 	return -1;
 }
+
+i32 check_beginner_stage4 (struct app_options *opt)
+{
+	i32 ret;
+	ulong mem_size;
+
+	ret = sscanf(opt->disc_str, "%lu", &mem_size);
+	if (ret == 1 && mem_size >= 8) {
+		u32 i;
+		string disc_str;
+		for (i = 0; i < strlen(opt->disc_str); i++) {
+			if (!isdigit(opt->disc_str[i]))
+				goto err;
+		}
+		disc_str = "4;";
+		disc_str += opt->disc_str;
+		opt->disc_str = to_c_str(&disc_str);
+	}
+	return 0;
+err:
+	cerr << "Invalid discovery string.";
+	return -1;
+}
