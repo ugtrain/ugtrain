@@ -95,17 +95,23 @@ static void output_ptrmem_values (CfgEntry *cfg_en)
 {
 	DynMemEntry *dynmem = cfg_en->ptrtgt->dynmem;
 	ptr_t mem_offs;
+	u32 pr_idx = 0;
 	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
 
-	mem_offs = cfg_en->ptrtgt->v_offs[dynmem->pr_idx];
-	cout << " -> *" << cfg_en->ptrtgt->name << "["
-	     << dynmem->pr_idx << "]"
+	if (dynmem)
+		pr_idx = dynmem->pr_idx;
+
+	mem_offs = cfg_en->ptrtgt->v_offs[pr_idx];
+	if (!mem_offs || cfg_en->ptrtgt->v_state[pr_idx] < PTR_SETTLED)
+		return;
+	cout << " -> *" << cfg_en->ptrtgt->name << "[" << pr_idx << "]"
 	     << " = 0x" << hex << mem_offs << dec << endl;
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
-		cfg_en->old_val = cfg_en->v_oldval[dynmem->pr_idx];
+		if (dynmem)
+			cfg_en->old_val = cfg_en->v_oldval[pr_idx];
 		output_mem_val(cfg_en, mem_offs, false);
 	}
 }

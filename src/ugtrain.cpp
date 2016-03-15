@@ -380,10 +380,15 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 {
 	ptr_t mem_addr;
 	PtrMemEntry *ptrtgt = cfg_en->ptrtgt;
+	DynMemEntry *dynmem = cfg_en->ptrtgt->dynmem;
 	list<CfgEntry*> *cfg_act = &ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
-	vector<value_t> *vvec = &cfg_en->v_oldval;
-	value_t *value = &vvec->at(mem_idx);
+	value_t *value;
+
+	if (dynmem)
+		value = &cfg_en->v_oldval[mem_idx];
+	else
+		value = &cfg_en->old_val;
 
 	if (buf->ptr == 0 || ptrtgt->v_state[mem_idx] == PTR_DONE)
 		return;
@@ -401,8 +406,14 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 			mem_addr = ptrmem->v_offs[mem_idx] + cfg_en->addr;
 			if (read_memory(pid, mem_addr, buf, "PTR MEMORY"))
 				continue;
-			change_memory(pid, cfg_en, buf, ptrmem->v_offs[mem_idx],
-				      &cfg_en->v_oldval[mem_idx]);
+			if (dynmem)
+				change_memory(pid, cfg_en, buf,
+					ptrmem->v_offs[mem_idx],
+					&cfg_en->v_oldval[mem_idx]);
+			else
+				change_memory(pid, cfg_en, buf,
+					ptrmem->v_offs[mem_idx],
+					&cfg_en->old_val);
 		}
 	} else {
 		value->ptr = buf->ptr;
@@ -501,7 +512,11 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 			mem_addr = cfg_en->addr;
 			if (read_memory(pid, mem_addr, buf, "MEMORY"))
 				continue;
-			change_memory(pid, cfg_en, buf, mem_offs, &cfg_en->old_val);
+			if (cfg_en->ptrtgt)
+				process_ptrmem(pid, cfg_en, buf, 0);
+			else
+				change_memory(pid, cfg_en, buf, mem_offs,
+					&cfg_en->old_val);
 		}
 	}
 }

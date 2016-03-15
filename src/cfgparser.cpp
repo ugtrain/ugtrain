@@ -576,6 +576,12 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 	dynmem_enp->v_maddr.clear();
 }
 
+static inline void pr_warn_statmem_ptr (void)
+{
+	cout << "Pointer following from static memory is experimental."
+	     << endl;
+}
+
 static void read_config_vect (string *path, char *home, vector<string> *lines)
 {
 	ifstream cfg_file;
@@ -856,10 +862,14 @@ void read_config (struct app_options *opt,
 				cfg_en.ptrtgt = find_ptr_mem(cfg, &tmp_str);
 				if (!cfg_en.ptrtgt)
 					cfg_parse_err(&line, lnr, start - 1);
-				if (in_dynmem)
+				if (in_dynmem) {
 					cfg_en.ptrtgt->dynmem = dynmem_enp;
-				else
-					cfg_parse_err(&line, lnr, start);
+				} else {
+					pr_warn_statmem_ptr();
+					cfg_en.ptrtgt->v_state.push_back(PTR_INIT);
+					cfg_en.ptrtgt->v_offs.push_back(0);
+				}
+				cfg_en.type.size = sizeof(long) * 8;
 			} else {
 				cfg_en.ptrtgt = NULL;
 			}
