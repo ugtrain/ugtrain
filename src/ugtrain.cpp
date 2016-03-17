@@ -378,22 +378,33 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 // TIME CRITICAL! Process all activated config entries from pointer
 static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_idx)
 {
-	ptr_t mem_addr;
+	ptr_t mem_addr, mem_offs = 0;
 	PtrMemEntry *ptrtgt = cfg_en->ptrtgt;
 	DynMemEntry *dynmem = cfg_en->ptrtgt->dynmem;
 	list<CfgEntry*> *cfg_act = &ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
 	value_t *value;
 
-	if (dynmem)
+	if (dynmem) {
+		vector<ptr_t> *mvec = &dynmem->v_maddr;
 		value = &cfg_en->v_oldval[mem_idx];
-	else
+		mem_offs = mvec->at(mem_idx);
+		if (!mem_offs)
+			return;
+	} else {
 		value = &cfg_en->old_val;
-
+	}
 	if (buf->ptr == 0 || ptrtgt->v_state[mem_idx] == PTR_DONE)
 		return;
 
 	if (buf->ptr == value->ptr) {
+		list<CheckEntry> *chk_lp = cfg_en->checks;
+		if (chk_lp) {
+			i32 ret = process_checks(pid, cfg_en->dynmem,
+						 chk_lp, mem_offs);
+			if (ret)
+				return;
+		}
 		if (cfg_en->dynval == DYN_VAL_PTR_ONCE)
 			ptrtgt->v_state[mem_idx] = PTR_DONE;
 		else
