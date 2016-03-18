@@ -323,7 +323,7 @@ static value_t parse_value (string *line, u32 lnr, u32 *start,
 			    list<CfgEntry> *cfg, CfgEntry *cfg_en, CheckEntry *chk_en,
 			    dynval_e *dynval, check_e *check, u32 i)
 {
-	u32 lidx;
+	u32 lidx, number_base = 10;
 	value_t ret;
 	i64 tmp_i64;
 	u64 tmp_u64;
@@ -369,15 +369,24 @@ static value_t parse_value (string *line, u32 lnr, u32 *start,
 	}
 
 skip_check:
+	// Is this a hex value?
+	tmp_str = string(*line, *start, lidx - *start);
+	if (tmp_str.substr(0, 2) == "0x") {
+		*start += 2;
+		number_base = 16;
+	}
 	for (lidx = *start; lidx < line->length(); lidx++) {
 		if (line->at(lidx) == ' ') {
 			break;
-		} else if (!isdigit(line->at(lidx)) && line->at(*start) != '-' &&
+		} else if (number_base == 10 &&
+		    !isdigit(line->at(lidx)) && line->at(*start) != '-' &&
 		    !(type->is_float && line->at(lidx) == '.')) {
 			if (!dynval || !isalpha(line->at(lidx)))
 				cfg_parse_err(line, lnr, lidx);
 			else
 				dynval_detected = true;
+		} else if (number_base == 16 && !isxdigit(line->at(lidx))) {
+			cfg_parse_err(line, lnr, lidx);
 		}
 	}
 	if (dynval_detected) {
@@ -386,9 +395,9 @@ skip_check:
 			*dynval = DYN_VAL_MAX;
 		} else if (tmp_str == "min") {
 			*dynval = DYN_VAL_MIN;
-		} else if (tmp_str.substr(0, 2) == "0x") {
+		} else if (tmp_str.substr(0, 4) == "va0x") {
 			*dynval = DYN_VAL_ADDR;
-			if (sscanf(tmp_str.c_str(), SCN_PTR, &ret.ptr) != 1)
+			if (sscanf(tmp_str.substr(2).c_str(), SCN_PTR, &ret.ptr) != 1)
 				cfg_parse_err(line, lnr, lidx);
 		} else if (tmp_str == "watch") {
 			*dynval = DYN_VAL_WATCH;
@@ -406,8 +415,8 @@ skip_check:
 			*dynval = DYN_VAL_ADDR;
 		}
 		goto out;
-
 	}
+
 	if (type->is_float) {
 		if (type->size == 32)
 			ret.f32 = strtof(string(*line, *start,
@@ -417,7 +426,7 @@ skip_check:
 				lidx - *start).c_str(), NULL);
 	} else if (type->is_signed) {
 		tmp_i64 = strtoll(string(*line,
-			*start, lidx - *start).c_str(), NULL, 10);
+			*start, lidx - *start).c_str(), NULL, number_base);
 		switch (type->size) {
 		case 64:
 			ret.i64 = tmp_i64;
@@ -434,7 +443,7 @@ skip_check:
 		}
 	} else {
 		tmp_u64 = strtoull(string(*line,
-			*start, lidx - *start).c_str(), NULL, 10);
+			*start, lidx - *start).c_str(), NULL, number_base);
 		switch (type->size) {
 		case 64:
 			ret.u64 = tmp_u64;
