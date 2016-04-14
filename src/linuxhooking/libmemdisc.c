@@ -156,12 +156,13 @@ out:
 }
 
 #define READ_STAGE_CFG()  \
-	rbytes = read(ifd, ibuf + ioffs, sizeof(ibuf) - ioffs); \
+	rbytes = read(ifd, ibuf + ioffs, sizeof(ibuf) - ioffs - 1); \
 	if (rbytes <= 0) { \
 		pr_err("Can't read config for stage %c, " \
 			"disabling output.\n", ibuf[0]); \
 		return; \
-	}
+	} \
+	ibuf[ioffs + rbytes] = '\0';
 
 /*
  * To be registered with atexit() to flush the output FIFO cache.
