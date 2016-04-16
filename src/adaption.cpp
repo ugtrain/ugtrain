@@ -89,7 +89,7 @@ static i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
 	return ret;
 }
 
-static inline i32 parse_adp_string (char **start, string **obj_name)
+static inline i32 parse_adp_string (char **start, char **obj_name)
 {
 	char *end;
 	size_t size;
@@ -97,8 +97,9 @@ static inline i32 parse_adp_string (char **start, string **obj_name)
 	end = strchr(*start, ';');
 	if (end == NULL)
 		return 1;
+	*end = '\0';
 	size = end - *start;
-	*obj_name = new string(*start, size);
+	*obj_name = *start;
 	*start += size + 1;
 	return 0;
 }
@@ -109,9 +110,9 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 {
 	char *end = buf, *start = buf;
 	ssize_t size;
-	i32 lnr = -1;
+	i32 lnr = -1;		// -1: object name, >= 0: reserved cfg entry
 	u32 i, num_obj = 0;
-	string *obj_name = NULL;
+	char *obj_name = NULL;
 	u32 malloc_size = 0;
 	ptr_t code_addr = 0;
 	list<CfgEntry>::iterator it;
@@ -131,32 +132,44 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 		for (;;) {
 			if (parse_adp_string(&start, &obj_name))
 				goto parse_err;
-			if (*obj_name == "proc_name") {
+			if (!strncmp(obj_name, "proc_name",
+				     sizeof("proc_name") - 1)) {
 				lnr = 0;
-			} else if (*obj_name == "game_binpath") {
+			} else if (!strncmp(obj_name, "game_binpath",
+					    sizeof("game_binpath") - 1)) {
 				lnr = opt->binpath_line;
+				// Not configured?
 				if (lnr <= 0) {
+					// ignore the game binpath argument
 					if (parse_adp_string(&start, &obj_name))
 						goto parse_err;
 					lnr = -1;
 					continue;
 				}
 			}
+			// Reserved cfg entry read?
 			if (lnr >= 0) {
+				string tmp_line;
+				// read parameter
 				if (parse_adp_string(&start, &obj_name))
 					goto parse_err;
 				if (lnr == 0) {
-					if (strcmp(opt->game_call, opt->proc_name) == 0)
-						opt->game_call = to_c_str(obj_name);
-					opt->proc_name = to_c_str(obj_name);
+					tmp_line = string(obj_name);
+					if (strcmp(opt->game_call, opt->proc_name) == 0) {
+						opt->proc_name = to_c_str(&tmp_line);
+						opt->game_call = opt->proc_name;
+					} else {
+						opt->proc_name = to_c_str(&tmp_line);
+					}
 				} else if ((u32) lnr == opt->binpath_line) {
-					*obj_name = "game_binpath " + *obj_name;
-					opt->game_binpath = to_c_str(obj_name);
+					tmp_line = string(obj_name);
+					opt->game_binpath = to_c_str(&tmp_line);
 					if (strcmp(basename(opt->game_binpath),
 					    opt->proc_name) != 0)
 						goto parse_err;
+					tmp_line = "game_binpath " + string(obj_name);
 				}
-				lines->at(lnr) = *obj_name;
+				lines->at(lnr) = tmp_line;
 				lnr = -1;
 				continue;
 			}
@@ -178,7 +191,7 @@ static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
 		list_for_each (cfg, it) {
 			tmp = it->dynmem;
 			if (tmp && !tmp->adp_addr &&
-			    tmp->name == *obj_name) {
+			    tmp->name == string(obj_name)) {
 				tmp->adp_size = malloc_size;
 				tmp->adp_addr = code_addr;
 				cout << "Class " << tmp->name
