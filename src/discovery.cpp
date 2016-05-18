@@ -242,7 +242,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
 	ifd = open(opt->dynmem_file, O_RDONLY);
 	if (ifd < 0) {
 		perror("open ifd");
-		return -1;
+		goto err;
 	}
 
 	restore_getch();
@@ -252,7 +252,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
 	cin >> hex >> mem_addr;
 	if (!mem_addr) {
 		cerr << "Error: Invalid memory address!" << endl;
-		return -1;
+		goto err_close;
 	}
 	cout << hex << "Searching reverse for 0x" << mem_addr << dec
 	     << " in discovery output.." << endl;
@@ -269,14 +269,19 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
 		    opt->code_offs, &pcb) < 0)
 			break;
 	}
+	close(ifd);
 	rm_dasm_files();
 
 	if (prepare_getch() != 0) {
 		cerr << "Error while terminal preparation!" << endl;
-		return -1;
+		goto err;
 	}
 
 	return 0;
+err_close:
+	close(ifd);
+err:
+	return -1;
 }
 
 i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
