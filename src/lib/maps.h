@@ -65,7 +65,7 @@ static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 
 	/* get executable path */
 	snprintf(link_path, sizeof(link_path), "/proc/%u/exe", pid);
-	ret = readlink(link_path, exe_path, path_size);
+	ret = readlink(link_path, exe_path, path_size - 1);
 	if (ret > 0) {
 		exe_path[ret] = '\0';
 	} else {
