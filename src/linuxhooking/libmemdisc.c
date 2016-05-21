@@ -121,12 +121,12 @@ static inline void update_cfg_for_pie (ptr_t exe_offs)
  * Does the user request to filter the backtrace to the exe or the given lib?
  * returns 0 for success, -1 for error
  */
-static inline i32 parse_bt_filter (char *ibuf, i32 *ioffs)
+static inline i32 parse_bt_filter (char **iptr)
 {
 	i32 ret = -1;
 	u32 len;
 	char *pos;
-	char *disc_part = ibuf + *ioffs;
+	char *disc_part = *iptr;
 
 	if (disc_part[0] != ';' || !isalpha(disc_part[1]))
 		goto success;
@@ -148,7 +148,7 @@ static inline i32 parse_bt_filter (char *ibuf, i32 *ioffs)
 	}
 	*pos = ';';
 	disc_part = pos;
-	*ioffs = disc_part - ibuf;
+	*iptr = disc_part;
 success:
 	ret = 0;
 out:
@@ -156,13 +156,18 @@ out:
 }
 
 #define READ_STAGE_CFG()  \
-	rbytes = read(ifd, ibuf + ioffs, sizeof(ibuf) - ioffs - 1); \
+	if (PTR_SUB(ptr_t, iptr, ibuf) > sizeof(ibuf) - 1) { \
+		pr_err("BUG: iptr pointer overrun!\n"); \
+		return; \
+	} \
+	rbytes = read(ifd, iptr, (sizeof(ibuf) - 1) - \
+		      PTR_SUB(ptr_t, iptr, ibuf)); \
 	if (rbytes <= 0) { \
 		pr_err("Can't read config for stage %c, " \
 			"disabling output.\n", ibuf[0]); \
 		return; \
 	} \
-	ibuf[ioffs + rbytes] = '\0';
+	*(iptr + rbytes) = '\0';
 
 /*
  * To be registered with atexit() to flush the output FIFO cache.
@@ -192,6 +197,7 @@ static inline i32 read_input (char ibuf[], size_t size)
 	for (read_tries = 5; ; --read_tries) {
 		rbytes = read(ifd, ibuf, size);
 		if (rbytes > 0) {
+			ibuf[rbytes] = '\0';
 			ret = 0;
 			break;
 		}
@@ -213,7 +219,7 @@ static inline void set_bt_addrs (void)
 	char ibuf[128] = { 0 };
 	i32 ret;
 
-	if (read_input(ibuf, sizeof(ibuf)) != 0) {
+	if (read_input(ibuf, sizeof(ibuf) - 1) != 0) {
 		pr_err("Couldn't read library backtrace filter!\n");
 		goto out;
 	}
@@ -264,9 +270,9 @@ void __attribute ((constructor)) memdisc_init (void)
 {
 	char *proc_name = NULL, *expected = NULL;
 	ssize_t rbytes;
-	i32 ioffs = 0, scanned;
-	char *iptr;
+	i32 scanned;
 	char ibuf[BUF_SIZE] = { 0 };
+	char *iptr = ibuf, *pos;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	void *heap_ptr;
 	ptr_t heap_start = 0;
@@ -341,33 +347,32 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	if (read_input(ibuf, 1) != 0)
 		goto read_err;
-	ioffs = 1;
+	iptr++;
 
 	memset(&ptr_cfg, 0, sizeof(ptr_cfg));
 	if (ibuf[0] == 'p') {
 		READ_STAGE_CFG();
-		if (sscanf(ibuf + ioffs, ";%zd;" SCN_PTR ";" SCN_PTR ";"
+		if (sscanf(iptr, ";%zd;" SCN_PTR ";" SCN_PTR ";"
 		    SCN_PTR, &ptr_cfg.mem_size, &ptr_cfg.code_addr,
 		    &ptr_cfg.stack_offs, &ptr_cfg.ptr_offs) != 4)
 			goto parse_err;
-		iptr = strstr(ibuf, ";;");
-	        if (!iptr)
+		pos = strstr(iptr, ";;");
+		if (!pos)
 			goto parse_err;
-		iptr = PTR_SUB(char *, iptr, ibuf);
-		ioffs = (ptr_t) iptr + 2;
+		iptr = pos + 2;
 		discover_ptr = true;
 
 		pr_dbg("ibuf: %s\n", ibuf);
-		pr_dbg("ioffs; %d\n", ioffs);
+		pr_dbg("iptr; %p\n", iptr);
 		pr_dbg("ptr_cfg: %zd;" PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n",
 			ptr_cfg.mem_size, ptr_cfg.code_addr,
 			ptr_cfg.stack_offs, ptr_cfg.ptr_offs);
 	} else if (ibuf[0] >= '1' && ibuf[0] <= '4') {
 		READ_STAGE_CFG();
-		ioffs = 0;
+		iptr = ibuf;
 	}
 
-	switch (*(ibuf + ioffs)) {
+	switch (*iptr) {
 	/*
 	 * stage 1: Find the malloc size  (with memory search in parallel)
 	 *
@@ -381,7 +386,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	This is rarely used as the frees aren't required.
 	 */
 	case '1':
-		ioffs += 1;
+		iptr++;
 		stage = 1;
 		pr_dbg("stage 1 selected\n");
 		break;
@@ -396,8 +401,8 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	with ignoring the frees.
 	 */
 	case '2':
-		ioffs += 1;
-		scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
+		iptr++;
+		scanned = sscanf(iptr, ";%zd", &malloc_size);
 		if (scanned < 0)
 			goto parse_err;
 		stage = 2;
@@ -421,15 +426,15 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	addresses.
 	 */
 	case '3':
-		ioffs += 1;
-		if (sscanf(ibuf + ioffs, ";%3s;", gbt_buf) == 1 &&
+		iptr++;
+		if (sscanf(iptr, ";%3s;", gbt_buf) == 1 &&
 		    strncmp(gbt_buf, GBT_CMD, sizeof(GBT_CMD) - 1) == 0) {
 			use_gbt = true;
-			ioffs += sizeof(GBT_CMD);
+			iptr += sizeof(GBT_CMD);
 		}
-		if (parse_bt_filter(ibuf, &ioffs))
+		if (parse_bt_filter(&iptr))
 			goto parse_err;
-		scanned = sscanf(ibuf + ioffs, ";%zd", &malloc_size);
+		scanned = sscanf(iptr, ";%zd", &malloc_size);
 		if (scanned < 1)
 			goto parse_err;
 		if (malloc_size < 1)
@@ -451,10 +456,10 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	gives us better performance and stability.
 	 */
 	case '4':
-		ioffs += 1;
-		if (parse_bt_filter(ibuf, &ioffs))
+		iptr++;
+		if (parse_bt_filter(&iptr))
 			goto parse_err;
-		scanned = sscanf(ibuf + ioffs, ";%zd;" SCN_PTR, &malloc_size,
+		scanned = sscanf(iptr, ";%zd;" SCN_PTR, &malloc_size,
 			&code_addr);
 		if (scanned < 1)
 			goto parse_err;
@@ -488,7 +493,7 @@ void __attribute ((constructor)) memdisc_init (void)
 		if (bt_filter && bt_filter[0] == '\0') {
 			ptr_t exe_start = 0, exe_end = 0, exe_offs = 0;
 			i32 ret;
-			if (read_input(ibuf, sizeof(ibuf)) != 0) {
+			if (read_input(ibuf, sizeof(ibuf) - 1) != 0) {
 				pr_err("Couldn't read exe backtrace filter!\n");
 				goto out;
 			}
