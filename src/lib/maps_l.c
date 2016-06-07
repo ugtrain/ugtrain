@@ -258,10 +258,10 @@ i32 read_maps (pid_t pid, i32 (*callback)(struct map *map, void *data),
 		}
 		memset(map.file_path, '\0', len);
 
-		if (sscanf(line, "%lx-%lx %c%c%c%c %x %x:%x %u %s", &map.start,
-		    &map.end, &map.read, &map.write, &map.exec, &map.cow,
-		    &map.offset, &map.dev_major, &map.dev_minor, &map.inode,
-		    map.file_path) < 6)
+		if (sscanf(line, "%lx-%lx %c%c%c%c %x %x:%x %u %[^\n]",
+		    &map.start, &map.end, &map.read, &map.write, &map.exec,
+		    &map.cow, &map.offset, &map.dev_major, &map.dev_minor,
+		    &map.inode, map.file_path) < 6)
 			goto err_free;
 
 		/* process each line by map structure */
