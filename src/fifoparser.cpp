@@ -140,7 +140,7 @@ skip_o:
 
 		// call post parsing function
 		pcb->lf(argp, lib_name);
-		delete lib_name;
+		delete[] lib_name;
 		break;
 	case 'h':
 		pstart++;
