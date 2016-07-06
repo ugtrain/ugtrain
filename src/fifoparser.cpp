@@ -188,8 +188,11 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 		if (fd_offs == REVERSE_FST) {
 			// read heap start from file first
 			tmp_ilen = read(ifd, ibuf, max_read);
-			if (tmp_ilen <= 0 && argp)
-				return -1;
+			if (tmp_ilen <= 0) {
+				tmp_ilen = 0;
+				if (argp)
+					return -1;
+			}
 			if (sscanf(ibuf, "%c", &scan_ch) != 1)
 				goto parse_err;
 			if (scan_ch == 'h') {
