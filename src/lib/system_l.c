@@ -110,8 +110,6 @@ enum pstate check_process (pid_t pid, char *proc_name)
 	if (run_cmd_pipe(cmd, NULL, pbuf, sizeof(pbuf)) <= 0)
 		goto err;
 	pname = pbuf;
-	if (!pname)
-		goto err;
 	if (proc_name && strncmp(pname, proc_name, 15) != 0)
 		return PROC_WRONG;
 
