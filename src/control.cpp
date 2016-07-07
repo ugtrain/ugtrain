@@ -53,9 +53,9 @@ static void toggle_cfg (list<CfgEntry*> *key_cfg, list<CfgEntry*> *cfg_act)
 		found = false;
 		list_for_each (used_cfg_act, it_act) {
 			if (cfg_en == *it_act) {
-				used_cfg_act->erase(it_act);
 				cfg_en = *it_act;
 				cout << cfg_en->name << " OFF" << endl;
+				used_cfg_act->erase(it_act);
 				found = true;
 				break;
 			}
