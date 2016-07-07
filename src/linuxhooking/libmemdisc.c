@@ -156,17 +156,13 @@ out:
 }
 
 #define READ_STAGE_CFG()  \
-	if (PTR_SUB(ptr_t, iptr, ibuf) > sizeof(ibuf) - 1) { \
-		pr_err("BUG: iptr pointer overrun!\n"); \
-		return; \
-	} \
-	rbytes = read(ifd, iptr, (sizeof(ibuf) - 1) - \
-		      PTR_SUB(ptr_t, iptr, ibuf)); \
+	rbytes = read(ifd, iptr, buf_left); \
 	if (rbytes <= 0) { \
 		pr_err("Can't read config for stage %c, " \
 			"disabling output.\n", ibuf[0]); \
 		return; \
 	} \
+	buf_left -= rbytes; \
 	*(iptr + rbytes) = '\0';
 
 /*
@@ -273,6 +269,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	i32 scanned;
 	char ibuf[BUF_SIZE] = { 0 };
 	char *iptr = ibuf, *pos;
+	size_t buf_left = sizeof(ibuf) - 1;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
 	void *heap_ptr;
 	ptr_t heap_start = 0;
@@ -347,6 +344,7 @@ void __attribute ((constructor)) memdisc_init (void)
 
 	if (read_input(ibuf, 1) != 0)
 		goto read_err;
+	buf_left--;
 	iptr++;
 
 	memset(&ptr_cfg, 0, sizeof(ptr_cfg));
