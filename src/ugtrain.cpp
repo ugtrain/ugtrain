@@ -229,7 +229,7 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 		ret = or_check_memory(chk_en, chk_buf);
 		if (ret) {
 			// Parser must ensure (dynmem != NULL)
-			if (chk_en->is_objcheck)
+			if (chk_en->is_objcheck && likely(dynmem))
 				dynmem->v_maddr[dynmem->obj_idx] = 0;
 			goto out;
 		}
