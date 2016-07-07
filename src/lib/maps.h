@@ -64,7 +64,8 @@ static inline void get_exe_path_by_pid (pid_t pid, char exe_path[],
 	ssize_t ret;
 
 	/* get executable path */
-	snprintf(link_path, sizeof(link_path), "/proc/%u/exe", pid);
+	if (snprintf(link_path, sizeof(link_path), "/proc/%u/exe", pid) <= 0)
+		return;
 	ret = readlink(link_path, exe_path, path_size - 1);
 	if (ret > 0) {
 		exe_path[ret] = '\0';
@@ -79,7 +80,8 @@ static inline i32 fopen_maps (FILE **maps, pid_t pid)
 	char maps_path[128];
 
 	/* construct the maps file path */
-	snprintf(maps_path, sizeof(maps_path), "/proc/%u/maps", pid);
+	if (snprintf(maps_path, sizeof(maps_path), "/proc/%u/maps", pid) <= 0)
+		return -1;
 
 	/* attempt to open the maps file */
 	*maps = fopen(maps_path, "r");
