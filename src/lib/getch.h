@@ -1,6 +1,6 @@
 /* getch.h:    multi-platform getch() implementation
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -36,7 +36,8 @@ static inline int prepare_getch_nb (void)
 	int rc;
 
 	rc = prepare_getch();
-	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	if (fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK) != 0)
+		rc = -1;
 	return rc;
 }
 
@@ -53,16 +54,21 @@ static inline char do_getch (void)
 	return ch;
 }
 
-static inline void set_getch_nb (int nb)
+static inline int set_getch_nb (int nb)
 {
 	int flags;
 
 	if (!nb) {
 		flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-		fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+		if (fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK) != 0)
+			goto err;
 	} else {
-		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+		if (fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK) != 0)
+			goto err;
 	}
+	return 0;
+err:
+	return -1;
 }
 
 #else
@@ -81,7 +87,7 @@ static inline char do_getch (void)
 	return ch;
 }
 
-static inline void set_getch_nb (int nb)
+static inline int set_getch_nb (int nb)
 {
 }
 #endif

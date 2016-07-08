@@ -1090,7 +1090,8 @@ i32 main (i32 argc, char **argv, char **env)
 	if (opt->do_adapt || opt->disc_str || opt->run_scanmem)
 		return -1;
 
-	set_getch_nb(1);
+	if (set_getch_nb(1) != 0)
+		return -1;
 
 	if (memattach_test(pid) != 0) {
 		cerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;

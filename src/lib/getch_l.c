@@ -71,7 +71,7 @@ void restore_getch (void)
 
 	/* disable nonblocking */
 	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+	(void) fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
 
 	if (tty_changed) {
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_tty);
