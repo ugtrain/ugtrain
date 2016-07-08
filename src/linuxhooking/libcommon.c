@@ -31,7 +31,7 @@ void rm_from_env (char *env_name, char *pattern, char separator)
 {
 	char *start, *end, *found, *env_var = getenv(env_name);
 
-	if (!env_var)
+	if (!env_var || check_env_str(env_var) != 0)
 		goto out;
 	pr_dbg("old: %s=%s\n", env_name, env_var);
 
