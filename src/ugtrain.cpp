@@ -980,6 +980,8 @@ i32 main (i32 argc, char **argv, char **env)
 	home = getenv(HOME_VAR);
 	if (!home)
 		home = def_home;
+	else if (check_env_str(home) != 0)
+		return -1;
 	if (dir_exists(home))
 		init_user_cfg_dir(home);
 
