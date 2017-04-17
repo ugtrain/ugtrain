@@ -1,6 +1,6 @@
 /* dump.cpp:    dump dynamic memory objects in process memory
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2017 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -26,8 +26,8 @@
 static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,
 			  ptr_t mem_addr, size_t size)
 {
-	i32 fd;
-	string fname;
+	i32 fd, ret;
+	string fname, backup;
 	char buf[size];
 	ssize_t wbytes;
 
@@ -45,8 +45,21 @@ static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,
 	if (obj_id < 10)
 		fname += "0";
 	fname += to_string(obj_id);
+	backup = fname;
+	backup += "~.dump";
 	fname += ".dump";
 
+	// store a backup if file exists for keeping two states to compare
+	fd = open(fname.c_str(), O_RDONLY);
+	if (fd >= 0) {
+		close(fd);
+		ret = rename(fname.c_str(), backup.c_str());
+		if (ret) {
+			cerr << "renaming " << fname << " to "
+			     << backup << " failed!" << endl;
+			goto err;
+		}
+	}
 	fd = open(fname.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
 	if (fd < 0)
 		goto err;
