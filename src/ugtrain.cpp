@@ -308,10 +308,9 @@ out:
 }
 
 static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
-			   ptr_t mem_offs, value_t *old_val)
+			   ptr_t mem_offs, value_t *old_val, value_t *value)
 {
 	struct type *type = &cfg_en->type;
-	value_t *value = &cfg_en->value;
 
 	if (type->is_float) {
 		switch (type->size) {
@@ -420,11 +419,13 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 			if (dynmem)
 				change_memory(pid, cfg_en, buf,
 					ptrmem->v_offs[mem_idx],
-					&cfg_en->v_oldval[mem_idx]);
+					&cfg_en->v_oldval[mem_idx],
+					&cfg_en->v_value[mem_idx]);
 			else
 				change_memory(pid, cfg_en, buf,
 					ptrmem->v_offs[mem_idx],
-					&cfg_en->old_val);
+					&cfg_en->old_val,
+					&cfg_en->value);
 		}
 	} else {
 		value->ptr = buf->ptr;
@@ -515,7 +516,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 					process_ptrmem(pid, cfg_en, buf, mem_idx);
 				else
 					change_memory(pid, cfg_en, buf, mem_offs,
-						&cfg_en->v_oldval[mem_idx]);
+						&cfg_en->v_oldval[mem_idx],
+						&cfg_en->v_value[mem_idx]);
 			}
 		} else {
 			mem_offs = 0;
@@ -527,7 +529,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 				process_ptrmem(pid, cfg_en, buf, 0);
 			else
 				change_memory(pid, cfg_en, buf, mem_offs,
-					&cfg_en->old_val);
+					&cfg_en->old_val,
+					&cfg_en->value);
 		}
 	}
 }

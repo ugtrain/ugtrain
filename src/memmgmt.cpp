@@ -32,6 +32,7 @@ static void alloc_ptrmem (CfgEntry *cfg_en)
 	list_for_each (cfg, it) {
 		cfg_en = *it;
 		cfg_en->v_oldval.push_back(def_val);
+		cfg_en->v_value.push_back(cfg_en->value);
 	}
 }
 
@@ -53,6 +54,7 @@ void alloc_dynmem (list<CfgEntry> *cfg)
 		     mem_idx++) {
 			if (mem_idx >= cfg_en->v_oldval.size()) {
 				cfg_en->v_oldval.push_back(def_val);
+				cfg_en->v_value.push_back(cfg_en->value);
 				if (cfg_en->ptrtgt)
 					alloc_ptrmem(cfg_en);
 			}
@@ -71,6 +73,7 @@ static void free_ptrmem (CfgEntry *cfg_en, u32 idx)
 	list_for_each (cfg, it) {
 		cfg_en = *it;
 		cfg_en->v_oldval.erase(cfg_en->v_oldval.begin() + idx);
+		cfg_en->v_value.erase(cfg_en->v_value.begin() + idx);
 	}
 }
 
@@ -97,6 +100,8 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 		     mem_idx++, ov_idx++) {
 			if (!mvec->at(mem_idx)) {
 				cfg_en->v_oldval.erase(cfg_en->v_oldval.begin()
+					+ ov_idx);
+				cfg_en->v_value.erase(cfg_en->v_value.begin()
 					+ ov_idx);
 				if (cfg_en->ptrtgt)
 					free_ptrmem(cfg_en, ov_idx);

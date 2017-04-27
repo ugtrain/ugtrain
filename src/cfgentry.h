@@ -140,7 +140,7 @@ public:
 	check_e check;
 	dynval_e dynval;
 	ptr_t val_addr;               // for DYN_VAL_ADDR only
-	value_t value;
+	value_t value;                // for static memory only
 	value_t old_val;              // for static memory only
 
 	// get value from other cfg entry (DYN_VAL_ADDR)
@@ -149,6 +149,7 @@ public:
 	list<CheckEntry> *checks;
 	// dynamic memory
 	DynMemEntry *dynmem;
+	vector<value_t> v_value;      // wish value per object
 	vector<value_t> v_oldval;     // old value per object
 	// memory behind pointer following
 	PtrMemEntry *ptrmem;
