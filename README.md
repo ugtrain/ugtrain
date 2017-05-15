@@ -1,36 +1,33 @@
 ## Description
 
 The ugtrain (say U-G-train) is an advanced free and universal game trainer for
-the command line under GPLv3 license. The **dynamic memory support** sets it
-apart. An integrated preloader, a memory discovery and a memory hacking library
-are included for this.
+the command line under GPLv3 license. It is a research project and a tool for
+advanced users who want latest and really working Linux game cheating methods
+at the cost of no GUI and limited usability.
 
-The ugtrain uses one simple **config file per game** which can be exchanged
+The **dynamic memory support** sets ugtrain apart. An integrated preloader,
+a memory discovery, and a memory hacking library are included for this.
+It  uses one simple **config file per game** which can be exchanged
 with others. **Example configs** for games which allow cheating are included.
 These also come with **automatic adaption** for dynamic memory so that you can
 use them right away on your system after executing it.
 
 Furthermore, security measures like **ASLR and PIE are bypassed**. Together with
 **universal checks**, reliable and stable static memory cheating is provided.
-All this makes ugtrain now already the **best game trainer on Linux**. And
-with **scanmem** it integrates the best memory search on Linux. There is even
-**no need for root privileges**.
+Ugtrain works with most games on Linux this way. With **scanmem** it integrates
+the best memory search on Linux and there is even **no need for root
+privileges**.
 
 What a **game trainer** is: <br/>
 http://en.wikipedia.org/wiki/Trainer_%28games%29
 
 For **further documentation** see:
 
-* [Questions and Answers]
-(https://github.com/ugtrain/ugtrain/blob/master/README_qanda.md)
-* [Static Memory Cheating Documentation]
-(https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-statmem.txt)
-* [Dynamic Memory Cheating Documentation]
-(https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
-* [Config Syntax Description]
-(https://github.com/ugtrain/ugtrain/blob/master/examples/README.md)
-* [Development TODOs]
-(https://github.com/ugtrain/ugtrain/blob/master/TODO)
+* [Questions and Answers](https://github.com/ugtrain/ugtrain/blob/master/README_qanda.md)
+* [Static Memory Cheating Documentation](https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-statmem.txt)
+* [Dynamic Memory Cheating Documentation](https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
+* [Config Syntax Description](https://github.com/ugtrain/ugtrain/blob/master/examples/README.md)
+* [Development TODOs](https://github.com/ugtrain/ugtrain/blob/master/TODO)
 
 ## Logo and Screenshots
 <table><tr><td>
@@ -43,7 +40,7 @@ For **further documentation** see:
    alt="ugtrain cheating at Chromium B.S.U. 64 bit" align="right" width="400" />
 </a></td></tr></table>
 
-## Videos of the Examples
+## Videos of Examples
 
 **Chromium B.S.U.** <br/>
 https://www.youtube.com/watch?v=mTpC30tSMqU
@@ -67,10 +64,20 @@ sending dumps with ugtrain parts visible to them.
 
 ![Don't cheat at Steam!](img/dont_cheat_at_steam_300px.png)
 
+## Linux Distribution Packages:
+
+Arch: https://aur.archlinux.org/packages/ugtrain-git/
+
+Debian: https://sourceforge.net/projects/ugtrain/files/
+
+Gentoo: https://github.com/elitak/ugtrain-overlay
+
+Ubuntu: https://launchpad.net/~s-parschauer/+archive/ubuntu/game-cheating
+
 ## How to Build and Install
 
 Make sure that the following packages are installed on your system: <br/>
-autotools-dev, autoconf, automake, libtoolize and libtool
+autotools-dev, autoconf, automake, g++, libtoolize, and libtool
 
 1. Generate the missing autotools files: <br/>
 `./autogen.sh`
@@ -123,15 +130,23 @@ adaption can be triggered explicitly as well: <br/>
 
 * PCs: tested on x86 and x86\_64 only
 * smartphones: tested on ARMv7 (OMAP3630 in Nokia N9) only
+* embedded: tested on Raspberry Pi only
 
 **Operating System**
 
 * Linux only
 
+**Configs**
+
+* no config editor - use your favorite text editor
+* can't be reloaded when the game is already running
+* can't implement adaption for all of them (too much efforts)
+
 **Static Memory**
 
 * no adaption yet
 * no support for values within a library (PIC) yet
+* no support for values on the stack yet
 
 **Dynamic Memory**
 
@@ -139,6 +154,12 @@ adaption can be triggered explicitly as well: <br/>
 * no adaption for allocations within a library (PIC) yet
 * disassembly within discovery and adaption for x86 and x86\_64 only
 * doesn't work with WINE yet
+
+**Pointer Following**
+
+* experimental
+* preferred from dynamic memory and unpreferred from static memory
+* limited discovery features (tool ugptrfind)
 
 **Compilation**
 
@@ -148,51 +169,13 @@ adaption can be triggered explicitly as well: <br/>
 **GUI**
 
 * can't serve as a backend yet
+* runs in batch mode only - ncurses interface required
+* GUI development rejected
 
-**Packaging**
-
-* only Debian packaging
-* packaging is limited to PCs and MeeGo 1.2 Harmattan (Nokia N9)
+Memory scanning integration needed, not enough development resources,
+no contributions, and no personal need.
 
 **Testing**
 
 * testing is limited to manual tests so far
-* tests are mostly based on Debian/Ubuntu distributions
-
-# How to Contribute
-
-Please **create issues on GitHub** in order to report bugs, send feature
-requests, send improvement suggestions or request help. If you've developed
-really good git commits after forking ugtrain on GitHub, then please
-**create pull requests** in order to request a review and merging your commits
-into the mainline.
-
-https://github.com/ugtrain/ugtrain
-
-Please **star ugtrain** on GitHub if you like it and **watch it** if you would
-like to get informed about issues and pull requests.
-
-In case you don't like doing that via GitHub, just send an email to: <br/>
-ugtrain-devel@lists.sourceforge.net
-
-The SourceForge project is only there for having a mailing list, a blog,
-a code mirror as well as rating and further promotion/SEO possibilities.
-
-Note: All this has public archives. So please **don't** send anything illegal
-(like configs for commercial games) there.
-
-# Help Wanted
-
-This project needs to fill the following positions with
-one or more hobbyists (as we are strictly non-commercial):
-
-* Linux C/C++ Game Cheating Developer
-* Windows C/C++ Game Cheating Developer
-* Autotools Specialist
-* Promoter
-* Tester
-* Example Config Maintainer (writes configs and creates cheating videos)
-* Web Designer
-* Linux Distribution Packager
-
-Your help is very much appreciated!
+* tests are mostly based on Debian/Ubuntu/openSUSE distributions
