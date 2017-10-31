@@ -227,8 +227,9 @@ static bool parse_obj_num_chk (list<CfgEntry> *cfg, CheckEntry *chk_en,
 	return ret;
 }
 
-static ptr_t parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
-			    string *line, u32 lnr, u32 *start)
+static ptr_t parse_address (list<CfgEntry> *cfg, CfgEntry *cfg_en,
+			    CheckEntry *chk_en, string *line, u32 lnr,
+			    u32 *start)
 {
 	u32 lidx;
 	string tmp_str;
@@ -238,10 +239,20 @@ static ptr_t parse_address (list<CfgEntry> *cfg, CheckEntry *chk_en,
 	if (lidx + 2 > line->length())
 		cfg_parse_err(line, lnr, --lidx);
 	if (line->at(lidx) != '0' || line->at(lidx + 1) != 'x') {
+		// So you want a special address or a cfg value reference?
+		tmp_str = parse_value_name(line, lnr, start, false, NULL);
+		if (tmp_str == "stack") {
+			if (!cfg_en)
+				cfg_parse_err(line, lnr, lidx);
+			if (chk_en)
+				chk_en->type.on_stack = true;
+			else
+				cfg_en->type.on_stack = true;
+			ret = parse_address(NULL, NULL, NULL, line, lnr, start);
+			goto out;
+		}
 		if (!cfg || !chk_en)
 			cfg_parse_err(line, lnr, lidx);
-		// So you want a cfg value reference?
-		tmp_str = parse_value_name(line, lnr, start, false, NULL);
 		chk_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
 		if (!chk_en->cfg_ref)
 			cfg_parse_err(line, lnr, lidx);
@@ -551,10 +562,10 @@ static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 	}
 	// parse backtracing
 	grow_enp->code_addr =
-		parse_address(NULL, NULL, line, lnr, start);
+		parse_address(NULL, NULL, NULL, line, lnr, start);
 	grow_enp->code_offs = grow_enp->code_addr;
 	grow_enp->stack_offs =
-		parse_address(NULL, NULL, line, lnr, start);
+		parse_address(NULL, NULL, NULL, line, lnr, start);
 	grow_enp->lib = parse_pic_lib(line, start);
 	grow_enp->v_msize.clear();
 	dynmem_enp->grow = grow_enp;
@@ -574,10 +585,10 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 	} else {
 		dynmem_enp->mem_size = parse_u32_value(line, lnr, start);
 		dynmem_enp->code_addr =
-			parse_address(NULL, NULL, line, lnr, start);
+			parse_address(NULL, NULL, NULL, line, lnr, start);
 		dynmem_enp->code_offs = dynmem_enp->code_addr;
 		dynmem_enp->stack_offs =
-			parse_address(NULL, NULL, line, lnr, start);
+			parse_address(NULL, NULL, NULL, line, lnr, start);
 		dynmem_enp->cfg_line = lnr;
 		dynmem_enp->lib = parse_pic_lib(line, start);
 	}
@@ -674,13 +685,20 @@ void read_config (struct app_options *opt,
 
 			chk_lp = cfg_enp->checks;
 			chk_en.cfg_ref = NULL;
+			memset(&chk_en.type, 0, sizeof(chk_en.type));
 			if (in_dynmem)
 				chk_en.check_obj_num = parse_obj_num_chk(cfg,
 					&chk_en, &line, lnr, &start);
 			else
 				chk_en.check_obj_num = false;
 			if (!chk_en.check_obj_num)
-				chk_en.addr = parse_address(cfg, &chk_en, &line, lnr, &start);
+				chk_en.addr = parse_address(cfg, cfg_enp, &chk_en,
+							    &line, lnr, &start);
+			if (chk_en.type.on_stack) {
+				if (in_dynmem || in_ptrmem)
+					cfg_parse_err(&line, lnr, start);
+				opt->val_on_stack = true;
+			}
 			parse_data_type(&line, lnr, &start, &chk_en.type);
 			for (i = 0; i < MAX_CHK_VALS; i++)
 				chk_en.value[i] = parse_value(&line, lnr, &start, cfg,
@@ -863,7 +881,13 @@ void read_config (struct app_options *opt,
 			cfg_en.checks = NULL;
 			cfg_en.dynval = DYN_VAL_OFF;
 			cfg_en.cfg_ref = NULL;
-			cfg_en.addr = parse_address(cfg, NULL, &line, lnr, &start);
+			memset(&cfg_en.type, 0, sizeof(cfg_en.type));
+			cfg_en.addr = parse_address(cfg, &cfg_en, NULL, &line, lnr, &start);
+			if (cfg_en.type.on_stack) {
+				if (in_dynmem || in_ptrmem)
+					cfg_parse_err(&line, lnr, start);
+				opt->val_on_stack = true;
+			}
 			parse_data_type(&line, lnr, &start, &cfg_en.type);
 			if (!cfg_en.type.size) {
 				tmp_str = parse_value_name(&line, lnr, &start,

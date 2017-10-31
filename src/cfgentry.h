@@ -100,6 +100,7 @@ typedef enum {
 } check_e;
 
 struct type {
+	bool on_stack;
 	bool is_signed;
 	bool is_float;
 	i32 size;
