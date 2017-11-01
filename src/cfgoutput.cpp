@@ -96,7 +96,8 @@ static void output_config_en (CfgEntry *cfg_en)
 			<< " " << 8 * sizeof(ptr_t) << "-bit -> "
 			<< cfg_en->ptrtgt->name << endl;
 	} else {
-		cout << "  " << cfg_en->name << " 0x" << hex << cfg_en->addr << dec
+		cout << "  " << cfg_en->name << ((cfg_en->type.on_stack) ?
+			" stack 0x" : " 0x") << hex << cfg_en->addr << dec
 			<< " " << cfg_en->type.size << "-bit ";
 		output_config_val(cfg_en);
 	}
@@ -148,7 +149,8 @@ static void output_checks (CfgEntry *cfg_en)
 	char *check_op = get_check_op(cfg_en->check);
 
 	if (check_op) {
-		cout << "    check 0x" << hex << cfg_en->addr << dec << check_op;
+		cout << "    check " << ((cfg_en->type.on_stack) ? "stack 0x" : "0x")
+			<< hex << cfg_en->addr << dec << check_op;
 		output_val(&cfg_en->type, cfg_en->value, "");
 		cout << endl;
 	}
@@ -159,7 +161,8 @@ static void output_checks (CfgEntry *cfg_en)
 		if (it->cfg_ref)
 			cout << "    check " << it->cfg_ref->name;
 		else
-			cout << "    check 0x" << hex << it->addr << dec;
+			cout << "    check " << ((it->type.on_stack) ?
+				"stack 0x" : "0x") << hex << it->addr << dec;
 		for (i = 0; it->check[i] != CHECK_END; i++) {
 			if (i > 0)
 				cout << " ||";
