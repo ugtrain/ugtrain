@@ -211,6 +211,8 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 
 	list_for_each (chk_lp, it) {
 		chk_en = &(*it);
+		if (chk_en->type.on_stack)
+			continue;
 		if (chk_en->cfg_ref) {
 			ret = handle_cfg_ref(chk_en->cfg_ref, chk_buf);
 			if (ret)
@@ -466,6 +468,7 @@ static inline void read_dynmem_fifo (list<CfgEntry> *cfg,
 	pcb.lf = get_lib_load_addr;
 	pcb.mf = queue_dynmem_addr;
 	pcb.ff = clear_dynmem_addr;
+	pcb.sf = get_stack_end;
 
 	do {
 		rbytes = read_dynmem_buf(cfg, dp, ifd, pmask, false,
@@ -522,6 +525,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 		} else {
 			mem_offs = 0;
 
+			if (cfg_en->type.on_stack)
+				continue;
 			mem_addr = cfg_en->addr;
 			if (read_memory(pid, mem_addr, buf, "MEMORY"))
 				continue;
@@ -747,6 +752,12 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 	if (opt->use_gbt) {
 		pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 			";%s", GBT_CMD);
+	}
+	// Libmemhack always needs a config. So provide a reserved one. */
+	if (opt->val_on_stack) {
+		num_cfg++;
+		pos += snprintf(obuf + pos, sizeof(obuf) - pos,
+			";0;0x0;0x0;stack");
 	}
 
 	// Fill the output buffer with the dynmem cfg

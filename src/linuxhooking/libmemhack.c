@@ -232,6 +232,7 @@ void __attribute ((constructor)) memhack_init (void)
 
 	if (read_input(ibuf, sizeof(ibuf) - 1) != 0)
 		goto read_err;
+	pr_dbg("raw config: %s", ibuf);
 
 	scanned = sscanf(start, "%u;", &num_cfg);
 	if (scanned != 1 || num_cfg <= 0)
@@ -325,15 +326,24 @@ void __attribute ((constructor)) memhack_init (void)
 	pr_dbg("num_cfg: %u\n", num_cfg);
 	output_cfg();
 
-	wbytes = write(ofd, "ready\n", sizeof("ready\n"));
-	if (wbytes < 0)
-		perror("write");
+	/* ugtrain waits for signal ready for ASLR handling */
+	wbytes = write(ofd, ASLR_NOTIFY_STR, sizeof(ASLR_NOTIFY_STR));
+	if (wbytes != sizeof(ASLR_NOTIFY_STR))
+		pr_err("PIE handling: Can't write notification.\n");
+
+	/* check for pure stack value config */
+	if (num_cfg == 1 && !config[0]->mem_size && !config[0]->grow)
+		goto skip_aslr;
+
+	/* ASLR: early PIC/PIE handling */
 	if (read_input(ibuf, sizeof(ibuf) - 1) != 0) {
 		pr_err("Couldn't read code offsets!\n");
 	} else {
 		char *start = ibuf, *pos;
 		for (i = 0; i < num_cfg; i++) {
 			ptr_t code_offs = 0;
+			if (!config[i]->mem_size && !config[i]->grow)
+				continue;
 			if (sscanf(start, SCN_PTR ";", &code_offs) < 1) {
 				pr_err("Code offset parsing error!\n");
 			} else {
@@ -364,8 +374,16 @@ void __attribute ((constructor)) memhack_init (void)
 		pr_out("Config after early PIC/PIE handling:\n");
 		output_cfg();
 	}
-	if (num_cfg > 0)
+skip_aslr:
+	if (num_cfg > 0) {
 		active = true;
+
+		/* report the stack end to ugtrain */
+		wbytes = sprintf(obuf, "S%p\n", __libc_stack_end);
+		wbytes = write(ofd, obuf, wbytes);
+		if (wbytes < 0)
+			perror("write");
+	}
 out:
 	return;
 

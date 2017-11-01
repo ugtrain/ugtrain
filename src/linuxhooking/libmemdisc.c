@@ -480,13 +480,11 @@ void __attribute ((constructor)) memdisc_init (void)
 	if (stage >= 3 || ptr_cfg.code_addr != 0) {
 		/* notify ugtrain to do the PIE handling */
 		ssize_t wbytes;
-#define NOTIFY_STR "ready\n"
-		wbytes = write(ofd, NOTIFY_STR, sizeof(NOTIFY_STR));
-		if (wbytes != sizeof(NOTIFY_STR)) {
+		wbytes = write(ofd, ASLR_NOTIFY_STR, sizeof(ASLR_NOTIFY_STR));
+		if (wbytes != sizeof(ASLR_NOTIFY_STR)) {
 			pr_err("PIE handling: Can't write notification.\n");
 			goto out;
 		}
-#undef NOTIFY_STR
 		/* PIE handling if exe filter is requested */
 		if (bt_filter && bt_filter[0] == '\0') {
 			ptr_t exe_start = 0, exe_end = 0, exe_offs = 0;

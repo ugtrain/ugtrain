@@ -37,4 +37,6 @@ void do_disc_pic_work (pid_t pid, struct app_options *opt,
 
 void get_lib_load_addr (LF_PARAMS);
 
+void get_stack_end (SF_PARAMS);
+
 #endif

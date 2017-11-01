@@ -71,11 +71,15 @@ struct post_parse {
 #define LF_PARAMS \
 	void *argp, char *lib_name
 
+#define SF_PARAMS \
+	list<CfgEntry> *cfg, ptr_t stack_end
+
 /* parsing call back functions */
 struct parse_cb {
 	void (*mf)(MF_PARAMS);
 	void (*ff)(FF_PARAMS);
 	void (*lf)(LF_PARAMS);
+	void (*sf)(SF_PARAMS);
 };
 
 ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,

@@ -293,7 +293,7 @@ void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
 	if (!opt->pure_statmem) {
 		while (true) {
 			sleep_sec_unless_input(1, ifd);
-			rbytes = read(ifd, buf, sizeof(buf));
+			rbytes = read(ifd, buf, sizeof(ASLR_NOTIFY_STR));
 			if (rbytes == 0 ||
 			    (rbytes < 0 && errno == EAGAIN))
 				continue;
@@ -362,4 +362,55 @@ void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
 	wbytes = write(ofd, obuf, osize);
 	if (wbytes < osize)
 		perror("FIFO write");
+}
+
+// ################################
+// ###### Stack end handling ######
+// ################################
+
+/*
+ * Calculate the current virtual memory address for stack values:
+ * addr = stack_end - addr         This is x86 specific.
+ * Look for type.on_stack, then clear it to handle those values as
+ * regular static memory values. As long as type.on_stack is set,
+ * those aren't processed.
+ */
+
+// sf() callback for read_dynmem_buf()
+void get_stack_end (SF_PARAMS)
+{
+	list<CfgEntry>::iterator cfg_it;
+	CfgEntry *cfg_en;
+	list<CheckEntry> *chk_lp;
+	list<CheckEntry>::iterator chk_it;
+	CheckEntry *chk_en;
+	bool val_on_stack = false;
+
+	cout << "stack_end: 0x" << hex << stack_end << dec << endl;
+
+	list_for_each (cfg, cfg_it) {
+		cfg_en = &(*cfg_it);
+		if (cfg_en->dynmem || cfg_en->ptrmem)
+			continue;
+		if (cfg_en->type.on_stack) {
+			cfg_en->addr = stack_end - cfg_en->addr;
+			cfg_en->type.on_stack = false;
+			val_on_stack = true;
+		}
+
+		chk_lp = cfg_en->checks;
+		if (!chk_lp)
+			continue;
+		list_for_each (chk_lp, chk_it) {
+			chk_en = &(*chk_it);
+			if (!chk_en->type.on_stack)
+				continue;
+			chk_en->addr = stack_end - chk_en->addr;
+			chk_en->type.on_stack = false;
+			val_on_stack = true;
+		}
+	}
+	// HACK: Wait for the game to fill the stack with permanent data.
+	if (val_on_stack)
+		sleep_sec(1);
 }

@@ -32,7 +32,8 @@ enum grow_type {
 #define GBT_CMD     "gbt"  /* GNU backtrace() activation cmd */
 #define MAX_GNUBT   4      /* for GNU backtrace() */
 #define UGT_GAME_PROC_NAME     "UGT_GAME_PROC_NAME"
-#define DBG_FILE_NAME "/tmp/lib_dbg.txt"
+#define DBG_FILE_NAME          "/tmp/lib_dbg.txt"
+#define ASLR_NOTIFY_STR        "ready\n"
 
 /* Branch optimization */
 #define likely(x)     __builtin_expect(!!(x), 1)

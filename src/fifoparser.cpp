@@ -28,7 +28,7 @@ ssize_t parse_dynmem_buf (list<CfgEntry> *cfg, void *argp, char *ibuf,
 			  bool reverse, ptr_t code_offs, struct parse_cb *pcb)
 {
 	static ptr_t heap_start = 0;
-	ptr_t mem_addr = 0, code_addr = 0, stack_offs = 0;
+	ptr_t mem_addr = 0, code_addr = 0, stack_offs = 0, stack_end = 0;
 	ulong mem_size = 0;
 	char *msg_start = ibuf, *msg_end = ibuf, *pstart = ibuf, *sep_pos = ibuf;
 	char *lib_name = NULL;
@@ -59,7 +59,7 @@ next:
 			return tmp_ilen;
 	}
 	pstart = msg_start;
-		if (sscanf(pstart, "%c", &scan_ch) != 1)
+	if (sscanf(pstart, "%c", &scan_ch) != 1)
 		goto parse_err;
 	switch (scan_ch) {
 	case 'm':
@@ -146,6 +146,18 @@ skip_o:
 		pstart++;
 		if (sscanf(pstart, SCN_PTR, &heap_start) != 1)
 			goto parse_err;
+		break;
+	case 'S':
+		if (!pcb || !pcb->sf)
+			break;
+		pstart++;
+		if (sscanf(pstart, SCN_PTR, &stack_end) != 1)
+			goto parse_err;
+		if (!stack_end)
+			break;
+
+		// call post parsing function
+		pcb->sf(cfg, stack_end);
 		break;
 	}
 
