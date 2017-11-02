@@ -47,10 +47,16 @@ struct lf_params {
 	i32   ofd;
 };
 
+// stack end handling parameters
+struct sf_params {
+	struct app_options *opt;
+};
+
 // parameter for the FIFO parser
 struct dynmem_params {
 	struct mqueue    *mqueue;
 	struct lf_params *lfparams;
+	struct sf_params *sfparams;
 };
 
 struct post_parse {
@@ -72,7 +78,7 @@ struct post_parse {
 	void *argp, char *lib_name
 
 #define SF_PARAMS \
-	list<CfgEntry> *cfg, ptr_t stack_end
+	list<CfgEntry> *cfg, void *argp, ptr_t stack_end
 
 /* parsing call back functions */
 struct parse_cb {

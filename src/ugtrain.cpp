@@ -962,6 +962,7 @@ i32 main (i32 argc, char **argv, char **env)
 	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
 	struct mqueue __mq, *mq = &__mq;
 	struct lf_params __lfparams, *lfparams = &__lfparams;
+	struct sf_params __sfparams, *sfparams = &__sfparams;
 	struct dynmem_params __dmparams, *dmparams = &__dmparams;
 	pid_t pid = -1;
 	char def_home[] = "~";
@@ -985,6 +986,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	dmparams->mqueue = mq;
 	dmparams->lfparams = lfparams;
+	dmparams->sfparams = sfparams;
 
 	if (atexit(restore_getch) != 0) {
 		cerr << "Error while registering exit handler!" << endl;
@@ -1121,6 +1123,7 @@ i32 main (i32 argc, char **argv, char **env)
 	lfparams->pid = pid;
 	lfparams->ofd = ofd;
 	lfparams->rlist = &rlist;
+	sfparams->opt = opt;
 
 	// use sleep_sec_unless_input2() also for pure static memory
 	if (ifd < 0)

@@ -226,6 +226,23 @@ static void process_disc1234_malloc (MF_PARAMS)
 	}
 }
 
+// sf() callback for read_dynmem_buf()
+static void discover_stack_val (SF_PARAMS)
+{
+	struct disc_pp *dpp = (struct disc_pp *) argp;
+	struct app_options *opt = dpp->opt;
+	ptr_t in_addr = dpp->in_addr;
+	ptr_t stack_start = opt->stack_start;
+
+	opt->stack_end = stack_end;
+	if (!stack_start || !stack_end || stack_start > stack_end)
+		return;
+	if (in_addr >= stack_start && in_addr < stack_end)
+		cout << "stack contains 0x" << hex << in_addr
+		     << ", offs: 0x" << stack_end - in_addr
+		     << dec << endl;
+}
+
 static inline void rm_dasm_files (void)
 {
 	rm_files_by_pattern((char *) DASM_DIR "*" DASM_SUF);
@@ -262,6 +279,7 @@ static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
 	dpp.rlist = rlist;
 
 	pcb.mf = process_disc1234_malloc;
+	pcb.sf = discover_stack_val;
 
 	rm_dasm_files();
 	while (true) {
@@ -362,6 +380,7 @@ void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 		exit(0);
 	} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
 		struct disc_params params = { dfd, pid, opt };
+		get_stack_start(opt, pid, rlist);
 		if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
 			handle_pie(opt, cfg, ifd, ofd, pid, rlist);
 		worker_pid = fork_proc(run_stage1234_loop, &params);

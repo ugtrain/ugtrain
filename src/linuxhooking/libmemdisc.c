@@ -514,8 +514,9 @@ void __attribute ((constructor)) memdisc_init (void)
 	}
 	pr_dbg("new cfg: %d;%zd;" PRI_PTR "\n", stage, malloc_size, code_addr);
 
-	/* Send out the heap start */
+	/* Send out the heap start and stack end */
 	fprintf(ofile, "h" PRI_PTR "\n", heap_start);
+	fprintf(ofile, "S" PRI_PTR "\n", stack_end);
 #ifdef WRITE_UNCACHED
 	fflush(ofile);
 #endif

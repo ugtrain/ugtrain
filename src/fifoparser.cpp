@@ -157,7 +157,7 @@ skip_o:
 			break;
 
 		// call post parsing function
-		pcb->sf(cfg, stack_end);
+		pcb->sf(cfg, argp, stack_end);
 		break;
 	}
 

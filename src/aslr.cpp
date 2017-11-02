@@ -364,9 +364,39 @@ void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
 		perror("FIFO write");
 }
 
-// ################################
-// ###### Stack end handling ######
-// ################################
+// ############################
+// ###### Stack handling ######
+// ############################
+
+static inline void find_stack_start (struct list_head *rlist,
+				     ptr_t *stack_start)
+{
+	struct region *it;
+
+	clist_for_each_entry (it, rlist, list) {
+		if (it->type == REGION_TYPE_STACK) {
+			*stack_start = (ptr_t) it->start;
+			break;
+		}
+	}
+}
+
+/*
+ * read the stack start from /proc/$pid/maps
+ * and store it in opt
+ */
+void get_stack_start (struct app_options *opt, pid_t pid,
+		      struct list_head *rlist)
+{
+	struct pmap_params params;
+	char exe_path[MAPS_MAX_PATH];
+
+	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
+	params.exe_path = exe_path;
+	params.rlist = rlist;
+	read_regions(pid, &params);
+	find_stack_start(rlist, &opt->stack_start);
+}
 
 /*
  * Calculate the current virtual memory address for stack values:
@@ -379,14 +409,19 @@ void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
 // sf() callback for read_dynmem_buf()
 void get_stack_end (SF_PARAMS)
 {
+	struct sf_params *sfp = (struct sf_params *) argp;
+	struct app_options *opt = sfp->opt;
 	list<CfgEntry>::iterator cfg_it;
 	CfgEntry *cfg_en;
 	list<CheckEntry> *chk_lp;
 	list<CheckEntry>::iterator chk_it;
 	CheckEntry *chk_en;
-	bool val_on_stack = false;
 
+	opt->stack_end = stack_end;
 	cout << "stack_end: 0x" << hex << stack_end << dec << endl;
+
+	if (!opt->val_on_stack)
+		return;
 
 	list_for_each (cfg, cfg_it) {
 		cfg_en = &(*cfg_it);
@@ -395,7 +430,6 @@ void get_stack_end (SF_PARAMS)
 		if (cfg_en->type.on_stack) {
 			cfg_en->addr = stack_end - cfg_en->addr;
 			cfg_en->type.on_stack = false;
-			val_on_stack = true;
 		}
 
 		chk_lp = cfg_en->checks;
@@ -407,10 +441,8 @@ void get_stack_end (SF_PARAMS)
 				continue;
 			chk_en->addr = stack_end - chk_en->addr;
 			chk_en->type.on_stack = false;
-			val_on_stack = true;
 		}
 	}
 	// HACK: Wait for the game to fill the stack with permanent data.
-	if (val_on_stack)
-		sleep_sec(1);
+	sleep_sec(1);
 }
