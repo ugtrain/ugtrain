@@ -103,6 +103,7 @@ struct type {
 	bool on_stack;
 	bool is_signed;
 	bool is_float;
+	bool is_cstrp;
 	i32 size;
 };
 
@@ -120,7 +121,8 @@ typedef union {
 	ptr_t		ptr;
 } value_t;
 
-#define MAX_CHK_VALS 4                // for "or" checks
+#define MAX_CHK_VALS      4           // for "or" checks
+#define MAX_CSTR        128           // max chars for C string watching
 
 class CheckEntry {
 public:
@@ -143,6 +145,7 @@ public:
 	ptr_t val_addr;               // for DYN_VAL_ADDR only
 	value_t value;                // for static memory only
 	value_t old_val;              // for static memory only
+	char *cstr;                   // for static memory only
 
 	// get value from other cfg entry (DYN_VAL_ADDR)
 	CfgEntry *cfg_ref;
@@ -152,6 +155,7 @@ public:
 	DynMemEntry *dynmem;
 	vector<value_t> v_value;      // wish value per object
 	vector<value_t> v_oldval;     // old value per object
+	vector<char *> v_cstr;        // C string per object
 	// memory behind pointer following
 	PtrMemEntry *ptrmem;
 	PtrMemEntry *ptrtgt;

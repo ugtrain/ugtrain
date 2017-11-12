@@ -15,7 +15,7 @@
 #include <map>
 #include <vector>
 #include <cstring>
-#include <stdlib.h>
+#include <cstdlib>
 
 // local includes
 #include <cfgparser.h>
@@ -303,6 +303,18 @@ static void parse_data_type (string *line, u32 lnr, u32 *start,
 		lidx += 2;
 		*start = lidx;
 		type->size = 0;
+		return;
+	case 'c':
+		if (lidx + 8 > line->length())
+			cfg_parse_err(line, lnr, --lidx);
+		if (line->substr(lidx, 5) == "cstrp") {
+			lidx += 6;
+			*start = lidx;
+			type->is_cstrp = true;
+			type->size = 0;
+		} else {
+			cfg_parse_err(line, lnr, --lidx);
+		}
 		return;
 	default:
 		cfg_parse_err(line, lnr, --lidx);
@@ -889,7 +901,13 @@ void read_config (struct app_options *opt,
 				opt->val_on_stack = true;
 			}
 			parse_data_type(&line, lnr, &start, &cfg_en.type);
-			if (!cfg_en.type.size) {
+			cfg_en.ptrtgt = NULL;
+			cfg_en.cstr = NULL;
+			if (cfg_en.type.is_cstrp) {
+				cfg_en.type.size = sizeof(long) * 8;
+				if (!in_dynmem && !in_ptrmem)
+					cfg_en.cstr = (char *) calloc(1, MAX_CSTR + 1);
+			} else if (!cfg_en.type.size) {
 				tmp_str = parse_value_name(&line, lnr, &start,
 					false, NULL);
 				cfg_en.ptrtgt = find_ptr_mem(cfg, &tmp_str);
@@ -903,12 +921,13 @@ void read_config (struct app_options *opt,
 					cfg_en.ptrtgt->v_offs.push_back(0);
 				}
 				cfg_en.type.size = sizeof(long) * 8;
-			} else {
-				cfg_en.ptrtgt = NULL;
 			}
 
 			cfg_en.value = parse_value(&line, lnr, &start, cfg, &cfg_en,
 				NULL, &cfg_en.dynval, &cfg_en.check, 0);
+			// Cannot allow other than watching for C/C++ strings
+			if (cfg_en.type.is_cstrp && cfg_en.dynval != DYN_VAL_WATCH)
+				cfg_parse_err(&line, lnr, --start);
 			if (cfg_en.dynval == DYN_VAL_ADDR)
 				cfg_en.val_addr = cfg_en.value.ptr;
 			if (in_dynmem)

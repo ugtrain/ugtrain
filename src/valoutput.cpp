@@ -43,6 +43,12 @@ static void output_mem_val (CfgEntry *cfg_en, ptr_t mem_offs, bool is_dynmem)
 		     << ", Data: 0x";
 	}
 
+	if (type->is_cstrp && cfg_en->cstr) {
+		cout << hex << cfg_en->old_val.ptr << dec
+		     << " (\"" << cfg_en->cstr << "\")" << endl;
+		return;
+	}
+
 	if (type->is_float) {
 		if (type->size == 32) {
 			cout << hex << cfg_en->old_val.i32 << dec
@@ -110,8 +116,11 @@ static void output_ptrmem_values (CfgEntry *cfg_en)
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
-		if (dynmem)
+		if (dynmem) {
 			cfg_en->old_val = cfg_en->v_oldval[pr_idx];
+			cfg_en->value = cfg_en->v_value[pr_idx];
+			cfg_en->cstr = cfg_en->v_cstr[pr_idx];
+		}
 		output_mem_val(cfg_en, mem_offs, false);
 	}
 }
@@ -138,6 +147,10 @@ int output_mem_values (list<CfgEntry*> *cfg_act)
 				mem_offs = mvec->at(cfg_en->dynmem->pr_idx);
 				cfg_en->old_val =
 					cfg_en->v_oldval[cfg_en->dynmem->pr_idx];
+				cfg_en->value =
+					cfg_en->v_value[cfg_en->dynmem->pr_idx];
+				cfg_en->cstr =
+					cfg_en->v_cstr[cfg_en->dynmem->pr_idx];
 				is_dynmem = true;
 				if (cfg_en->dynmem != old_dynmem) {
 					cout << "*" << cfg_en->dynmem->name << "["

@@ -273,7 +273,7 @@ out:
 
 template <typename T>
 static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
-			   T *value, ptr_t mem_offs)
+			   T *value, char *cstr, ptr_t mem_offs)
 {
 	value_t __buf, *buf = &__buf;
 	ptr_t mem_addr = 0;
@@ -302,6 +302,16 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 			*value = *(T *) buf;
 		}
 		break;
+	case DYN_VAL_WATCH:
+		if (!cfg_en->type.is_cstrp || !cstr)
+			break;
+		mem_addr = read_val;
+		if (!mem_addr)
+			break;
+		if (memread(pid, mem_addr, cstr, MAX_CSTR))
+			cerr << "STRING READ ERROR PID[" << pid << "] ("
+			     << hex << mem_addr << dec << ")!" << endl;
+		break;
 	default:
 		break;
 	}
@@ -310,7 +320,8 @@ out:
 }
 
 static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
-			   ptr_t mem_offs, value_t *old_val, value_t *value)
+			   ptr_t mem_offs, value_t *old_val, value_t *value,
+			   char *cstr)
 {
 	struct type *type = &cfg_en->type;
 
@@ -318,12 +329,12 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 		switch (type->size) {
 		case 64:
 			old_val->f64 = buf->f64;
-			handle_dynval(pid, cfg_en, old_val->f64, &value->f64, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->f64, &value->f64, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->f64, value->f64, buf, mem_offs);
 			break;
 		case 32:
 			old_val->f32 = buf->f32;
-			handle_dynval(pid, cfg_en, old_val->f32, &value->f32, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->f32, &value->f32, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->f32, value->f32, buf, mem_offs);
 			break;
 		}
@@ -331,22 +342,22 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 		switch (type->size) {
 		case 64:
 			old_val->i64 = buf->i64;
-			handle_dynval(pid, cfg_en, old_val->i64, &value->i64, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i64, &value->i64, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->i64, value->i64, buf, mem_offs);
 			break;
 		case 32:
 			old_val->i32 = buf->i32;
-			handle_dynval(pid, cfg_en, old_val->i32, &value->i32, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i32, &value->i32, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->i32, value->i32, buf, mem_offs);
 			break;
 		case 16:
 			old_val->i16 = buf->i16;
-			handle_dynval(pid, cfg_en, old_val->i16, &value->i16, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i16, &value->i16, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->i16, value->i16, buf, mem_offs);
 			break;
 		default:
 			old_val->i8 = buf->i8;
-			handle_dynval(pid, cfg_en, old_val->i8, &value->i8, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->i8, &value->i8, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->i8, value->i8, buf, mem_offs);
 			break;
 		}
@@ -354,22 +365,22 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 		switch (type->size) {
 		case 64:
 			old_val->u64 = buf->u64;
-			handle_dynval(pid, cfg_en, old_val->u64, &value->u64, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u64, &value->u64, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->u64, value->u64, buf, mem_offs);
 			break;
 		case 32:
 			old_val->u32 = buf->u32;
-			handle_dynval(pid, cfg_en, old_val->u32, &value->u32, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u32, &value->u32, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->u32, value->u32, buf, mem_offs);
 			break;
 		case 16:
 			old_val->u16 = buf->u16;
-			handle_dynval(pid, cfg_en, old_val->u16, &value->u16, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u16, &value->u16, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->u16, value->u16, buf, mem_offs);
 			break;
 		default:
 			old_val->u8 = buf->u8;
-			handle_dynval(pid, cfg_en, old_val->u8, &value->u8, mem_offs);
+			handle_dynval(pid, cfg_en, old_val->u8, &value->u8, cstr, mem_offs);
 			change_mem_val(pid, cfg_en, old_val->u8, value->u8, buf, mem_offs);
 			break;
 		}
@@ -422,12 +433,14 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 				change_memory(pid, cfg_en, buf,
 					ptrmem->v_offs[mem_idx],
 					&cfg_en->v_oldval[mem_idx],
-					&cfg_en->v_value[mem_idx]);
+					&cfg_en->v_value[mem_idx],
+					cfg_en->v_cstr[mem_idx]);
 			else
 				change_memory(pid, cfg_en, buf,
 					ptrmem->v_offs[mem_idx],
 					&cfg_en->old_val,
-					&cfg_en->value);
+					&cfg_en->value,
+					cfg_en->cstr);
 		}
 	} else {
 		value->ptr = buf->ptr;
@@ -520,7 +533,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 				else
 					change_memory(pid, cfg_en, buf, mem_offs,
 						&cfg_en->v_oldval[mem_idx],
-						&cfg_en->v_value[mem_idx]);
+						&cfg_en->v_value[mem_idx],
+						cfg_en->v_cstr[mem_idx]);
 			}
 		} else {
 			mem_offs = 0;
@@ -535,7 +549,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 			else
 				change_memory(pid, cfg_en, buf, mem_offs,
 					&cfg_en->old_val,
-					&cfg_en->value);
+					&cfg_en->value,
+					cfg_en->cstr);
 		}
 	}
 }
@@ -753,7 +768,7 @@ static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
 		pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 			";%s", GBT_CMD);
 	}
-	// Libmemhack always needs a config. So provide a reserved one. */
+	// Libmemhack always needs a config. So provide a reserved one.
 	if (opt->val_on_stack) {
 		num_cfg++;
 		pos += snprintf(obuf + pos, sizeof(obuf) - pos,

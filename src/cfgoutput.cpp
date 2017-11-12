@@ -65,6 +65,8 @@ static void output_config_val (CfgEntry *cfg_en)
 {
 	switch (cfg_en->dynval) {
 	case DYN_VAL_WATCH:
+		if (cfg_en->type.is_cstrp)
+			cout << "cstrp ";
 		cout << "(watch)" << endl;
 		break;
 	case DYN_VAL_MIN:
