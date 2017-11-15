@@ -102,7 +102,8 @@ static char *parse_proc_name (string *line, u32 *start)
 		if (!isalnum(line->at(lidx)) &&
 		    line->at(lidx) != '.' &&
 		    line->at(lidx) != '-' &&
-		    line->at(lidx) != '_')
+		    line->at(lidx) != '_' &&
+		    line->at(lidx) != ' ')
 			proc_name_err(line, lidx);
 	}
 	*start = lidx;
