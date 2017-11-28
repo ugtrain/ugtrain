@@ -231,13 +231,14 @@ parse_err:
 static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg,
 			 vector<string> *lines)
 {
+	bool debug_mode = false;
 	char pbuf[PIPE_BUF] = { 0 };
-	ssize_t read_bytes;
+	ssize_t read_bytes = 0;
 	const char *cmd = (const char *) opt->adp_script;
 	char *cmdv[] = {
 		opt->adp_script,
 		opt->game_binpath,
-		NULL
+		NULL, NULL
 	};
 
 #ifdef __linux__
@@ -245,7 +246,11 @@ static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg,
 		goto err;
 #endif
 
-	read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf));
+start:
+	if (!debug_mode)
+		read_bytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf));
+	else
+		run_cmd(cmd, cmdv);
 	if (read_bytes <= 0)
 		goto err;
 	cout << "Adaption return:" << endl;
@@ -259,6 +264,11 @@ static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg,
 
 	return 0;
 err:
+	if (!debug_mode) {
+		debug_mode = true;
+		cmdv[2] = (char *) "DEBUG";
+		goto start;
+	}
 	cerr << "Error while running adaption script!" << endl;
 	return -1;
 }
