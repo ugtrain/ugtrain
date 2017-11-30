@@ -220,12 +220,14 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 
 	list_for_each (chk_lp, it) {
 		chk_en = &(*it);
-		if (chk_en->type.on_stack)
-			continue;
+		if (chk_en->type.on_stack) {
+			ret = 1;
+			goto out;
+		}
 		if (chk_en->cfg_ref) {
 			ret = handle_cfg_ref(chk_en->cfg_ref, chk_buf);
 			if (ret)
-				continue;
+				goto out;
 		} else if (chk_en->check_obj_num) {
 			if (!dynmem)
 				continue;
