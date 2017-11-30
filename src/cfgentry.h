@@ -146,6 +146,7 @@ public:
 	value_t value;                // for static memory only
 	value_t old_val;              // for static memory only
 	char *cstr;                   // for static memory only
+	bool val_set;                 // Value has been written this cycle?
 
 	// get value from other cfg entry (DYN_VAL_ADDR)
 	CfgEntry *cfg_ref;

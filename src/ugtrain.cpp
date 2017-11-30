@@ -182,17 +182,26 @@ static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, value_t *buf)
 	if (cfg_ref->dynmem) {
 		DynMemEntry *dynmem = cfg_ref->dynmem;
 		vector<value_t> *vvec = &cfg_ref->v_oldval;
+		if (cfg_ref->val_set)
+			vvec = &cfg_ref->v_value;
 		if (vvec->size() <= 0)
 			goto err;
 		*buf = vvec->at(dynmem->obj_idx);
 	} else if (ptrmem && ptrmem->dynmem) {
 		DynMemEntry *dynmem = ptrmem->dynmem;
 		vector<value_t> *vvec = &cfg_ref->v_oldval;
+		if (cfg_ref->val_set)
+			vvec = &cfg_ref->v_value;
 		if (vvec->size() <= 0)
+			goto err;
+		// Is the pointer not settled?
+		if (ptrmem->v_state[dynmem->obj_idx] == PTR_INIT)
 			goto err;
 		*buf = vvec->at(dynmem->obj_idx);
 	} else {
 		*buf = cfg_ref->old_val;
+		if (cfg_ref->val_set)
+			*buf = cfg_ref->value;
 	}
 	return 0;
 err:
@@ -261,12 +270,18 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
 	if (ret)
 		goto out;
 
+	// Invalid value from reference?
+	if (cfg_en->cfg_ref && value == 0)
+		goto out;
+
 	memcpy(buf, &value, sizeof(T));
 	mem_addr = mem_offs + cfg_en->addr;
 
 	ret = write_memory(pid, mem_addr, buf, "MEMORY");
 	if (ret)
 		goto out;
+
+	cfg_en->val_set = true;
 out:
 	return;
 }
@@ -324,6 +339,8 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 			   char *cstr)
 {
 	struct type *type = &cfg_en->type;
+
+	cfg_en->val_set = false;
 
 	if (type->is_float) {
 		switch (type->size) {
