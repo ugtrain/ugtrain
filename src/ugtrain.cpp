@@ -199,6 +199,9 @@ static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, value_t *buf)
 			goto err;
 		*buf = vvec->at(dynmem->obj_idx);
 	} else {
+		// Might be a stack value not available yet
+		if (cfg_ref->type.on_stack)
+			goto err;
 		*buf = cfg_ref->old_val;
 		if (cfg_ref->val_set)
 			*buf = cfg_ref->value;
