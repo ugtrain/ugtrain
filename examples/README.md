@@ -63,7 +63,8 @@ Possible DataTypes: i8, i16, i32, i64, u8, u16, u32, u64, f32, f64
 
 checks: 'l' = "less than", 'g' = "greater than", '' = unchecked
 
-Static wish values are in decimal (e.g. 42). But the dynamic wish values
+Static wish values are in decimal (e.g. 42) or hex (e.g. 0x2a).
+But the dynamic wish values
 "min", "max" and "watch" are also possible. "min" and "max" start with 0
 and if the value gets less than min or greater than max, they are frozen
 to that value. This is good to find out the possible limits within the
