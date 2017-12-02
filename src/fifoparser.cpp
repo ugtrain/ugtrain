@@ -190,7 +190,7 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 	static ptr_t heap_start = 0;
 	static ssize_t ilen = 0;
 	ssize_t tmp_ilen;
-	static char ibuf[PIPE_BUF + 1] = { 0 };
+	static char ibuf[PIPE_BUF] = { 0 };
 	size_t max_read = sizeof(ibuf) - 1 - ilen;   // always '\0' at end
 	char *istart = ibuf + ilen;
 	char scan_ch;

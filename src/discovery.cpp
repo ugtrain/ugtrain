@@ -328,7 +328,7 @@ static void run_stage1234_loop (void *argp)
 	i32 pid = params->pid;
 	struct app_options *opt = params->opt;
 	i32 ofd;
-	char buf[PIPE_BUF];
+	char buf[PIPE_BUF] = { 0 };
 	ssize_t rbytes, wbytes;
 	enum pstate pstate;
 
@@ -342,7 +342,7 @@ static void run_stage1234_loop (void *argp)
 
 	while (true) {
 		sleep_sec_unless_input(1, ifd);
-		rbytes = read(ifd, buf, sizeof(buf));
+		rbytes = read(ifd, buf, sizeof(buf) - 1);
 		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN)) {
 			pstate = check_process(pid, NULL);
 			if (pstate == PROC_DEAD || pstate == PROC_ZOMBIE)

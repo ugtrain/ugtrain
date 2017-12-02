@@ -320,7 +320,8 @@ ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
 		if (!WIFEXITED(status))
 			fprintf(stderr, "%s: Child did not exit normally!\n",
 				__func__);
-		bytes_read = read(fds[STDIN_FILENO], pbuf, pbuf_size);
+		bytes_read = read(fds[STDIN_FILENO], pbuf, pbuf_size - 1);
+		pbuf[pbuf_size - 1] = '\0';
 		if (bytes_read < 0) {
 			perror("pipe read");
 			goto parent_err;

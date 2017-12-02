@@ -43,7 +43,7 @@ static inline int prepare_getch_nb (void)
 
 static inline char do_getch (void)
 {
-	char ch;
+	char ch = 0;
 	int cnt = 1;
 
 	cnt = read(STDIN_FILENO, &ch, cnt);
