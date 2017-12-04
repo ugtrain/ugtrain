@@ -54,6 +54,24 @@ get_app_path()
     PATH_RESULT="proc_name;${proc_name};game_binpath;${APP_PATH};"
 }
 
+get_func_addr()
+{
+    app_path="$1"
+    func="$2"
+    RC=0
+
+    pr_dbg "objdump -R $app_path | grep $func@  | cut -d ' ' -f1"
+    FUNC_ADDR=`objdump -R "$app_path" | grep $func@ | cut -d ' ' -f1`
+    pr_dbg "FUNC_ADDR: $FUNC_ADDR"
+    pr_dbg "echo $FUNC_ADDR | grep -o [1-9a-f].*"
+    FUNC_ADDR=`echo $FUNC_ADDR | grep -o [1-9a-f].*`
+    pr_dbg "FUNC_ADDR: $FUNC_ADDR"
+
+    pr_dbg "objdump -D $app_path | grep \"# $FUNC_ADDR <\" | cut -d ':' -f1 | grep -o [0-9a-f].*"
+    FUNC_ADDR=`objdump -D "$app_path" | grep "# $FUNC_ADDR <" | cut -d ':' -f1 | grep -o [0-9a-f].*`
+    pr_dbg "FUNC_ADDR: $FUNC_ADDR"
+}
+
 get_malloc_code()
 {
     app_path="$1"
