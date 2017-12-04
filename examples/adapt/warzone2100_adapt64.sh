@@ -35,6 +35,15 @@ case "$APP_VERS" in
     if [ $RC -ne 0 ]; then
         get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE1," 3 3 3
     fi
+    if [ $RC -ne 0 ]; then
+      if [ -z "$FUNC_ADDR" ]; then
+        get_func_addr "$APP_PATH" _Znwm
+      fi
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE1," 4 4 4
+    fi
+    if [ $RC -ne 0 ]; then
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE1," 3 3 3
+    fi
     ;;
 3.1*)
     MSIZE1="$MSIZE12"
@@ -42,12 +51,30 @@ case "$APP_VERS" in
     if [ $RC -ne 0 ]; then
         get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE1," 3 3 3
     fi
+    if [ $RC -ne 0 ]; then
+      if [ -z "$FUNC_ADDR" ]; then
+        get_func_addr "$APP_PATH" _Znwm
+      fi
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE1," 4 4 4
+    fi
+    if [ $RC -ne 0 ]; then
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE1," 3 3 3
+    fi
     ;;
 *)
     MSIZE1="$MSIZE13"
     get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE1," 4 4 4
     if [ $RC -ne 0 ]; then
         get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE1," 3 3 3
+    fi
+    if [ $RC -ne 0 ]; then
+      if [ -z "$FUNC_ADDR" ]; then
+        get_func_addr "$APP_PATH" _Znwm
+      fi
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE1," 4 4 4
+    fi
+    if [ $RC -ne 0 ]; then
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE1," 3 3 3
     fi
     ;;
 esac
@@ -68,6 +95,15 @@ case "$APP_VERS" in
     if [ $RC -ne 0 ]; then
         get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE2," 3 7 7
     fi
+    if [ $RC -ne 0 ]; then
+      if [ -z "$FUNC_ADDR" ]; then
+        get_func_addr "$APP_PATH" _Znwm
+      fi
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE2," 4 8 4
+    fi
+    if [ $RC -ne 0 ]; then
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE2," 3 7 7
+    fi
     ;;
 3.1*)
     MSIZE2="$MSIZE22"
@@ -75,10 +111,25 @@ case "$APP_VERS" in
     if [ $RC -ne 0 ]; then
         get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE2," 3 7 7
     fi
+    if [ $RC -ne 0 ]; then
+      if [ -z "$FUNC_ADDR" ]; then
+        get_func_addr "$APP_PATH" _Znwm
+      fi
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE2," 4 8 4
+    fi
+    if [ $RC -ne 0 ]; then
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE2," 3 7 7
+    fi
     ;;
 *)
     MSIZE2="$MSIZE23"
     get_malloc_code "$APP_PATH" "\<_Znwm@plt\>" "$MSIZE2," 4 9 4
+    if [ $RC -ne 0 ]; then
+      if [ -z "$FUNC_ADDR" ]; then
+        get_func_addr "$APP_PATH" _Znwm
+      fi
+      get_malloc_code "$APP_PATH" "$FUNC_ADDR <" "$MSIZE2," 4 9 4
+    fi
     ;;
 esac
 if [ $RC -ne 0 ]; then exit 1; fi
