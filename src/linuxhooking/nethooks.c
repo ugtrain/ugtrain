@@ -36,7 +36,7 @@ int socket (int domain, int type, int protocol)
 	int sfd = -1;
 	static int (*orig_socket)(int domain, int type, int protocol) = NULL;
 
-	if (domain == AF_LOCAL)
+	if (domain == AF_LOCAL || domain == AF_NETLINK)
 		goto allow;
 
 	errno = EACCES;
@@ -55,7 +55,7 @@ int socketpair (int domain, int type, int protocol, int sv[2])
 	static int (*orig_socketpair)(int domain, int type,
 		int protocol, int sv[2]) = NULL;
 
-	if (domain == AF_LOCAL)
+	if (domain == AF_LOCAL || domain == AF_NETLINK)
 		goto allow;
 
 	errno = EOPNOTSUPP;
