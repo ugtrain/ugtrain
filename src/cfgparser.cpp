@@ -388,6 +388,14 @@ static value_t parse_value (string *line, u32 lnr, u32 *start,
 	} else if (line->at(lidx) == 'e' && line->at(lidx + 1) == ' ') {
 		*check = CHECK_EQ;
 		*start += 2;
+		if (!chk_en)
+			cfg_parse_err(line, lnr, lidx);
+		tmp_str = string(*line, *start, lidx - *start);
+		if (&chk_en->check[0] == check && tmp_str == "heap") {
+			chk_en->is_heapchk = true;
+			lidx = line->length();
+			goto out;
+		}
 	} else {
 		if (!dynval)    // This must be a check entry.
 			cfg_parse_err(line, lnr, --lidx);
@@ -694,6 +702,7 @@ void read_config (struct app_options *opt,
 				chk_en.is_objcheck = true;
 			else
 				chk_en.is_objcheck = false;
+			chk_en.is_heapchk = false;
 			cfg_enp = &cfg->back();
 			if (!cfg_enp->checks)
 				cfg_enp->checks = new list<CheckEntry>();
@@ -715,11 +724,22 @@ void read_config (struct app_options *opt,
 				opt->val_on_stack = true;
 			}
 			parse_data_type(&line, lnr, &start, &chk_en.type);
+			if (!chk_en.type.size)
+				chk_en.type.size = sizeof(long) * 8;
 			for (i = 0; i < MAX_CHK_VALS; i++)
 				chk_en.value[i] = parse_value(&line, lnr, &start, cfg,
 					NULL, &chk_en, NULL, &chk_en.check[i], i);
+			if (chk_en.is_heapchk) {
+				opt->heap_checks = true;
+				chk_en.check[1] = CHECK_GT;
+			}
 			chk_en.check[MAX_CHK_VALS] = CHECK_END;
 			chk_lp->push_back(chk_en);
+			if (chk_en.is_heapchk) {
+				chk_en.check[0] = CHECK_LT;
+				chk_en.check[1] = CHECK_END;
+				chk_lp->push_back(chk_en);
+			}
 			break;
 
 		case NAME_DYNMEM_START:

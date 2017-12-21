@@ -39,6 +39,7 @@ struct app_options {
 	bool	pure_statmem;
 	bool	have_objdump;
 	bool    val_on_stack;
+	bool    heap_checks;
 	bool	use_gbt;
 	bool	adp_required;
 	u32	adp_req_line;

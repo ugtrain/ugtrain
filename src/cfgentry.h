@@ -129,6 +129,7 @@ public:
 	ptr_t addr;
 	CfgEntry *cfg_ref;
 	bool is_objcheck;
+	bool is_heapchk;
 	bool check_obj_num;
 	struct type type;
 	check_e check[MAX_CHK_VALS + 1];
