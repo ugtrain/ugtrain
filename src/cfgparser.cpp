@@ -83,9 +83,11 @@ static inline void proc_name_err (string *line, u32 lidx)
 	exit(-1);
 }
 
-static inline void cfg_parse_err (string *line, u32 lnr, u32 lidx)
+#define cfg_parse_err(line, lnr, lidx) _cfg_parse_err(line, lnr, lidx, __FILE__, __LINE__)
+static inline void _cfg_parse_err (string *line, u32 lnr, u32 lidx, const char *cfile, i32 cline)
 {
-	cerr << "Error while parsing config (line " << ++lnr << ")!" << endl;
+	cerr << "Error while parsing config (line " << ++lnr
+	     << ", " << cfile << ":" << cline << ")!" << endl;
 	cerr << string(*line, 0, lidx) << "<--" << endl;
 	exit(-1);
 }
