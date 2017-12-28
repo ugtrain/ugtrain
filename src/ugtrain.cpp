@@ -586,12 +586,16 @@ static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
 	list_for_each (cfg, it) {
 		if (it->dynmem || it->ptrmem)
 			continue;
-		it->addr += code_offs;
+		if (!it->type.on_stack)
+			it->addr += code_offs;
 		if (!it->checks)
 			continue;
 		chk_lp = it->checks;
-		list_for_each (chk_lp, chk_it)
+		list_for_each (chk_lp, chk_it) {
+			if (chk_it->type.on_stack)
+				continue;
 			chk_it->addr += code_offs;
+		}
 	}
 }
 
