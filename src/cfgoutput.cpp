@@ -117,9 +117,12 @@ static void output_ptrmem (CfgEntry *cfg_en)
 	}
 }
 
-static char *get_objcheck_str (CheckEntry *chk_en)
+static char *get_check_str (CheckEntry *chk_en)
 {
-	return (char *) ((chk_en->is_objcheck) ? " (objcheck)" : "");
+	char *ret = (char *) ((chk_en->is_objcheck) ? " (objcheck)" : "");
+
+	ret = (char *) ((chk_en->is_heapchk) ? " (heapcheck)" : ret);
+	return ret;
 }
 
 static char *get_check_op (check_e check)
@@ -170,7 +173,7 @@ static void output_checks (CfgEntry *cfg_en)
 				cout << " ||";
 			check_op = get_check_op(it->check[i]);
 			cout << check_op;
-			output_val(&it->type, it->value[i], get_objcheck_str(&(*it)));
+			output_val(&it->type, it->value[i], get_check_str(&(*it)));
 		}
 		cout << endl;
 	}
