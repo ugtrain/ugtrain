@@ -29,8 +29,8 @@
 #include <common.h>
 #include <options.h>
 
-void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
-		 i32 ofd, pid_t pid, struct list_head *rlist);
+void handle_aslr (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
+		  i32 ofd, pid_t pid, struct list_head *rlist);
 
 void do_disc_pic_work (pid_t pid, struct app_options *opt,
 		       i32 ifd, i32 ofd, struct list_head *rlist);
@@ -38,6 +38,9 @@ void do_disc_pic_work (pid_t pid, struct app_options *opt,
 void get_lib_load_addr (LF_PARAMS);
 
 void get_stack_start (struct app_options *opt, pid_t pid,
+		      struct list_head *rlist);
+
+void get_heap_region (struct app_options *opt, pid_t pid,
 		      struct list_head *rlist);
 
 void get_stack_end (SF_PARAMS);

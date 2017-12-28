@@ -57,6 +57,8 @@ struct app_options {
 	ptr_t	code_offs;
 	ptr_t	stack_start;
 	ptr_t	stack_end;
+	ptr_t	heap_start;
+	ptr_t	heap_end;
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
 	/* options for testing */

@@ -276,8 +276,8 @@ static inline void find_exe_region (struct list_head *rlist,
  * handle PIE and early PIC
  * for memory discovery and hacking
  */
-void handle_pie (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
-		 i32 ofd, pid_t pid, struct list_head *rlist)
+void handle_aslr (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
+		  i32 ofd, pid_t pid, struct list_head *rlist)
 {
 	struct pmap_params params;
 	char buf[PIPE_BUF];
@@ -445,4 +445,39 @@ void get_stack_end (SF_PARAMS)
 	}
 	// HACK: Wait for the game to fill the stack with permanent data.
 	sleep_sec(1);
+}
+
+// #################################
+// ###### Heap check handling ######
+// #################################
+
+static inline void find_heap_region (struct list_head *rlist,
+				     ptr_t *heap_start, ptr_t *heap_end)
+{
+	struct region *it;
+
+	clist_for_each_entry (it, rlist, list) {
+		if (it->type == REGION_TYPE_HEAP) {
+			*heap_start = (ptr_t) it->start;
+			*heap_end = (ptr_t) (it->start + it->size);
+			break;
+		}
+	}
+}
+
+/*
+ * read the heap start and end from /proc/$pid/maps
+ * and store them in opt
+ */
+void get_heap_region (struct app_options *opt, pid_t pid,
+		      struct list_head *rlist)
+{
+	struct pmap_params params;
+	char exe_path[MAPS_MAX_PATH];
+
+	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
+	params.exe_path = exe_path;
+	params.rlist = rlist;
+	read_regions(pid, &params);
+	find_heap_region(rlist, &opt->heap_start, &opt->heap_end);
 }

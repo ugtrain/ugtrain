@@ -382,7 +382,7 @@ void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 		struct disc_params params = { dfd, pid, opt };
 		get_stack_start(opt, pid, rlist);
 		if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
-			handle_pie(opt, cfg, ifd, ofd, pid, rlist);
+			handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 		worker_pid = fork_proc(run_stage1234_loop, &params);
 		if (opt->disc_str[0] >= '3' && opt->disc_lib &&
 		    opt->disc_lib[0] != '\0')

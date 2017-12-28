@@ -577,6 +577,31 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	}
 }
 
+static inline void handle_heap_checks (struct app_options *opt,
+				       list<CfgEntry> *cfg)
+{
+	list<CfgEntry>::iterator it;
+	list<CheckEntry> *chk_lp;
+	list<CheckEntry>::iterator chk_it;
+
+	list_for_each (cfg, it) {
+		if (!it->checks)
+			continue;
+		chk_lp = it->checks;
+		list_for_each (chk_lp, chk_it) {
+			if (!chk_it->is_heapchk)
+				continue;
+			if (chk_it->check[0] == CHECK_EQ &&
+			    chk_it->check[1] == CHECK_GT) {
+				chk_it->value[0].ptr = opt->heap_start;
+				chk_it->value[1].ptr = opt->heap_start;
+			} else if (chk_it->check[0] == CHECK_LT) {
+				chk_it->value[0].ptr = opt->heap_end;
+			}
+		}
+	}
+}
+
 static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
 {
 	list<CfgEntry>::iterator it;
@@ -1157,7 +1182,7 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	handle_pie(opt, cfg, ifd, ofd, pid, &rlist);
+	handle_aslr(opt, cfg, ifd, ofd, pid, &rlist);
 	handle_statmem_pie(opt->code_offs, cfg);
 
 	lfparams->cfg = cfg;
@@ -1219,6 +1244,12 @@ i32 main (i32 argc, char **argv, char **env)
 		if (memdetach(pid) != 0) {
 			cerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
 			return -1;
+		}
+
+		// read the heap region every cycle as it is growing
+		if (opt->heap_checks) {
+			get_heap_region(opt, pid, &rlist);
+			handle_heap_checks(opt, cfg);
 		}
 
 		if (!opt->pure_statmem) {
