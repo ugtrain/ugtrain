@@ -146,5 +146,3 @@ echo "$RESULT"
 #  4a6c5a:       89 ea                   mov    %ebp,%edx
 
 # This shows us that 0x4a6c5a is the relevant Droid code address.
-
-# We can jump directly to stage 4 of the discovery with that.

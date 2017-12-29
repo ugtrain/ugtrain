@@ -12,6 +12,7 @@ CWD=`dirname $0`
 cd "$CWD"
 APP_PATH="$1"
 APP_PATHS="\
+/usr/bin/chromium-bsu
 /usr/games/chromium-bsu
 "
 RC=0
@@ -35,5 +36,3 @@ echo "$RESULT"
 #  411097:       48 89 c7                mov    %rax,%rdi
 
 # This shows us that 0x411097 is the relevant code address.
-
-# We can jump directly to stage 4 of the discovery with that.

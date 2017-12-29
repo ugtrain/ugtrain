@@ -47,5 +47,3 @@ echo "$RESULT"
 # 5e31d4:       48 85 c0                test   %rax,%rax
 
 # This shows us that 0x5e31d4 is the relevant code address.
-
-# We can jump directly to stage 4 of the discovery with that.
