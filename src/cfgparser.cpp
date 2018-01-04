@@ -254,11 +254,19 @@ static ptr_t parse_address (list<CfgEntry> *cfg, CfgEntry *cfg_en,
 			ret = parse_address(NULL, NULL, NULL, line, lnr, start);
 			goto out;
 		}
-		if (!cfg || !chk_en)
+		if (!cfg || !chk_en || !cfg_en)
 			cfg_parse_err(line, lnr, lidx);
 		chk_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
 		if (!chk_en->cfg_ref)
 			cfg_parse_err(line, lnr, lidx);
+		// Checks are processed before the current cfg entry.
+		// So take over its address instead.
+		if (chk_en->cfg_ref == cfg_en) {
+			if (cfg_en->type.on_stack)
+				chk_en->type.on_stack = true;
+			ret = cfg_en->addr;
+			chk_en->cfg_ref = NULL;
+		}
 		goto out;
 	}
 	*start = lidx + 2;
