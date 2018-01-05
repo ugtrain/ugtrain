@@ -237,13 +237,22 @@ static ptr_t parse_address (list<CfgEntry> *cfg, CfgEntry *cfg_en,
 	u32 lidx;
 	string tmp_str;
 	ptr_t ret = 0;
+	bool use_refaddr = false;
 
+start:
 	lidx = *start;
 	if (lidx + 2 > line->length())
 		cfg_parse_err(line, lnr, --lidx);
 	if (line->at(lidx) != '0' || line->at(lidx + 1) != 'x') {
 		// So you want a special address or a cfg value reference?
 		tmp_str = parse_value_name(line, lnr, start, false, NULL);
+		// Use the config reference address instead of its value?
+		if (tmp_str == "addr") {
+			if (use_refaddr || !chk_en)
+				cfg_parse_err(line, lnr, --lidx);
+			use_refaddr = true;
+			goto start;
+		}
 		if (tmp_str == "stack") {
 			if (!cfg_en)
 				cfg_parse_err(line, lnr, lidx);
@@ -251,8 +260,8 @@ static ptr_t parse_address (list<CfgEntry> *cfg, CfgEntry *cfg_en,
 				chk_en->type.on_stack = true;
 			else
 				cfg_en->type.on_stack = true;
-			ret = parse_address(NULL, NULL, NULL, line, lnr, start);
-			goto out;
+			cfg = NULL; cfg_en = NULL; chk_en = NULL;
+			goto start;
 		}
 		if (!cfg || !chk_en || !cfg_en)
 			cfg_parse_err(line, lnr, lidx);
@@ -265,6 +274,11 @@ static ptr_t parse_address (list<CfgEntry> *cfg, CfgEntry *cfg_en,
 			if (cfg_en->type.on_stack)
 				chk_en->type.on_stack = true;
 			ret = cfg_en->addr;
+			chk_en->cfg_ref = NULL;
+		} else if (use_refaddr) {
+			if (chk_en->cfg_ref->type.on_stack)
+				chk_en->type.on_stack = true;
+			ret = chk_en->cfg_ref->addr;
 			chk_en->cfg_ref = NULL;
 		}
 		goto out;
