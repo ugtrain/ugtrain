@@ -230,6 +230,13 @@ static bool parse_obj_num_chk (list<CfgEntry> *cfg, CheckEntry *chk_en,
 	return ret;
 }
 
+static inline ptr_t get_cfg_en_addr (CheckEntry *chk_en, CfgEntry *cfg_en)
+{
+	if (cfg_en->type.on_stack)
+		chk_en->type.on_stack = true;
+	return cfg_en->addr;
+}
+
 static ptr_t parse_address (list<CfgEntry> *cfg, CfgEntry *cfg_en,
 			    CheckEntry *chk_en, string *line, u32 lnr,
 			    u32 *start)
@@ -265,20 +272,20 @@ start:
 		}
 		if (!cfg || !chk_en || !cfg_en)
 			cfg_parse_err(line, lnr, lidx);
+		if (tmp_str == "this") {
+			ret = get_cfg_en_addr(chk_en, cfg_en);
+			goto out;
+		}
 		chk_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
 		if (!chk_en->cfg_ref)
 			cfg_parse_err(line, lnr, lidx);
 		// Checks are processed before the current cfg entry.
 		// So take over its address instead.
 		if (chk_en->cfg_ref == cfg_en) {
-			if (cfg_en->type.on_stack)
-				chk_en->type.on_stack = true;
-			ret = cfg_en->addr;
+			ret = get_cfg_en_addr(chk_en, cfg_en);
 			chk_en->cfg_ref = NULL;
 		} else if (use_refaddr) {
-			if (chk_en->cfg_ref->type.on_stack)
-				chk_en->type.on_stack = true;
-			ret = chk_en->cfg_ref->addr;
+			ret = get_cfg_en_addr(chk_en, chk_en->cfg_ref);
 			chk_en->cfg_ref = NULL;
 		}
 		goto out;
