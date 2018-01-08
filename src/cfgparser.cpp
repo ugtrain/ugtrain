@@ -64,12 +64,11 @@ static PtrMemEntry *find_ptr_mem (list<CfgEntry> *cfg, string *name)
 
 static CfgEntry *find_cfg_en (list<CfgEntry> *cfg, string *name)
 {
-	list<CfgEntry>::iterator it;
+	list<CfgEntry>::reverse_iterator rit;
 	CfgEntry *cfg_en = NULL;
 
-
-	list_for_each (cfg, it) {
-		cfg_en = &(*it);
+	list_for_each_prev (cfg, rit) {
+		cfg_en = &(*rit);
 		if (cfg_en->name == *name)
 			return cfg_en;
 	}

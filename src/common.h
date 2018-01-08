@@ -50,6 +50,11 @@ enum grow_type {
 	for (it = list->begin(); it != list->end(); ++it)
 #define vect_for_each(vect, it) \
 	list_for_each(vect, it)
+/* Iterate over a list backwards */
+#define list_for_each_prev(list, rit) \
+	for (rit = list->rbegin(); rit != list->rend(); ++rit)
+#define vect_for_each_prev(vect, rit) \
+	list_for_each_prev(vect, rit)
 #endif
 
 /* Common functions */
