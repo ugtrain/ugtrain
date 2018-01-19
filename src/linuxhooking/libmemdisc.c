@@ -1,4 +1,4 @@
-/* libmemdisc.c:    discovery of an unique malloc call
+/* libmemdisc.c:    discovery of a unique malloc call
  *
  * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
  *
@@ -37,7 +37,6 @@
 #define DYNMEM_IN   "/tmp/memhack_in"
 #define DYNMEM_OUT  "/tmp/memhack_out"
 #define MEMDISC_OUT "/tmp/memdisc_out"
-//#define WRITE_UNCACHED 1
 #define MAX_BT 11		/* for reverse stack search only */
 
 
@@ -517,9 +516,6 @@ void __attribute ((constructor)) memdisc_init (void)
 	/* Send out the heap start and stack end */
 	fprintf(ofile, "h" PRI_PTR "\n", heap_start);
 	fprintf(ofile, "S" PRI_PTR "\n", stack_end);
-#ifdef WRITE_UNCACHED
-	fflush(ofile);
-#endif
 	active = true;
 out:
 	/*
@@ -703,15 +699,11 @@ static inline void write_obuf (char obuf[])
 #endif
 	flockfile(ofile);
 	wbytes = fputs_unlocked(obuf, ofile);
+	funlockfile(ofile);
 	if (wbytes < 0) {
 		perror(PFX "fputs_unlocked");
-		funlockfile(ofile);
 		exit(1);
 	}
-#ifdef WRITE_UNCACHED
-	fflush_unlocked(ofile);
-#endif
-	funlockfile(ofile);
 }
 
 /*
