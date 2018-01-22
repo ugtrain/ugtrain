@@ -175,9 +175,7 @@ out:
  */
 static void flush_output (void)
 {
-	flockfile(ofile);
-	fflush_unlocked(ofile);
-	funlockfile(ofile);
+	fflush(ofile);
 }
 
 /*
@@ -697,11 +695,9 @@ static inline void write_obuf (char obuf[])
 #if DEBUG_MEM
 	pr_out("%s", obuf);
 #endif
-	flockfile(ofile);
-	wbytes = fputs_unlocked(obuf, ofile);
-	funlockfile(ofile);
+	wbytes = fputs(obuf, ofile);
 	if (wbytes < 0) {
-		perror(PFX "fputs_unlocked");
+		perror(PFX "fputs");
 		exit(1);
 	}
 }
