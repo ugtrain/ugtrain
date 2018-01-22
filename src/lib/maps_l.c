@@ -29,11 +29,11 @@
 #include "maps.h"
 
 /*
- * Read all maps from /proc/pid/maps as is and write
+ * Read all maps from /proc/$pid/maps as is and write
  * them to the given file
  *
  * returns:
- *  0: everything successfully read and written,
+ *  0: everything read and written successfully,
  * -1: fopen(), fread() or fwrite() error
  */
 i32 write_maps_to_file (const char *path, pid_t pid)
@@ -186,7 +186,7 @@ i32 process_map (struct map *map, void *data)
 			goto error;
 		}
 
-		/* initialise this region */
+		/* initialize this region */
 		region->flags.read = true;
 		region->flags.write = true;
 		region->start = map->start;
@@ -205,7 +205,7 @@ i32 process_map (struct map *map, void *data)
 			strcpy(region->file_path, map->file_path);
 		}
 
-		/* add an unique identifier */
+		/* add a unique identifier */
 		if (clist_empty(rlist))
 			region->id = 0;
 		else
@@ -221,7 +221,7 @@ error:
 }
 
 /*
- * Read all maps from /proc/pid/maps, parse them and
+ * Read all maps from /proc/$pid/maps, parse them and
  * call a callback per line.
  *
  * returns:

@@ -30,7 +30,7 @@
 /* buffer size for reading symbolic links */
 #define MAPS_MAX_PATH 256
 
-/* a map obtained from /proc/pid/maps */
+/* a map obtained from /proc/$pid/maps */
 struct map {
 	ulong start;
 	ulong end;
@@ -123,7 +123,7 @@ enum region_type {
 #define REGION_TYPE_NAMES { "misc", "code", "exe", "heap", "stack" }
 extern const char *region_type_names[];
 
-/* a region obtained from /proc/pid/maps */
+/* a region obtained from /proc/$pid/maps */
 struct region {
 	struct list_head list;
 	ulong start;
@@ -147,11 +147,6 @@ struct pmap_params {
 	struct list_head *rlist;
 };
 
-
-#ifndef list_for_each
-#define list_for_each(list, it) \
-	for (it = list->begin(); it != list->end(); ++it)
-#endif
 
 static inline void list_regions (struct list_head *rlist)
 {
