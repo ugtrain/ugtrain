@@ -794,6 +794,7 @@ void read_config (struct app_options *opt,
 		case NAME_DYNMEM_END:
 			if (in_dynmem) {
 				in_dynmem = false;
+				// leaking dynmem_enp intentionally
 				dynmem_enp = NULL;
 			} else {
 				cfg_parse_err(&line, lnr, start);
@@ -1018,4 +1019,13 @@ void read_config (struct app_options *opt,
 		}
 	}
 	macros.clear();
+
+	// End of config checks
+	if (dynmem_enp) {
+		delete dynmem_enp;
+		dynmem_enp = NULL;
+		cfg_parse_err(&line, --lnr, start);
+	}
+	if (in_dynmem || in_ptrmem)
+		cfg_parse_err(&line, --lnr, start);
 }
