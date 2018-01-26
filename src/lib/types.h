@@ -86,23 +86,4 @@ typedef uintptr_t ptr_t;
 
 #define BUF_SIZE PIPE_BUF
 
-#define MAX_ENV_LEN 1024
-
-/* check untrusted string from getenv() */
-static inline i32 check_env_str (const char *env_var)
-{
-	i32 i;
-
-	for (i = 0; i < MAX_ENV_LEN; i++) {
-		if (env_var[i] == '\0')
-			break;
-	}
-	if (i >= MAX_ENV_LEN)
-		goto err;
-
-	return 0;
-err:
-	return -1;
-}
-
 #endif

@@ -20,6 +20,9 @@
 
 #ifdef __linux__
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -37,12 +40,9 @@ static i32 env_append (const char *name, const char *val, char separator)
 	const char *old_env;
 	char *new_env;
 
-	old_env = getenv(name);
+	old_env = secure_getenv(name);
 
 	if (old_env != NULL) {
-		if (check_env_str(old_env) != 0)
-			goto err;
-
 		env_len = strlen(old_env) + strlen(val) + 2;
 		new_env = malloc(env_len);
 		if (!new_env)

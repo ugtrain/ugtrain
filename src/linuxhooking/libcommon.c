@@ -18,7 +18,9 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,9 +31,9 @@
 
 void rm_from_env (char *env_name, char *pattern, char separator)
 {
-	char *start, *end, *found, *env_var = getenv(env_name);
+	char *start, *end, *found, *env_var = secure_getenv(env_name);
 
-	if (!env_var || check_env_str(env_var) != 0)
+	if (!env_var)
 		goto out;
 	pr_dbg("old: %s=%s\n", env_name, env_var);
 

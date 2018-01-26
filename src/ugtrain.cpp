@@ -18,6 +18,10 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
+#if defined(__linux__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <list>
@@ -27,7 +31,6 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <libgen.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -55,7 +58,6 @@
 #include <discovery.h>
 #include <testing.h>
 
-#define HOME_VAR   "HOME"
 #define DYNMEM_IN  "/tmp/memhack_out"
 #define DYNMEM_OUT "/tmp/memhack_in"
 #define MEMDISC_IN "/tmp/memdisc_out"
@@ -978,6 +980,7 @@ static inline bool tool_is_available (char *name)
 	return ret;
 }
 
+#ifdef __linux__
 static void init_user_cfg_dir (char *home)
 {
 #define EXAMPLES_DIR "/usr/share/doc/ugtrain/examples"
@@ -986,7 +989,7 @@ static void init_user_cfg_dir (char *home)
 	string dir_str, cmd_str;
 
 	dir_str = home;
-	dir_str += "/.ugtrain";
+	dir_str += PSEP PHIDE "ugtrain";
 	user_cfg_dir = dir_str.c_str();
 	if (dir_exists(user_cfg_dir))
 		return;
@@ -1017,6 +1020,7 @@ out:
 	return;
 #undef EXAMPLES_DIR
 }
+#endif
 
 i32 main (i32 argc, char **argv, char **env)
 {
@@ -1031,10 +1035,9 @@ i32 main (i32 argc, char **argv, char **env)
 	struct sf_params __sfparams, *sfparams = &__sfparams;
 	struct dynmem_params __dmparams, *dmparams = &__dmparams;
 	pid_t pid = -1;
-	char def_home[] = "~";
 	i32 ret, pmask = PARSE_S | PARSE_C;
 	char ch;
-	char *home;
+	char *home = NULL;
 	i32 ifd = -1, ofd = -1, dfd = -1;
 	bool allow_empty_cfg = false;
 	enum pstate pstate;
@@ -1059,13 +1062,13 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	home = getenv(HOME_VAR);
+	get_home_path(&home);
 	if (!home)
-		home = def_home;
-	else if (check_env_str(home) != 0)
 		return -1;
+#ifdef __linux__
 	if (dir_exists(home))
 		init_user_cfg_dir(home);
+#endif
 
 	parse_options(argc, argv, opt);
 	test_optparsing(opt);

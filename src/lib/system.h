@@ -14,7 +14,11 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
+#if defined(__linux__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 #ifdef __linux__
 #include <dirent.h>
@@ -66,6 +70,16 @@ static inline pid_t run_cmd (const char *cmd, char *const cmdv[])
 }
 
 #ifdef __linux__
+/* Path separator */
+#define PSEP "/"
+/* Prefix to hide a file or directory */
+#define PHIDE "."
+
+static inline void get_home_path (char **home)
+{
+	*home = secure_getenv("HOME");
+}
+
 static inline bool dir_exists (const char *path)
 {
 	DIR *dir;
@@ -215,6 +229,17 @@ static inline void reset_sigint (void)
 }
 
 #else
+
+/* Path separator */
+#define PSEP "\\"
+#define PHIDE ""
+
+static inline void get_home_path (char **home)
+{
+	const char def_home[] = "C:";
+
+	*home = strdup(def_home);
+}
 
 static inline bool dir_exists (const char *path)
 {

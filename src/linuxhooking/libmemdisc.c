@@ -18,7 +18,9 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <stdio.h>      /* printf */
 #include <stdlib.h>     /* malloc */
 #include <string.h>     /* strchr */
@@ -281,7 +283,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	}
 #endif
 	/* only care for the game process (ignore shell and others) */
-	expected = getenv(UGT_GAME_PROC_NAME);
+	expected = secure_getenv(UGT_GAME_PROC_NAME);
 	if (expected) {
 		proc_name = __progname;
 		pr_dbg("proc_name: %s, exp: %s\n", proc_name, expected);
