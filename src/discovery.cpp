@@ -359,6 +359,8 @@ static void run_stage1234_loop (void *argp)
 			break;
 		}
 	}
+	close(ofd);
+	exit(1);
 }
 
 void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
