@@ -109,13 +109,23 @@ on Windows. Pointer following should rather be used from dynamic memory. So
 see the dynamic memory section for details.
 
 ### check [Region] AbsAddress DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
+### check ["addr"] ValueName DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
 
 Checks are applied to the previously defined value entry. Here it is also
-possible to use another already parsed value name as the AbsAddress.
+possible to use another already parsed value name as the AbsAddress. The
+value of the config reference is checked then unless the value name belongs
+to the current config entry. In that case its address is taken over instead.
+By adding the keyword "addr" in front of the value name, this behavior can
+be enforced. It makes sense when the config reference may be disabled.
+
 'e' for "equals" is another possible check here and the same value can be
 compared combined with "or" and upto four checks (e.g. "e 1 e 2" means
 (Value == 1 || Value == 2)). Checks in following lines are combined with
-"and".
+"and". With "p e heap" it is possible to check if a pointer is located on the
+heap. Cyclic reading of /proc/$pid/maps is done for this.
+
+As the AbsAddress, also the keyword "this" can be used to check the current
+value entry by taking over its address.
 
 A stack value can be checked here as well. The check fails until the stack
 value is available and valid. The same applies if a referenced config entry
@@ -157,6 +167,7 @@ meaning having the same value != NULL in two cycles so that it is safe
 following this pointer.
 
 ### check OffsInObj DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
+### check ["addr"] ValueName DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
 
 ### checko OffsInObj DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
 
@@ -220,6 +231,7 @@ Further pointers in pointer memory (chaining) is not possible. The offset
 in pointer memory is added to the value of the read pointer value.
 
 ### check OffsInPtrMem DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
+### check ["addr"] ValueName DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
 
 ### ValName OffsInPtrMem cstrp watch
 
