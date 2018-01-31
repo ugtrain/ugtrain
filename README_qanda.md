@@ -23,7 +23,7 @@ config file.
 You can search for the memory values e.g. with the CLI tool "scanmem".
 Ugtrain integrates scanmem to avoid requiring root privileges (-S option).
 
-See doc/ugtrain-statmem.txt for details!
+See [Static Memory Cheating Documentation](doc/ugtrain-statmem.md) for details.
 
 ### Where is the difference compared to other tools?
 

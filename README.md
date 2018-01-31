@@ -23,11 +23,11 @@ http://en.wikipedia.org/wiki/Trainer_%28games%29
 
 For **further documentation** see:
 
-* [Questions and Answers](https://github.com/ugtrain/ugtrain/blob/master/README_qanda.md)
-* [Static Memory Cheating Documentation](https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-statmem.txt)
-* [Dynamic Memory Cheating Documentation](https://github.com/ugtrain/ugtrain/blob/master/doc/ugtrain-dynmem.txt)
-* [Config Syntax Description](https://github.com/ugtrain/ugtrain/blob/master/examples/README.md)
-* [Development TODOs](https://github.com/ugtrain/ugtrain/blob/master/TODO)
+* [Questions and Answers](README_qanda.md)
+* [Static Memory Cheating Documentation](doc/ugtrain-statmem.md)
+* [Dynamic Memory Cheating Documentation](doc/ugtrain-dynmem.txt)
+* [Config Syntax Description](examples/README.md)
+* [Development TODOs](TODO)
 
 ## Logo and Screenshots
 <table><tr><td>
