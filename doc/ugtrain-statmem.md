@@ -1,5 +1,22 @@
 ## Static Memory Cheating
 
+### Table of Contents
+
+   * [Static Memory Cheating](#static-memory-cheating)
+      * [Basics](#basics)
+      * [ASLR/PIC/PIE](#aslrpicpie)
+      * [Value Entry in Config](#value-entry-in-config)
+      * [Running Ugtrain](#running-ugtrain)
+      * [Ptrace Limitations](#ptrace-limitations)
+   * [Static Memory Discovery](#static-memory-discovery)
+      * [Avoid Running Scanmem as Root](#avoid-running-scanmem-as-root)
+      * [Number Search](#number-search)
+      * [Search for Bools and Values of Display Bars](#search-for-bools-and-values-of-display-bars)
+      * [Warzone 2100 Power Value](#warzone-2100-power-value)
+   * [Static Memory Adaptation](#static-memory-adaptation)
+
+### Basics
+
 Modifying static memory within a position-dependent executable is very easy.
 Between two game runs the variable of interest stays at the same memory
 location. E.g. on Linux x86_64 the executable is always loaded to virtual
@@ -237,7 +254,7 @@ Power at 0x7fcddcd22d44, Data: 0x1388 (5000)
 ...
 ```
 
-## Static Memory Adaption
+## Static Memory Adaptation
 
 Adapting static memory is quite difficult as the game code accesses it directly
 without a library call. A memory breakpoint (a watch point) has to be set with
