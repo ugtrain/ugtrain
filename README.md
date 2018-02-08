@@ -7,9 +7,9 @@ at the cost of no GUI and limited usability.
 
 The **dynamic memory support** sets ugtrain apart. An integrated preloader,
 a memory discovery, and a memory hacking library are included for this.
-It  uses one simple **config file per game** which can be exchanged
+It uses one simple **config file per game** which can be exchanged
 with others. **Example configs** for games which allow cheating are included.
-These also come with **automatic adaption** for dynamic memory so that you can
+These also come with **automatic adaptation** for dynamic memory so that you can
 use them right away on your system after executing it.
 
 Furthermore, security measures like **ASLR and PIE are bypassed**. Together with
@@ -77,7 +77,7 @@ Ubuntu: https://launchpad.net/~s-parschauer/+archive/ubuntu/game-cheating
 ## How to Build and Install
 
 Make sure that the following packages are installed on your system: <br/>
-autotools-dev, autoconf, automake, g++, libtoolize, and libtool
+`autotools-dev`, `autoconf`, `automake`, `g++`, `libtoolize`, and `libtool`
 
 1. Generate the missing autotools files: <br/>
 `./autogen.sh`
@@ -91,10 +91,10 @@ autotools-dev, autoconf, automake, g++, libtoolize, and libtool
 4. install ugtrain, tools and the libs to /usr: <br/>
 `sudo make install`
 
-5. regenerate the ld.so cache (see "man ld.so"): <br/>
+5. regenerate the ld.so cache (see `man ld.so`): <br/>
 `sudo ldconfig -v`
 
-`objdump` (package binutils) and `scanmem` should be installed as well.
+`objdump` (package `binutils`) and `scanmem` should be installed as well.
 
 Special configure options: <br/>
 Compile hooking libs as 32 and 64 bit (EXPERIMENTAL): <br/>
@@ -107,8 +107,8 @@ Compile hooking libs with GLIB function hooking (EXPERIMENTAL): <br/>
 Use the compiled tool as follows: <br/>
 `ugtrain [options] <config>[.conf]`
 
-This searches in the current working directory for the <config>.conf.
-If it can't find it there, it tries ~/.ugtrain/<config>.conf.
+This searches in the current working directory for the `<config>.conf`.<br/>
+If it can't find it there, then it tries `~/.ugtrain/<config>.conf`.
 
 For details use: <br/>
 `ugtrain --help`
@@ -117,11 +117,12 @@ Do e.g. the following: <br/>
 `ugtrain -P examples/chromium-bsu64`
 
 This parses the chromium-bsu64.conf from the examples, runs the
-game with libmemhack64.so preloaded and starts locking the configured
-values. In examples/README.md the config syntax is described.
+game with libmemhack64.so preloaded and starts freezing the configured
+values. In [examples/README.md](examples/README.md) the config syntax
+is described.
 
-If it asks you for automatic adaption, you should accept. The
-adaption can be triggered explicitly as well: <br/>
+If it asks you for automatic adaptation, then you should accept. The
+adaptation can be triggered explicitly as well: <br/>
 `ugtrain -A examples/chromium-bsu64`
 
 ## Current Limitations
@@ -140,26 +141,24 @@ adaption can be triggered explicitly as well: <br/>
 
 * no config editor - use your favorite text editor
 * can't be reloaded when the game is already running
-* can't implement adaption for all of them (too much efforts)
+* can't implement adaptation for all of them (too much efforts)
 
 **Static Memory**
 
-* no adaption yet
+* no adaptation yet
 * no support for values within a library (PIC) yet
-* no support for values on the stack yet
 
 **Dynamic Memory**
 
 * growing of objects/structures experimental, no documentation yet
-* no adaption for allocations within a library (PIC) yet
-* disassembly within discovery and adaption for x86 and x86\_64 only
+* no adaptation for allocations within a library (PIC) yet
+* disassembly within discovery and adaptation for x86 and x86\_64 only
 * doesn't work with WINE yet
 
 **Pointer Following**
 
-* experimental
 * preferred from dynamic memory and unpreferred from static memory
-* limited discovery features (tool ugptrfind)
+* limited discovery features (tool `ugptrfind` or `gdb`)
 
 **Compilation**
 
