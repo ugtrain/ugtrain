@@ -1,6 +1,6 @@
-/* ugtrain.cpp:    lock values in process memory (game trainer)
+/* ugtrain.cpp:    freeze values in process memory (game trainer)
  *
- * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -36,6 +36,7 @@
 
 // local includes
 #include <common.h>
+#include <util.h>
 // input
 #include <lib/getch.h>
 #include <cfgentry.h>
@@ -62,38 +63,6 @@
 #define DYNMEM_OUT "/tmp/memhack_in"
 #define MEMDISC_IN "/tmp/memdisc_out"
 
-
-static inline void memattach_err_once (pid_t pid)
-{
-	static bool reported = false;
-
-	if (!reported) {
-		cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
-		reported = true;
-	}
-}
-
-static inline i32 read_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
-{
-	i32 ret;
-
-	ret = memread(pid, mem_addr, buf, sizeof(value_t));
-	if (ret)
-		cerr << pfx << " READ ERROR PID[" << pid << "] ("
-		     << hex << mem_addr << dec << ")!" << endl;
-	return ret;
-}
-
-static inline i32 write_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
-{
-	i32 ret;
-
-	ret = memwrite(pid, mem_addr, buf, sizeof(value_t));
-	if (ret)
-		cerr << pfx << " WRITE ERROR PID[" << pid << "] ("
-		     << hex << mem_addr << dec << ")!" << endl;
-	return ret;
-}
 
 /* returns:  0: check passed,  1: not passed */
 template <typename T>
@@ -964,22 +933,6 @@ static inline i32 get_game_paths (struct app_options *opt)
 	return 0;
 }
 
-static inline bool tool_is_available (char *name)
-{
-	bool ret = false;
-	char *tmp_path = get_abs_app_path(name);
-	cout << "Checking if " << name << " is available: ";
-	if (!tmp_path) {
-		cout << "no" << endl;
-		cerr << "Please consider installing " << name << "!" << endl;
-	} else {
-		cout << "yes" << endl;
-		free(tmp_path);
-		ret = true;
-	}
-	return ret;
-}
-
 #ifdef __linux__
 static void init_user_cfg_dir (char *home)
 {
@@ -1024,16 +977,15 @@ out:
 
 i32 main (i32 argc, char **argv, char **env)
 {
-	vector<string> __lines, *lines = &__lines;
-	struct app_options __opt, *opt = &__opt;
-	list<CfgEntry> __cfg, *cfg = &__cfg;
-	list<CfgEntry*> __cfg_act, *cfg_act = &__cfg_act;
+	vector<string> _lines, *lines = &_lines;
+	struct app_options _opt, *opt = &_opt;
+	list<CfgEntry> _cfg, *cfg = &_cfg;
+	list<CfgEntry*> _cfg_act, *cfg_act = &_cfg_act;
 #define CFGP_MAP_SIZE 128
 	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
-	struct mqueue __mq, *mq = &__mq;
-	struct lf_params __lfparams, *lfparams = &__lfparams;
-	struct sf_params __sfparams, *sfparams = &__sfparams;
-	struct dynmem_params __dmparams, *dmparams = &__dmparams;
+	struct dynmem_params _dmparams, *dmparams = &_dmparams;
+	struct mqueue *mq = &dmparams->_mqueue;
+	struct list_head _rlist, *rlist = &_rlist;
 	pid_t pid = -1;
 	i32 ret, pmask = PARSE_S | PARSE_C;
 	char ch;
@@ -1041,26 +993,10 @@ i32 main (i32 argc, char **argv, char **env)
 	i32 ifd = -1, ofd = -1, dfd = -1;
 	bool allow_empty_cfg = false;
 	enum pstate pstate;
-	struct list_head rlist;
 
-	INIT_LIST_HEAD(&rlist);
-
-	mq->size = 4 * PIPE_BUF;
-	mq->end = 0;
-	mq->data = (char *) malloc(mq->size);
-	if (!mq->data)
-		return -1;
-	mq->data[0] = '\0';
-	mq->data[mq->size - 1] = '\0';
-
-	dmparams->mqueue = mq;
-	dmparams->lfparams = lfparams;
-	dmparams->sfparams = sfparams;
-
-	if (atexit(restore_getch) != 0) {
-		cerr << "Error while registering exit handler!" << endl;
-		return -1;
-	}
+	INIT_LIST_HEAD(rlist);
+	init_dmparams_early(dmparams);
+	init_atexit(restore_getch);
 
 	get_home_path(&home);
 	if (!home)
@@ -1162,9 +1098,9 @@ i32 main (i32 argc, char **argv, char **env)
 	cout << "PID: " << pid << endl;
 
 	if (opt->disc_str) {
-		process_discovery(opt, cfg, ifd, dfd, ofd, pid, &rlist);
-		//list_regions(&rlist);
-		ret = postproc_discovery(opt, cfg, &rlist, lines);
+		process_discovery(opt, cfg, ifd, dfd, ofd, pid, rlist);
+		//list_regions(rlist);
+		ret = postproc_discovery(opt, cfg, rlist, lines);
 		if (ret)
 			return -1;
 	} else if (opt->scanmem_pid > 0) {
@@ -1180,19 +1116,12 @@ i32 main (i32 argc, char **argv, char **env)
 	if (set_getch_nb(1) != 0)
 		return -1;
 
-	if (memattach_test(pid) != 0) {
-		cerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;
-		return -1;
-	}
+	test_memattach(pid);
 
-	handle_aslr(opt, cfg, ifd, ofd, pid, &rlist);
+	handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 	handle_statmem_pie(opt->code_offs, cfg);
 
-	lfparams->cfg = cfg;
-	lfparams->pid = pid;
-	lfparams->ofd = ofd;
-	lfparams->rlist = &rlist;
-	sfparams->opt = opt;
+	init_dmparams(dmparams, opt, cfg, ofd, pid, rlist);
 
 	// use sleep_sec_unless_input2() also for pure static memory
 	if (ifd < 0)
@@ -1244,14 +1173,11 @@ i32 main (i32 argc, char **argv, char **env)
 		// TIME CRITICAL! Process all activated config entries
 		process_act_cfg(pid, cfg_act);
 
-		if (memdetach(pid) != 0) {
-			cerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
-			return -1;
-		}
+		detachmem(pid);
 
 		// read the heap region every cycle as it is growing
 		if (opt->heap_checks) {
-			get_heap_region(opt, pid, &rlist);
+			get_heap_region(opt, pid, rlist);
 			handle_heap_checks(opt, cfg);
 		}
 

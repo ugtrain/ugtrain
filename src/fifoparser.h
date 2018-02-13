@@ -54,6 +54,11 @@ struct sf_params {
 
 // parameter for the FIFO parser
 struct dynmem_params {
+	// internal, avoid using
+	struct mqueue    _mqueue;
+	struct lf_params _lfparams;
+	struct sf_params _sfparams;
+
 	struct mqueue    *mqueue;
 	struct lf_params *lfparams;
 	struct sf_params *sfparams;
