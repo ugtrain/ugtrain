@@ -28,7 +28,10 @@
 #include <common.h>
 #include <options.h>
 
-i32  check_beginner_stage4 (struct app_options *opt);
+bool init_scanmem	(struct app_options *opt, list<CfgEntry> *cfg,
+			 list<CfgEntry*> *cfg_act);
+bool init_discovery     (struct app_options *opt, list<CfgEntry> *cfg,
+		         list<CfgEntry*> *cfg_act);
 i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
 void process_discovery  (struct app_options *opt, list<CfgEntry> *cfg,
 			 i32 ifd, i32 dfd, i32 ofd, i32 pid,

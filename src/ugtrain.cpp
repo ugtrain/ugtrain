@@ -188,7 +188,7 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 {
 	list<CheckEntry>::iterator it;
 	CheckEntry *chk_en;
-	value_t __chk_buf, *chk_buf = &__chk_buf;
+	value_t _chk_buf, *chk_buf = &_chk_buf;
 	ptr_t mem_addr;
 	i32 ret = 0;
 
@@ -266,10 +266,10 @@ template <typename T>
 static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 			   T *value, char *cstr, ptr_t mem_offs)
 {
-	value_t __buf, *buf = &__buf;
+	value_t _buf, *buf = &_buf;
 	ptr_t mem_addr = 0;
 
-	__buf.i64 = 0;
+	_buf.i64 = 0;
 
 	switch (cfg_en->dynval) {
 	case DYN_VAL_MAX:
@@ -488,11 +488,11 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 {
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
-	value_t __buf, *buf = &__buf;
+	value_t _buf, *buf = &_buf;
 	ptr_t mem_addr, mem_offs;
 	u32 mem_idx;
 
-	__buf.i64 = 0;
+	_buf.i64 = 0;
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
@@ -1014,35 +1014,10 @@ i32 main (i32 argc, char **argv, char **env)
 	test_cfgparsing(opt, cfg, cfg_act, cfgp_map);
 	cout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
-	if (opt->disc_str) {
-		if (check_beginner_stage4(opt) != 0)
-			return -1;
-		if (opt->disc_str[0] >= '0' && opt->disc_str[0] <= '4') {
-			if (opt->run_scanmem &&
-			    !tool_is_available((char *) "scanmem"))
-				return -1;
-			if (opt->disc_str[0] >= '3') {
-				opt->have_objdump = tool_is_available(
-					(char *) "objdump");
-				if (!opt->have_objdump)
-					cerr << "Backtrace helpers and symbol "
-					    "lookup aren't available." << endl;
-			}
-			cout << "Clearing config for discovery!" << endl;
-			cfg->clear();
-			cfg_act->clear();
-			allow_empty_cfg = true;
-		} else {
-			opt->run_scanmem = false;
-		}
-	} else if (opt->run_scanmem) {
-		if (!tool_is_available((char *) "scanmem"))
-			return -1;
-		cout << "Clearing config for scanmem!" << endl;
-		cfg->clear();
-		cfg_act->clear();
-		allow_empty_cfg = true;
-	}
+	if (opt->disc_str)
+		allow_empty_cfg = init_discovery(opt, cfg, cfg_act);
+	else if (opt->run_scanmem)
+		allow_empty_cfg = init_scanmem(opt, cfg, cfg_act);
 
 	get_game_paths(opt);
 

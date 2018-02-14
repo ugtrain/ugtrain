@@ -36,6 +36,7 @@
 #include <commont.cpp>
 #include <discovery.h>
 #include <fifoparser.h>
+#include <util.h>
 
 #define DASM_DIR "/tmp/"
 #define DASM_SUF "_dasm"
@@ -526,7 +527,8 @@ err:
 	return -1;
 }
 
-i32 check_beginner_stage4 (struct app_options *opt)
+static inline i32
+check_beginner_stage4 (struct app_options *opt)
 {
 	i32 ret;
 	ulong mem_size;
@@ -547,4 +549,45 @@ i32 check_beginner_stage4 (struct app_options *opt)
 err:
 	cerr << "Invalid discovery string.";
 	return -1;
+}
+
+bool init_discovery (struct app_options *opt, list<CfgEntry> *cfg,
+		     list<CfgEntry*> *cfg_act)
+{
+	bool allow_empty_cfg = false;
+
+	if (check_beginner_stage4(opt) != 0)
+		exit(-1);
+	if (opt->disc_str[0] >= '0' && opt->disc_str[0] <= '4') {
+		if (opt->run_scanmem && !tool_is_available((char *) "scanmem"))
+			exit(-1);
+		if (opt->disc_str[0] >= '3') {
+			opt->have_objdump = tool_is_available(
+				(char *) "objdump");
+			if (!opt->have_objdump)
+				cerr << "Backtrace helpers and symbol "
+				    "lookup aren't available." << endl;
+		}
+		cout << "Clearing config for discovery!" << endl;
+		cfg->clear();
+		cfg_act->clear();
+		allow_empty_cfg = true;
+	} else {
+		opt->run_scanmem = false;
+	}
+	return allow_empty_cfg;
+}
+
+bool init_scanmem (struct app_options *opt, list<CfgEntry> *cfg,
+		   list<CfgEntry*> *cfg_act)
+{
+	bool allow_empty_cfg = true;
+
+	if (!tool_is_available((char *) "scanmem"))
+		exit(-1);
+	cout << "Clearing config for scanmem!" << endl;
+	cfg->clear();
+	cfg_act->clear();
+
+	return allow_empty_cfg;
 }
