@@ -409,7 +409,8 @@ void get_stack_start (struct app_options *opt, pid_t pid,
 // sf() callback for read_dynmem_buf()
 void get_stack_end (SF_PARAMS)
 {
-	struct sf_params *sfp = (struct sf_params *) argp;
+	struct dynmem_params *dmparams = (struct dynmem_params *) argp;
+	struct sf_params *sfp = dmparams->sfparams;
 	struct app_options *opt = sfp->opt;
 	list<CfgEntry>::iterator cfg_it;
 	CfgEntry *cfg_en;
