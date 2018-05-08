@@ -1,6 +1,6 @@
 /* cfgoutput.cpp:    output functions for the ugtrain config
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -105,7 +105,7 @@ static void output_config_en (CfgEntry *cfg_en)
 	}
 }
 
-static void output_ptrmem (CfgEntry *cfg_en)
+static void output_ptrmem_act (CfgEntry *cfg_en)
 {
 	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
@@ -179,9 +179,9 @@ static void output_checks (CfgEntry *cfg_en)
 	}
 }
 
-void output_configp (list<CfgEntry*> *cfg)
+void output_config_act (list<CfgEntry*> *cfg_act)
 {
-	if (!cfg || cfg->empty()) {
+	if (!cfg_act || cfg_act->empty()) {
 		cout << "<none>" << endl;
 		return;
 	}
@@ -189,11 +189,11 @@ void output_configp (list<CfgEntry*> *cfg)
 	CfgEntry *cfg_en;
 
 	list<CfgEntry*>::iterator it;
-	list_for_each (cfg, it) {
+	list_for_each (cfg_act, it) {
 		cfg_en = *it;
 		output_config_en(cfg_en);
 		if (cfg_en->ptrtgt)
-			output_ptrmem (cfg_en);
+			output_ptrmem_act(cfg_en);
 	}
 }
 
@@ -218,15 +218,18 @@ void output_config (list<CfgEntry> *cfg)
 		return;
 	}
 
-	CfgEntry cfg_en;
+	CfgEntry *cfg_en;
+	CfgEntry *old_cfg_en = NULL;
 
 	list<CfgEntry>::iterator it;
 	list_for_each (cfg, it) {
-		cfg_en = *it;
+		cfg_en = &(*it);
 		// headline
-		if (cfg_en.dynmem) {
-			DynMemEntry *dynmem = cfg_en.dynmem;
+		if (cfg_en->dynmem) {
+			DynMemEntry *dynmem = cfg_en->dynmem;
 			GrowEntry *grow = dynmem->grow;
+			if (old_cfg_en && dynmem == old_cfg_en->dynmem)
+				goto skip_hl;
 			cout << "dynmem: " << dynmem->name << " "
 			     << dynmem->mem_size << " 0x" << hex
 			     << dynmem->code_addr << " 0x" << dynmem->stack_offs
@@ -243,16 +246,21 @@ void output_config (list<CfgEntry> *cfg)
 					cout << " " << grow->lib;
 			}
 			cout << endl;
-		} else if (cfg_en.ptrmem) {
-			PtrMemEntry *ptrmem = cfg_en.ptrmem;
+		} else if (cfg_en->ptrmem) {
+			PtrMemEntry *ptrmem = cfg_en->ptrmem;
+			if (old_cfg_en && ptrmem == old_cfg_en->ptrmem)
+				goto skip_hl;
 			cout << "ptrmem: " << ptrmem->name << " "
 				<<  ptrmem->mem_size << endl;
 		} else {
+			if (old_cfg_en && !old_cfg_en->dynmem && !old_cfg_en->ptrmem)
+				goto skip_hl;
 			cout << "static: " << endl;
 		}
-
+		old_cfg_en = cfg_en;
+skip_hl:
 		// value line
-		output_config_en(&cfg_en);
-		output_checks(&cfg_en);
+		output_config_en(cfg_en);
+		output_checks(cfg_en);
 	}
 }

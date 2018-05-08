@@ -1025,7 +1025,7 @@ i32 main (i32 argc, char **argv, char **env)
 	output_config(cfg);
 	cout << endl;
 	cout << "Activated:" << endl;
-	output_configp(cfg_act);
+	output_config_act(cfg_act);
 	cout << endl;
 
 	if (cfg->empty() && !allow_empty_cfg)
