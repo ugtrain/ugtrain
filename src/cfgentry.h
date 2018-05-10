@@ -48,6 +48,8 @@ public:
 	char *lib;                    // for PIC support
 	GrowEntry *grow;
 
+	list<CfgEntry*> cfg_act;
+
 	// later determined values
 	vector<ptr_t> v_maddr;        // set by malloc calls
 	u32 num_alloc;                // how many obj. created at once
@@ -55,7 +57,7 @@ public:
 	u32 obj_idx;                  // object index for object check
 	u32 pr_idx;                   // object print index
 
-	// adaption
+	// adaptation
 	u32  adp_size;                // adapted object size
 	ptr_t adp_addr;               // adapted code address
 	u32 cfg_line;                 // to write back new cfg
@@ -72,8 +74,8 @@ public:
 	string name;
 	size_t mem_size;
 
-	list<CfgEntry *> cfg;
-	list<CfgEntry *> cfg_act;
+	list<CfgEntry*> cfg;
+	list<CfgEntry*> cfg_act;
 
 	DynMemEntry *dynmem;
 	vector<ptr_e> v_state;
@@ -157,7 +159,7 @@ public:
 	DynMemEntry *dynmem;
 	vector<value_t> v_value;      // wish value per object
 	vector<value_t> v_oldval;     // old value per object
-	vector<char *> v_cstr;        // C string per object
+	vector<char*> v_cstr;         // C string per object
 	// memory behind pointer following
 	PtrMemEntry *ptrmem;
 	PtrMemEntry *ptrtgt;

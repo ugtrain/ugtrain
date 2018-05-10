@@ -62,7 +62,18 @@ static void toggle_cfg (list<CfgEntry*> *key_cfg, list<CfgEntry*> *cfg_act)
 		}
 		if (!found) {
 			used_cfg_act->push_back(cfg_en);
+			if (cfg_en->dynmem)
+				cfg_en->dynmem->cfg_act.push_back(cfg_en);
 			cout << cfg_en->name << " ON" << endl;
+		} else if (cfg_en->dynmem) {
+			used_cfg_act = &cfg_en->dynmem->cfg_act;
+			list_for_each (used_cfg_act, it_act) {
+				if (cfg_en == *it_act) {
+					cfg_en = *it_act;
+					used_cfg_act->erase(it_act);
+					break;
+				}
+			}
 		}
 	}
 }

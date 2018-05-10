@@ -482,56 +482,77 @@ static inline void read_dynmem_fifo (list<CfgEntry> *cfg,
 	} while (rbytes > 0);
 }
 
+// TIME CRITICAL! Process activated dynmem config entries.
+// Note: We are attached to the game process and it is frozen.
+static inline void
+process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
+			DynMemEntry *dynmem)
+{
+	value_t _buf, *buf = &_buf;
+	list<CfgEntry*>::iterator it;
+	CfgEntry *cfg_en;
+	vector<ptr_t> *mvec = &dynmem->v_maddr;
+	ptr_t mem_addr, mem_offs;
+	u32 mem_idx;
+
+	_buf.i64 = 0;
+
+	for (mem_idx = 0;
+	     mem_idx < mvec->size();
+	     mem_idx++) {
+		list_for_each (cfg_act, it) {
+			cfg_en = *it;
+			struct type *type = &cfg_en->type;
+			size_t mem_size;
+			mem_offs = mvec->at(mem_idx);
+			if (!mem_offs)
+				continue;
+			// check for out of bounds access
+			if (dynmem->grow) {
+				GrowEntry *grow = dynmem->grow;
+				mem_size = grow->v_msize[mem_idx];
+			} else {
+				mem_size = dynmem->mem_size;
+			}
+			if (cfg_en->addr + type->size / 8 > mem_size)
+				continue;
+			dynmem->obj_idx = mem_idx;
+
+			mem_addr = mem_offs + cfg_en->addr;
+			if (read_memory(pid, mem_addr, buf, "MEMORY"))
+				continue;
+			if (cfg_en->ptrtgt)
+				process_ptrmem(pid, cfg_en, buf, mem_idx);
+			else
+				change_memory(pid, cfg_en, buf, mem_offs,
+					&cfg_en->v_oldval[mem_idx],
+					&cfg_en->v_value[mem_idx],
+					cfg_en->v_cstr[mem_idx]);
+		}
+	}
+}
+
 // TIME CRITICAL! Process all activated config entries.
 // Note: We are attached to the game process and it is frozen.
 static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 {
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
+	DynMemEntry *old_dynmem = NULL;
 	value_t _buf, *buf = &_buf;
-	ptr_t mem_addr, mem_offs;
-	u32 mem_idx;
+	ptr_t mem_addr, mem_offs = 0;
 
 	_buf.i64 = 0;
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
-		if (cfg_en->dynmem) {
-			DynMemEntry *dynmem = cfg_en->dynmem;
-			vector<ptr_t> *mvec = &dynmem->v_maddr;
-			struct type *type = &cfg_en->type;
-			for (mem_idx = 0;
-			     mem_idx < mvec->size();
-			     mem_idx++) {
-				size_t mem_size;
-				mem_offs = mvec->at(mem_idx);
-				if (!mem_offs)
-					continue;
-				// check for out of bounds access
-				if (dynmem->grow) {
-					GrowEntry *grow = dynmem->grow;
-					mem_size = grow->v_msize[mem_idx];
-				} else {
-					mem_size = dynmem->mem_size;
-				}
-				if (cfg_en->addr + type->size / 8 > mem_size)
-					continue;
-				dynmem->obj_idx = mem_idx;
-
-				mem_addr = mem_offs + cfg_en->addr;
-				if (read_memory(pid, mem_addr, buf, "MEMORY"))
-					continue;
-				if (cfg_en->ptrtgt)
-					process_ptrmem(pid, cfg_en, buf, mem_idx);
-				else
-					change_memory(pid, cfg_en, buf, mem_offs,
-						&cfg_en->v_oldval[mem_idx],
-						&cfg_en->v_value[mem_idx],
-						cfg_en->v_cstr[mem_idx]);
-			}
+		DynMemEntry *dynmem = cfg_en->dynmem;
+		if (dynmem) {
+			if (dynmem == old_dynmem)
+				continue;
+			old_dynmem = dynmem;
+			process_dynmem_cfg_act(pid, &dynmem->cfg_act, dynmem);
 		} else {
-			mem_offs = 0;
-
 			if (cfg_en->type.on_stack)
 				continue;
 			mem_addr = cfg_en->addr;

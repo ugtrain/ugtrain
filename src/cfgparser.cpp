@@ -1001,6 +1001,8 @@ void read_config (struct app_options *opt,
 			if (cfg->back().dynval == DYN_VAL_WATCH ||
 			    cfg->back().ptrtgt) {
 				used_cfg_act->push_back(&cfg->back());
+				if (in_dynmem)
+					cfg->back().dynmem->cfg_act.push_back(&cfg->back());
 				break;
 			}
 
@@ -1011,9 +1013,13 @@ void read_config (struct app_options *opt,
 				cfg_parse_err(&line, lnr, --start);
 			} else if (line.at(start) == 'a') {
 				used_cfg_act->push_back(&cfg->back());
+				if (in_dynmem)
+					cfg->back().dynmem->cfg_act.push_back(&cfg->back());
 			} else if (line.at(start) == 'w') {
 				cfg->back().dynval = DYN_VAL_WATCH;
 				used_cfg_act->push_back(&cfg->back());
+				if (in_dynmem)
+					cfg->back().dynmem->cfg_act.push_back(&cfg->back());
 			}
 			break;
 		}
