@@ -12,6 +12,10 @@ AM_MAINTAINER_MODE
 AC_PROG_LIBTOOL
 AC_SUBST(LIBTOOL_DEPS)
 
+# --disable-XX options
+AC_ARG_ENABLE([procmem],
+  [  --disable-procmem       target system has no /proc/$pid/mem support],
+  [], [enable_procmem=yes])
 # --enable-XX options
 AC_ARG_ENABLE([multilib],
   [  --enable-multilib       build 32 bit hooking libs on a 64 bit system],
@@ -69,6 +73,7 @@ if test "$windows" = "yes"; then
   HAVE_PTHREADS="no"
   enable_glib="no"
   enable_multilib="no"
+  enable_procmem="no"
   with_bash_completion_dir="no"
   AC_MSG_NOTICE([Windows detected!])
 else
@@ -132,6 +137,7 @@ if test "$with_bash_completion_dir" != "no"; then
 fi
 
 AM_CONDITIONAL([LINUX], test "$linux" != "no")
+AM_CONDITIONAL([HAVE_PROCMEM], test "$enable_procmem" != "no")
 AM_CONDITIONAL([MULTILIB], test "$enable_multilib" != "no")
 AM_CONDITIONAL([HAVE_GLIB], test "$enable_glib" != "no")
 AM_CONDITIONAL([TESTING], test "$enable_testing" != "no")

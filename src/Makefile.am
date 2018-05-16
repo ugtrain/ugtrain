@@ -32,6 +32,9 @@ endif
 
 ugtrain_LDADD = $(DEPS_LIBS)
 AM_CFLAGS = $(DEPS_CFLAGS) -Wall
+if HAVE_PROCMEM
+AM_CFLAGS += -DHAVE_PROCMEM=1
+endif
 if TESTING
 AM_CFLAGS += -DTESTING=1
 endif
