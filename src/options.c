@@ -127,6 +127,7 @@ static void init_options (struct app_options *opt)
 	memset(opt, 0, sizeof(struct app_options));
 
 	/* no direct CLI input */
+	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
 	opt->dynmem_file = DYNMEM_FILE;
 }

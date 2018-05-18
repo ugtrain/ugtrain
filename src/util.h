@@ -84,9 +84,9 @@ tool_is_available (char *name)
 }
 
 static inline void
-test_memattach (pid_t pid)
+test_memattach (pid_t pid, i32 *fd)
 {
-	if (likely(memattach_test(pid) == 0))
+	if (likely(memattach_test(pid, fd) == 0))
 		return;
 	cerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;
 	exit(-1);
@@ -113,11 +113,11 @@ detachmem (pid_t pid)
 }
 
 static inline i32
-read_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
+_read_memory (pid_t pid, ptr_t mem_addr, void *buf, size_t buf_len, const char *pfx)
 {
 	i32 ret;
 
-	ret = memread(pid, mem_addr, buf, sizeof(value_t));
+	ret = memread(pid, mem_addr, buf, buf_len);
 	if (ret)
 		cerr << pfx << " READ ERROR PID[" << pid << "] ("
 		     << hex << mem_addr << dec << ")!" << endl;
@@ -125,15 +125,27 @@ read_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
 }
 
 static inline i32
-write_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
+read_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
+{
+	return _read_memory(pid, mem_addr, buf, sizeof(value_t), pfx);
+}
+
+static inline i32
+_write_memory (pid_t pid, ptr_t mem_addr, void *buf, size_t buf_len, const char *pfx)
 {
 	i32 ret;
 
-	ret = memwrite(pid, mem_addr, buf, sizeof(value_t));
+	ret = memwrite(pid, mem_addr, buf, buf_len);
 	if (ret)
 		cerr << pfx << " WRITE ERROR PID[" << pid << "] ("
 		     << hex << mem_addr << dec << ")!" << endl;
 	return ret;
+}
+
+static inline i32
+write_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
+{
+	return _write_memory(pid, mem_addr, buf, sizeof(value_t), pfx);
 }
 
 #endif

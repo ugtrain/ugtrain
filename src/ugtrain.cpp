@@ -211,8 +211,8 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 				// fill cache and fill chk_buf from cache
 				mem_addr = mem_offs + chk_en->cache->offs;
 				if (chk_en->cache->start == PTR_MAX) {
-					ret = read_memory(pid, mem_addr,
-						(value_t *) chk_en->cache->data, "MEMORY");
+					ret = _read_memory(pid, mem_addr,
+						chk_en->cache->data, MEM_CHUNK, "MEMORY");
 					if (ret)
 						goto out;
 					chk_en->cache->start = mem_addr;
@@ -546,8 +546,8 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 			// fill cache and fill buf from cache
 			mem_addr = mem_offs + cfg_en->cache->offs;
 			if (cfg_en->cache->start == PTR_MAX) {
-				if (read_memory(pid, mem_addr,
-				    (value_t *) cfg_en->cache->data, "MEMORY"))
+				if (_read_memory(pid, mem_addr,
+				    cfg_en->cache->data, MEM_CHUNK, "MEMORY"))
 					continue;
 				cfg_en->cache->start = mem_addr;
 			}
@@ -567,8 +567,8 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 			if (!cait->is_dirty)
 				continue;
 			cait->is_dirty = false;
-			if (write_memory(pid, cait->start,
-			    (value_t *) cait->data, "MEMORY"))
+			if (_write_memory(pid, cait->start,
+			    cait->data, MEM_CHUNK, "MEMORY"))
 				continue;
 		}
 	}
@@ -1154,7 +1154,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (set_getch_nb(1) != 0)
 		return -1;
 
-	test_memattach(pid);
+	test_memattach(pid, &opt->procmem_fd);
 
 	handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 	handle_statmem_pie(opt->code_offs, cfg);
@@ -1209,7 +1209,7 @@ i32 main (i32 argc, char **argv, char **env)
 			read_dynmem_fifo(cfg, dmparams, ifd, pmask);
 
 		// TIME CRITICAL! Process all activated config entries
-		process_act_cfg(pid, cfg_act);
+		process_act_cfg((opt->procmem_fd >= 0) ? opt->procmem_fd : pid, cfg_act);
 
 		detachmem(pid);
 

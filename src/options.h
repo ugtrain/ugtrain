@@ -36,6 +36,7 @@ struct app_options {
 	bool	run_scanmem;
 	bool	use_glc;
 	/* no direct CLI input */
+	i32	procmem_fd;
 	bool	pure_statmem;
 	bool	have_objdump;
 	bool    val_on_stack;

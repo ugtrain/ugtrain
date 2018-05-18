@@ -35,7 +35,7 @@
 
 
 static inline
-i32 memattach_test (pid_t pid)
+i32 memattach_test (pid_t pid, i32 *fd)
 {
 	if (pid <= 1)
 		goto err;
@@ -46,7 +46,14 @@ i32 memattach_test (pid_t pid)
 		goto err;
 
 	waitpid(pid, NULL, 0);  /* wait for victim process stop */
+#ifdef HAVE_PROCMEM
+	char path[32];
 
+	snprintf(path, sizeof(path), "/proc/%d/mem", pid);
+	*fd = open(path, O_RDWR);
+	if (*fd < 0)
+		goto err;
+#endif
 	ptrace(PTRACE_DETACH, pid, 0, SIGCONT);
 	if (errno != 0)
 		goto err;
@@ -97,12 +104,19 @@ static inline
 i32 memread (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 {
 	char *buf = (char *) _buf;
-	ptr_t read_val = 0;
-	size_t pos = 0;      /* position in sizeof(ptr_t) steps */
-	size_t len = buf_len / sizeof(ptr_t);
 
 	if (pid <= 1 || addr == 0 || buf == NULL || buf_len <= 0)
 		return -1;
+
+#ifdef HAVE_PROCMEM
+	i32 fd = (i32) pid;
+	/* TODO: Handle unlikely incomplete reads properly */
+	if (pread(fd, buf, buf_len, addr) < (ssize_t) buf_len)
+		goto err;
+#else
+	ptr_t read_val = 0;
+	size_t pos = 0;      /* position in sizeof(ptr_t) steps */
+	size_t len = buf_len / sizeof(ptr_t);
 
 	errno = 0;
 	for (pos = 0; pos < len; pos++) {
@@ -122,7 +136,7 @@ i32 memread (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 			goto err;
 		memcpy(&buf[pos * sizeof(ptr_t)], &read_val, len);
 	}
-
+#endif
 	return 0;
 err:
 	return -1;
@@ -132,12 +146,19 @@ static inline
 i32 memwrite (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 {
 	char *buf = (char *) _buf;
-	ptr_t rw_val = 0;
-	size_t pos = 0;      /* position in sizeof(ptr_t) steps */
-	size_t len = buf_len / sizeof(ptr_t);
 
 	if (pid <= 1 || addr == 0 || buf == NULL || buf_len <= 0)
 		return -1;
+
+#ifdef HAVE_PROCMEM
+	i32 fd = (i32) pid;
+	/* TODO: Handle unlikely incomplete writes properly */
+	if (pwrite(fd, buf, buf_len, addr) < (ssize_t) buf_len)
+		goto err;
+#else
+	ptr_t rw_val = 0;
+	size_t pos = 0;      /* position in sizeof(ptr_t) steps */
+	size_t len = buf_len / sizeof(ptr_t);
 
 	errno = 0;
 	for (pos = 0; pos < len; pos++) {
@@ -160,7 +181,7 @@ i32 memwrite (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 		if (errno != 0)
 			goto err;
 	}
-
+#endif
 	return 0;
 err:
 	return -1;

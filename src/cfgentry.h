@@ -20,8 +20,12 @@
 // local includes
 #include <common.h>
 
+#ifdef HAVE_PROCMEM
+#define MEM_CHUNK 2048                // r/w chunk size for caching target memory
+#else
+#define MEM_CHUNK sizeof(value_t)
+#endif
 
-#define MEM_CHUNK sizeof(value_t)     // r/w chunk size for caching target memory
 #define PTR_MAX ULONG_MAX             // value to show that a cache is invalid
 
 class CacheEntry {
