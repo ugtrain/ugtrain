@@ -197,6 +197,20 @@ void output_config_act (list<CfgEntry*> *cfg_act)
 	}
 }
 
+static void output_dynmem_cache (DynMemEntry *dynmem)
+{
+	list<CacheEntry> *cache_list = &dynmem->cache_list;
+	CacheEntry *cache;
+	list<CacheEntry>::iterator it;
+
+	cout << " (caches at:";
+	list_for_each (cache_list, it) {
+		cache = &(*it);
+		cout << hex << " 0x" << cache->offs << dec;
+	}
+	cout << ")";
+}
+
 static void output_grow_method (GrowEntry *grow)
 {
 	enum grow_type type = grow->type;
@@ -245,6 +259,7 @@ void output_config (list<CfgEntry> *cfg)
 				if (grow->lib)
 					cout << " " << grow->lib;
 			}
+			output_dynmem_cache(dynmem);
 			cout << endl;
 		} else if (cfg_en->ptrmem) {
 			PtrMemEntry *ptrmem = cfg_en->ptrmem;

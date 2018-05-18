@@ -21,6 +21,17 @@
 #include <common.h>
 
 
+#define MEM_CHUNK sizeof(value_t)     // r/w chunk size for caching target memory
+#define PTR_MAX ULONG_MAX             // value to show that a cache is invalid
+
+class CacheEntry {
+public:
+	ptr_t offs;                   // offset within dynmem object
+	ptr_t start;                  // target memory address or cache valid?
+	void *data;                   // target memory r/w buffer
+	bool is_dirty;                // writing back required?
+};
+
 class GrowEntry {
 public:
 	size_t size_min;
@@ -57,8 +68,11 @@ public:
 	u32 obj_idx;                  // object index for object check
 	u32 pr_idx;                   // object print index
 
+	// caching
+	list<CacheEntry> cache_list;  // object cache list
+
 	// adaptation
-	u32  adp_size;                // adapted object size
+	u32 adp_size;                 // adapted object size
 	ptr_t adp_addr;               // adapted code address
 	u32 cfg_line;                 // to write back new cfg
 };
@@ -136,6 +150,8 @@ public:
 	struct type type;
 	check_e check[MAX_CHK_VALS + 1];
 	value_t value[MAX_CHK_VALS + 1];
+	CacheEntry *cache;            // cache entry to be used
+	void *cache_data;             // pointer to cache data
 };
 
 class CfgEntry {
@@ -151,16 +167,18 @@ public:
 	char *cstr;                   // for static memory only
 	bool val_set;                 // Value has been written this cycle?
 
-	// get value from other cfg entry (DYN_VAL_ADDR)
-	CfgEntry *cfg_ref;
-	// more checks
-	list<CheckEntry> *checks;
+	CfgEntry *cfg_ref;            // value from another cfg entry (DYN_VAL_ADDR)
+	list<CheckEntry> *checks;     // more checks
+
 	// dynamic memory
 	DynMemEntry *dynmem;
 	vector<value_t> v_value;      // wish value per object
 	vector<value_t> v_oldval;     // old value per object
 	vector<char*> v_cstr;         // C string per object
-	// memory behind pointer following
+	CacheEntry *cache;            // cache entry to be used
+	void *cache_data;             // pointer to cache data
+
+	// pointer following
 	PtrMemEntry *ptrmem;
 	PtrMemEntry *ptrtgt;
 };

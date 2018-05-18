@@ -207,11 +207,23 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 				continue;
 			chk_buf->u32 = dynmem->obj_idx;
 		} else {
-			mem_addr = mem_offs + chk_en->addr;
-
-			ret = read_memory(pid, mem_addr, chk_buf, "MEMORY");
-			if (ret)
-				goto out;
+			if (dynmem) {
+				// fill cache and fill chk_buf from cache
+				mem_addr = mem_offs + chk_en->cache->offs;
+				if (chk_en->cache->start == PTR_MAX) {
+					ret = read_memory(pid, mem_addr,
+						(value_t *) chk_en->cache->data, "MEMORY");
+					if (ret)
+						goto out;
+					chk_en->cache->start = mem_addr;
+				}
+				memcpy(chk_buf, chk_en->cache_data, chk_en->type.size / 8);
+			} else {
+				mem_addr = mem_offs + chk_en->addr;
+				ret = read_memory(pid, mem_addr, chk_buf, "MEMORY");
+				if (ret)
+					goto out;
+			}
 		}
 		ret = or_check_memory(chk_en, chk_buf);
 		if (ret) {
@@ -253,10 +265,14 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
 	memcpy(buf, &value, sizeof(T));
 	mem_addr = mem_offs + cfg_en->addr;
 
-	ret = write_memory(pid, mem_addr, buf, "MEMORY");
-	if (ret)
-		goto out;
-
+	if (cfg_en->dynmem) {
+		memcpy(cfg_en->cache_data, &value, sizeof(T));
+		cfg_en->cache->is_dirty = true;
+	} else {
+		ret = write_memory(pid, mem_addr, buf, "MEMORY");
+		if (ret)
+			goto out;
+	}
 	cfg_en->val_set = true;
 out:
 	return;
@@ -490,6 +506,8 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 {
 	value_t _buf, *buf = &_buf;
 	list<CfgEntry*>::iterator it;
+	list<CacheEntry> *cache_list;
+	list<CacheEntry>::iterator cait;
 	CfgEntry *cfg_en;
 	vector<ptr_t> *mvec = &dynmem->v_maddr;
 	ptr_t mem_addr, mem_offs;
@@ -497,9 +515,16 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 
 	_buf.i64 = 0;
 
+	// object by object
 	for (mem_idx = 0;
 	     mem_idx < mvec->size();
 	     mem_idx++) {
+		// invalidate caches
+		cache_list = &dynmem->cache_list;
+		list_for_each (cache_list, cait)
+			cait->start = PTR_MAX;
+
+		// process current object
 		list_for_each (cfg_act, it) {
 			cfg_en = *it;
 			struct type *type = &cfg_en->type;
@@ -518,9 +543,16 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 				continue;
 			dynmem->obj_idx = mem_idx;
 
-			mem_addr = mem_offs + cfg_en->addr;
-			if (read_memory(pid, mem_addr, buf, "MEMORY"))
-				continue;
+			// fill cache and fill buf from cache
+			mem_addr = mem_offs + cfg_en->cache->offs;
+			if (cfg_en->cache->start == PTR_MAX) {
+				if (read_memory(pid, mem_addr,
+				    (value_t *) cfg_en->cache->data, "MEMORY"))
+					continue;
+				cfg_en->cache->start = mem_addr;
+			}
+			memcpy(buf, cfg_en->cache_data, cfg_en->type.size / 8);
+
 			if (cfg_en->ptrtgt)
 				process_ptrmem(pid, cfg_en, buf, mem_idx);
 			else
@@ -528,6 +560,16 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 					&cfg_en->v_oldval[mem_idx],
 					&cfg_en->v_value[mem_idx],
 					cfg_en->v_cstr[mem_idx]);
+		}
+
+		// write back caches to target memory
+		list_for_each (cache_list, cait) {
+			if (!cait->is_dirty)
+				continue;
+			cait->is_dirty = false;
+			if (write_memory(pid, cait->start,
+			    (value_t *) cait->data, "MEMORY"))
+				continue;
 		}
 	}
 }

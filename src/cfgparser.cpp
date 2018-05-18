@@ -47,6 +47,109 @@ typedef enum {
 	NAME_ADP_REQ
 } name_e;
 
+#define ASSIGN_CACHE(entry, type)				\
+do {								\
+	entry = (type) ait->element;				\
+	entry->cache = &ait->dynmem->cache_list.back();		\
+	entry->cache_data = PTR_ADD(void *, entry->cache->data,	\
+		(entry->addr - entry->cache->offs));		\
+} while (0)
+
+static inline void
+init_cache (CacheEntry *cache, ptr_t addr)
+{
+	cache->offs = addr;
+	cache->start = PTR_MAX;
+	cache->data = new char[MEM_CHUNK];
+	cache->is_dirty = false;
+}
+
+/*
+ * temporary list entry for sorting CfgEntry and ChkEntry
+ * elements by address for caching
+ */
+class AddrEntry {
+public:
+	ptr_t addr;
+	size_t size;		// in bytes
+	DynMemEntry *dynmem;
+	void *element;		// CfgEntry* or ChkEntry*
+	bool is_check;          // type of void pointer
+};
+
+static bool compare_addr_in_list (const AddrEntry first, const AddrEntry second)
+{
+	return (first.addr < second.addr);
+}
+
+#define LIST_ADD_ADDR(it, is_check)			\
+do {							\
+	addr_en.addr = it->addr;			\
+	addr_en.size = it->type.size / 8;		\
+	addr_en.dynmem = dynmem;			\
+	addr_en.element = (void *) &(*it);		\
+	addr_en.is_check = is_check;			\
+	addrlist->push_back(addr_en);			\
+} while (0)
+
+/*
+ * Put all dynmem config/check entry addresses in config into a
+ * temporary list and sort them. Then allocate and assign caches.
+ */
+static void
+build_caches (list<CfgEntry> *cfg)
+{
+	AddrEntry addr_en;
+	list<AddrEntry> __addrlist, *addrlist = &__addrlist;
+	list<AddrEntry>::iterator ait;
+	list<CfgEntry>::iterator cfgit;
+	list<CheckEntry>::iterator chkit;
+	CacheEntry cache;
+	ptr_t offs_min;
+	bool is_check;
+
+	// build up address list
+	list_for_each (cfg, cfgit) {
+		DynMemEntry *dynmem = cfgit->dynmem;
+		if (!dynmem)
+			continue;
+		is_check = false;
+		LIST_ADD_ADDR(cfgit, is_check);
+
+		// put checks into address list
+		if (!cfgit->checks)
+			continue;
+		list_for_each (cfgit->checks, chkit) {
+			if (chkit->cfg_ref)
+				continue;
+			is_check = true;
+			LIST_ADD_ADDR(chkit, is_check);
+		}
+	}
+
+	// sort address list
+	addrlist->sort(compare_addr_in_list);
+
+	// build and assign caches
+	list_for_each (addrlist, ait) {
+		CfgEntry *cfg_en;
+		CheckEntry *chk_en;
+
+		offs_min = ait->dynmem->cache_list.back().offs + MEM_CHUNK;
+		if (ait->addr + ait->size > offs_min)
+			offs_min = ait->addr;
+		if (ait->addr >= offs_min) {
+			// init and add a new cache entry
+			init_cache(&cache, ait->addr);
+			ait->dynmem->cache_list.push_back(cache);
+		}
+		if (!ait->is_check)
+			ASSIGN_CACHE(cfg_en, CfgEntry *);
+		else
+			ASSIGN_CACHE(chk_en, CheckEntry *);
+	}
+}
+
 static PtrMemEntry *find_ptr_mem (list<CfgEntry> *cfg, string *name)
 {
 	list<CfgEntry>::iterator it;
@@ -625,6 +728,7 @@ static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 			  u32 lnr, u32 *start)
 {
+	CacheEntry cache;
 	dynmem_enp->name = parse_value_name(line, lnr, start, false, NULL);
 	if (from_grow) {
 		dynmem_enp->mem_size = 0;
@@ -643,6 +747,8 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->cfg_line = lnr;
 		dynmem_enp->lib = parse_pic_lib(line, start);
 	}
+	init_cache(&cache, PTR_MAX);
+	dynmem_enp->cache_list.push_back(cache);
 	dynmem_enp->grow = NULL;
 	dynmem_enp->v_maddr.clear();
 }
@@ -737,6 +843,8 @@ void read_config (struct app_options *opt,
 
 			chk_lp = cfg_enp->checks;
 			chk_en.cfg_ref = NULL;
+			chk_en.cache = NULL;
+			chk_en.cache_data = NULL;
 			memset(&chk_en.type, 0, sizeof(chk_en.type));
 			if (in_dynmem)
 				chk_en.check_obj_num = parse_obj_num_chk(cfg,
@@ -762,6 +870,11 @@ void read_config (struct app_options *opt,
 				chk_en.check[1] = CHECK_GT;
 			}
 			chk_en.check[MAX_CHK_VALS] = CHECK_END;
+			if (in_dynmem) {
+				if (!chk_en.cfg_ref &&
+				    chk_en.addr < cfg_enp->dynmem->cache_list.back().offs)
+					cfg_enp->dynmem->cache_list.back().offs = chk_en.addr;
+			}
 			chk_lp->push_back(chk_en);
 			if (chk_en.is_heapchk) {
 				chk_en.check[0] = CHECK_LT;
@@ -945,6 +1058,8 @@ void read_config (struct app_options *opt,
 			cfg_en.checks = NULL;
 			cfg_en.dynval = DYN_VAL_OFF;
 			cfg_en.cfg_ref = NULL;
+			cfg_en.cache = NULL;
+			cfg_en.cache_data = NULL;
 			memset(&cfg_en.type, 0, sizeof(cfg_en.type));
 			cfg_en.addr = parse_address(cfg, &cfg_en, NULL, &line, lnr, &start);
 			if (cfg_en.type.on_stack) {
@@ -982,10 +1097,13 @@ void read_config (struct app_options *opt,
 				cfg_parse_err(&line, lnr, --start);
 			if (cfg_en.dynval == DYN_VAL_ADDR)
 				cfg_en.val_addr = cfg_en.value.ptr;
-			if (in_dynmem)
+			if (in_dynmem) {
+				if (cfg_en.addr < dynmem_enp->cache_list.back().offs)
+					dynmem_enp->cache_list.back().offs = cfg_en.addr;
 				cfg_en.dynmem = dynmem_enp;
-			else
+			} else {
 				cfg_en.dynmem = NULL;
+			}
 
 			cfg->push_back(cfg_en);
 
@@ -1034,4 +1152,6 @@ void read_config (struct app_options *opt,
 	}
 	if (in_dynmem || in_ptrmem)
 		cfg_parse_err(&line, --lnr, start);
+
+	build_caches(cfg);
 }
