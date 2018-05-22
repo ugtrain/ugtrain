@@ -182,10 +182,24 @@ err:
 	return -1;
 }
 
-static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
+#define FILL_CACHE_AND_BUF(buf, entry, mem_offs, on_fail)		\
+	mem_addr = mem_offs + entry->cache->offs;			\
+	if (entry->cache->start == PTR_MAX) {				\
+		ret = _read_memory(pid, mem_addr,			\
+			entry->cache->data, MEM_CHUNK, "MEMORY");	\
+		if (ret)						\
+			on_fail;					\
+		entry->cache->start = mem_addr;				\
+	}								\
+	memcpy(buf, entry->cache_data, entry->type.size / 8)
+
+
+static i32 process_checks (pid_t pid, CfgEntry *cfg_en,
 			   list<CheckEntry> *chk_lp,
 			   ptr_t mem_offs)
 {
+	DynMemEntry *dynmem = cfg_en->dynmem;
+	PtrMemEntry *ptrmem = cfg_en->ptrmem;
 	list<CheckEntry>::iterator it;
 	CheckEntry *chk_en;
 	value_t _chk_buf, *chk_buf = &_chk_buf;
@@ -207,17 +221,9 @@ static i32 process_checks (pid_t pid, DynMemEntry *dynmem,
 				continue;
 			chk_buf->u32 = dynmem->obj_idx;
 		} else {
-			if (dynmem) {
+			if (dynmem || ptrmem) {
 				// fill cache and fill chk_buf from cache
-				mem_addr = mem_offs + chk_en->cache->offs;
-				if (chk_en->cache->start == PTR_MAX) {
-					ret = _read_memory(pid, mem_addr,
-						chk_en->cache->data, MEM_CHUNK, "MEMORY");
-					if (ret)
-						goto out;
-					chk_en->cache->start = mem_addr;
-				}
-				memcpy(chk_buf, chk_en->cache_data, chk_en->type.size / 8);
+				FILL_CACHE_AND_BUF(chk_buf, chk_en, mem_offs, goto out);
 			} else {
 				mem_addr = mem_offs + chk_en->addr;
 				ret = read_memory(pid, mem_addr, chk_buf, "MEMORY");
@@ -249,7 +255,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
 		goto out;
 
 	if (chk_lp) {
-		ret = process_checks(pid, cfg_en->dynmem, chk_lp, mem_offs);
+		ret = process_checks(pid, cfg_en, chk_lp, mem_offs);
 		if (ret)
 			goto out;
 	}
@@ -265,7 +271,7 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
 	memcpy(buf, &value, sizeof(T));
 	mem_addr = mem_offs + cfg_en->addr;
 
-	if (cfg_en->dynmem) {
+	if (cfg_en->dynmem || cfg_en->ptrmem) {
 		memcpy(cfg_en->cache_data, &value, sizeof(T));
 		cfg_en->cache->is_dirty = true;
 	} else {
@@ -396,6 +402,25 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 	}
 }
 
+#define WRITE_CACHES()						\
+do {								\
+	list_for_each (cache_list, cait) {			\
+		if (!cait->is_dirty)				\
+			continue;				\
+		cait->is_dirty = false;				\
+		if (_write_memory(pid, cait->start,		\
+		    cait->data, MEM_CHUNK, "MEMORY"))		\
+			continue;				\
+	}							\
+} while (0)
+
+#define INVALIDATE_CACHES(mem_type)				\
+do {								\
+	cache_list = &mem_type->cache_list;			\
+	list_for_each (cache_list, cait)			\
+		cait->start = PTR_MAX;				\
+} while (0)
+
 // TIME CRITICAL! Process all activated config entries from pointer
 static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_idx)
 {
@@ -405,6 +430,7 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 	list<CfgEntry*> *cfg_act = &ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
 	value_t *value;
+	i32 ret;
 
 	if (dynmem) {
 		vector<ptr_t> *mvec = &dynmem->v_maddr;
@@ -419,10 +445,13 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 		return;
 
 	if (buf->ptr == value->ptr) {
+		list<CacheEntry> *cache_list;
+		list<CacheEntry>::iterator cait;
 		list<CheckEntry> *chk_lp = cfg_en->checks;
+
 		if (chk_lp) {
-			i32 ret = process_checks(pid, cfg_en->dynmem,
-						 chk_lp, mem_offs);
+			ret = process_checks(pid, cfg_en,
+					     chk_lp, mem_offs);
 			if (ret)
 				return;
 		}
@@ -431,13 +460,18 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 		else
 			ptrtgt->v_state[mem_idx] = PTR_SETTLED;
 		ptrtgt->v_offs[mem_idx] = buf->ptr;
+
+		// invalidate caches
+		INVALIDATE_CACHES(ptrtgt);
+
 		list_for_each (cfg_act, it) {
 			PtrMemEntry *ptrmem;
 			cfg_en = *it;
 			ptrmem = cfg_en->ptrmem;
-			mem_addr = ptrmem->v_offs[mem_idx] + cfg_en->addr;
-			if (read_memory(pid, mem_addr, buf, "PTR MEMORY"))
-				continue;
+
+			// fill cache and fill buf from cache
+			FILL_CACHE_AND_BUF(buf, cfg_en, ptrmem->v_offs[mem_idx], continue);
+
 			if (dynmem)
 				change_memory(pid, cfg_en, buf,
 					ptrmem->v_offs[mem_idx],
@@ -451,6 +485,9 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 					&cfg_en->value,
 					cfg_en->cstr);
 		}
+
+		// write back caches to target memory
+		WRITE_CACHES();
 	} else {
 		value->ptr = buf->ptr;
 	}
@@ -520,15 +557,15 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 	     mem_idx < mvec->size();
 	     mem_idx++) {
 		// invalidate caches
-		cache_list = &dynmem->cache_list;
-		list_for_each (cache_list, cait)
-			cait->start = PTR_MAX;
+		INVALIDATE_CACHES(dynmem);
 
 		// process current object
 		list_for_each (cfg_act, it) {
 			cfg_en = *it;
 			struct type *type = &cfg_en->type;
 			size_t mem_size;
+			i32 ret;
+
 			mem_offs = mvec->at(mem_idx);
 			if (!mem_offs)
 				continue;
@@ -544,14 +581,7 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 			dynmem->obj_idx = mem_idx;
 
 			// fill cache and fill buf from cache
-			mem_addr = mem_offs + cfg_en->cache->offs;
-			if (cfg_en->cache->start == PTR_MAX) {
-				if (_read_memory(pid, mem_addr,
-				    cfg_en->cache->data, MEM_CHUNK, "MEMORY"))
-					continue;
-				cfg_en->cache->start = mem_addr;
-			}
-			memcpy(buf, cfg_en->cache_data, cfg_en->type.size / 8);
+			FILL_CACHE_AND_BUF(buf, cfg_en, mem_offs, continue);
 
 			if (cfg_en->ptrtgt)
 				process_ptrmem(pid, cfg_en, buf, mem_idx);
@@ -563,14 +593,7 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 		}
 
 		// write back caches to target memory
-		list_for_each (cache_list, cait) {
-			if (!cait->is_dirty)
-				continue;
-			cait->is_dirty = false;
-			if (_write_memory(pid, cait->start,
-			    cait->data, MEM_CHUNK, "MEMORY"))
-				continue;
-		}
+		WRITE_CACHES();
 	}
 }
 

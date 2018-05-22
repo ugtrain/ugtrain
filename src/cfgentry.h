@@ -98,6 +98,9 @@ public:
 	DynMemEntry *dynmem;
 	vector<ptr_e> v_state;
 	vector<ptr_t> v_offs;
+
+	// caching
+	list<CacheEntry> cache_list;  // object cache list
 };
 
 

@@ -197,19 +197,19 @@ void output_config_act (list<CfgEntry*> *cfg_act)
 	}
 }
 
-static void output_dynmem_cache (DynMemEntry *dynmem)
-{
-	list<CacheEntry> *cache_list = &dynmem->cache_list;
-	CacheEntry *cache;
-	list<CacheEntry>::iterator it;
-
-	cout << " (caches at:";
-	list_for_each (cache_list, it) {
-		cache = &(*it);
-		cout << hex << " 0x" << cache->offs << dec;
-	}
-	cout << ")";
-}
+#define OUTPUT_CACHE(mem_type)					\
+do {								\
+	list<CacheEntry> *cache_list = &mem_type->cache_list;	\
+	CacheEntry *cache;					\
+	list<CacheEntry>::iterator it;				\
+								\
+	cout << " (caches at:";					\
+	list_for_each (cache_list, it) {			\
+		cache = &(*it);					\
+		cout << hex << " 0x" << cache->offs << dec;	\
+	}							\
+	cout << ")";						\
+} while (0)
 
 static void output_grow_method (GrowEntry *grow)
 {
@@ -259,14 +259,16 @@ void output_config (list<CfgEntry> *cfg)
 				if (grow->lib)
 					cout << " " << grow->lib;
 			}
-			output_dynmem_cache(dynmem);
+			OUTPUT_CACHE(dynmem);
 			cout << endl;
 		} else if (cfg_en->ptrmem) {
 			PtrMemEntry *ptrmem = cfg_en->ptrmem;
 			if (old_cfg_en && ptrmem == old_cfg_en->ptrmem)
 				goto skip_hl;
 			cout << "ptrmem: " << ptrmem->name << " "
-				<<  ptrmem->mem_size << endl;
+				<<  ptrmem->mem_size;
+			OUTPUT_CACHE(ptrmem);
+			cout << endl;
 		} else {
 			if (old_cfg_en && !old_cfg_en->dynmem && !old_cfg_en->ptrmem)
 				goto skip_hl;

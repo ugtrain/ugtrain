@@ -47,12 +47,28 @@ typedef enum {
 	NAME_ADP_REQ
 } name_e;
 
-#define ASSIGN_CACHE(entry, type)				\
+#define ASSIGN_CACHE(mem_type, entry, data_type)		\
 do {								\
-	entry = (type) ait->element;				\
-	entry->cache = &ait->dynmem->cache_list.back();		\
+	entry = (data_type) ait->element;			\
+	entry->cache = &ait->mem_type->cache_list.back();	\
 	entry->cache_data = PTR_ADD(void *, entry->cache->data,	\
 		(entry->addr - entry->cache->offs));		\
+} while (0)
+
+#define BUILD_CACHE(mem_type)						\
+do {									\
+	offs_min = ait->mem_type->cache_list.back().offs + MEM_CHUNK;	\
+	if (ait->addr + ait->size > offs_min)				\
+		offs_min = ait->addr;					\
+	if (ait->addr >= offs_min) {					\
+		/* init and add a new cache entry */			\
+		init_cache(&cache, ait->addr);				\
+		ait->mem_type->cache_list.push_back(cache);		\
+	}								\
+	if (!ait->is_check)						\
+		ASSIGN_CACHE(mem_type, cfg_en, CfgEntry *);		\
+	else								\
+		ASSIGN_CACHE(mem_type, chk_en, CheckEntry *);		\
 } while (0)
 
 static inline void
@@ -73,6 +89,7 @@ public:
 	ptr_t addr;
 	size_t size;		// in bytes
 	DynMemEntry *dynmem;
+	PtrMemEntry *ptrmem;
 	void *element;		// CfgEntry* or ChkEntry*
 	bool is_check;          // type of void pointer
 };
@@ -87,6 +104,7 @@ do {							\
 	addr_en.addr = it->addr;			\
 	addr_en.size = it->type.size / 8;		\
 	addr_en.dynmem = dynmem;			\
+	addr_en.ptrmem = ptrmem;			\
 	addr_en.element = (void *) &(*it);		\
 	addr_en.is_check = is_check;			\
 	addrlist->push_back(addr_en);			\
@@ -111,7 +129,8 @@ build_caches (list<CfgEntry> *cfg)
 	// build up address list
 	list_for_each (cfg, cfgit) {
 		DynMemEntry *dynmem = cfgit->dynmem;
-		if (!dynmem)
+		PtrMemEntry *ptrmem = cfgit->ptrmem;
+		if (!dynmem && !ptrmem)
 			continue;
 		is_check = false;
 		LIST_ADD_ADDR(cfgit, is_check);
@@ -135,18 +154,11 @@ build_caches (list<CfgEntry> *cfg)
 		CfgEntry *cfg_en;
 		CheckEntry *chk_en;
 
-		offs_min = ait->dynmem->cache_list.back().offs + MEM_CHUNK;
-		if (ait->addr + ait->size > offs_min)
-			offs_min = ait->addr;
-		if (ait->addr >= offs_min) {
-			// init and add a new cache entry
-			init_cache(&cache, ait->addr);
-			ait->dynmem->cache_list.push_back(cache);
-		}
-		if (!ait->is_check)
-			ASSIGN_CACHE(cfg_en, CfgEntry *);
-		else
-			ASSIGN_CACHE(chk_en, CheckEntry *);
+		if (ait->dynmem)
+			BUILD_CACHE(dynmem);
+		else if (ait->ptrmem)
+			BUILD_CACHE(ptrmem);
+
 	}
 }
 
@@ -874,6 +886,10 @@ void read_config (struct app_options *opt,
 				if (!chk_en.cfg_ref &&
 				    chk_en.addr < cfg_enp->dynmem->cache_list.back().offs)
 					cfg_enp->dynmem->cache_list.back().offs = chk_en.addr;
+			} else if (in_ptrmem) {
+				if (!chk_en.cfg_ref &&
+				    chk_en.addr < cfg_enp->ptrmem->cache_list.back().offs)
+					cfg_enp->ptrmem->cache_list.back().offs = chk_en.addr;
 			}
 			chk_lp->push_back(chk_en);
 			if (chk_en.is_heapchk) {
@@ -924,6 +940,7 @@ void read_config (struct app_options *opt,
 			break;
 
 		case NAME_PTRMEM_START:
+			CacheEntry cache;
 			if (in_dynmem)
 				cfg_parse_err(&line, lnr, start);
 			in_ptrmem = true;
@@ -932,6 +949,8 @@ void read_config (struct app_options *opt,
 				&start, false, NULL);
 			ptrmem_enp->mem_size = parse_u32_value(&line, lnr,
 				&start);
+			init_cache(&cache, PTR_MAX);
+			ptrmem_enp->cache_list.push_back(cache);
 			break;
 
 		case NAME_PTRMEM_END:
@@ -1108,6 +1127,8 @@ void read_config (struct app_options *opt,
 			cfg->push_back(cfg_en);
 
 			if (in_ptrmem) {
+				if (cfg_en.addr < ptrmem_enp->cache_list.back().offs)
+					ptrmem_enp->cache_list.back().offs = cfg_en.addr;
 				cfg->back().ptrmem = ptrmem_enp;
 				cfg->back().ptrmem->cfg.push_back(&cfg->back());
 				used_cfg_act = &cfg->back().ptrmem->cfg_act;
