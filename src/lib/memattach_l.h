@@ -1,7 +1,7 @@
 /* memattach_l.h:    functions to attach/read/write victim proc. memory
  * This file is for Linux only.
  *
- * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * inspired by libgcheater by Alf <h980501427@hotmail.com>
  *
@@ -51,8 +51,10 @@ i32 memattach_test (pid_t pid, i32 *fd)
 
 	snprintf(path, sizeof(path), "/proc/%d/mem", pid);
 	*fd = open(path, O_RDWR);
-	if (*fd < 0)
+	if (*fd < 0) {
+		ptrace(PTRACE_DETACH, pid, 0, SIGCONT);
 		goto err;
+	}
 #endif
 	ptrace(PTRACE_DETACH, pid, 0, SIGCONT);
 	if (errno != 0)

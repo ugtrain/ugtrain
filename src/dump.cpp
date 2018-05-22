@@ -1,6 +1,6 @@
 /* dump.cpp:    dump dynamic memory objects in process memory
  *
- * Copyright (c) 2012..2017 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -23,7 +23,7 @@
 #include <dump.h>
 
 
-static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,
+static void dump_ptr_mem (pid_t pid, i32 mfd, u32 obj_id, u32 ptr_id,
 			  ptr_t mem_addr, size_t size)
 {
 	i32 fd, ret;
@@ -33,7 +33,7 @@ static void dump_ptr_mem (pid_t pid, u32 obj_id, u32 ptr_id,
 
 	if (memattach(pid) != 0)
 		goto err;
-	if (memread(pid, mem_addr, buf, sizeof(buf)) != 0)
+	if (memread((mfd >= 0) ? mfd : pid, mem_addr, buf, sizeof(buf)) != 0)
 		goto err_detach;
 	memdetach(pid);
 
@@ -74,7 +74,7 @@ err:
 	return;
 }
 
-static void dump_mem_obj (pid_t pid, u32 class_id, u32 obj_id,
+static void dump_mem_obj (pid_t pid, i32 mfd, u32 class_id, u32 obj_id,
 			  ptr_t mem_addr, size_t size)
 {
 	i32 fd, ret;
@@ -84,7 +84,7 @@ static void dump_mem_obj (pid_t pid, u32 class_id, u32 obj_id,
 
 	if (memattach(pid) != 0)
 		goto err;
-	if (memread(pid, mem_addr, buf, sizeof(buf)) != 0)
+	if (memread((mfd >= 0) ? mfd : pid, mem_addr, buf, sizeof(buf)) != 0)
 		goto err_detach;
 	memdetach(pid);
 
@@ -147,7 +147,7 @@ out:
 	return;
 }
 
-void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
+void dump_all_mem_obj (pid_t pid, i32 mfd, list<CfgEntry> *cfg)
 {
 	DynMemEntry *old_dynmem = NULL;
 	u32 class_id = 0, obj_id = 0, ptr_id = 0, i;
@@ -163,7 +163,7 @@ void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 				     << " Obj " << obj_id << " at 0x"
 				     << hex << it->dynmem->v_maddr[obj_id]
 				     << dec << endl;
-				dump_mem_obj(pid, class_id, obj_id,
+				dump_mem_obj(pid, mfd, class_id, obj_id,
 					     it->dynmem->v_maddr[obj_id],
 					     it->dynmem->mem_size);
 				obj_id++;
@@ -179,7 +179,7 @@ void dump_all_mem_obj (pid_t pid, list<CfgEntry> *cfg)
 			for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
 				if (it->v_oldval[obj_id].u64 > 0 &&
 				    it->ptrtgt->v_state[obj_id] >= PTR_SETTLED)
-					dump_ptr_mem(pid, obj_id, ptr_id,
+					dump_ptr_mem(pid, mfd, obj_id, ptr_id,
 						     it->v_oldval[obj_id].ptr,
 						     it->ptrtgt->mem_size);
 				obj_id++;

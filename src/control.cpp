@@ -1,6 +1,6 @@
 /* control.cpp:    change processing according to user input
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -84,14 +84,14 @@ static void toggle_cfg (list<CfgEntry*> *key_cfg, list<CfgEntry*> *cfg_act)
  * ATTENTION: ch has to be checked before calling this function!
  *            It must fit into cfgp_map!
  */
-void handle_input_char (char ch, list<CfgEntry*> *cfgp_map[], pid_t pid,
+void handle_input_char (char ch, list<CfgEntry*> *cfgp_map[], pid_t pid, i32 mfd,
 			list<CfgEntry> *cfg, list<CfgEntry*> *cfg_act)
 {
 	i32 ch_idx = (i32) ch;
 
 	switch (ch) {
 	case '>':
-		dump_all_mem_obj(pid, cfg);
+		dump_all_mem_obj(pid, mfd, cfg);
 		break;
 	case '+':
 		change_mvec_pridx(cfg, INCREMENT);

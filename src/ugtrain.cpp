@@ -1192,7 +1192,7 @@ i32 main (i32 argc, char **argv, char **env)
 		sleep_sec_unless_input2(1, ifd, STDIN_FILENO);
 		ch = do_getch();
 		if (ch > 0 && ch < CFGP_MAP_SIZE)
-			handle_input_char(ch, cfgp_map, pid, cfg, cfg_act);
+			handle_input_char(ch, cfgp_map, pid, opt->procmem_fd, cfg, cfg_act);
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		if (!opt->pure_statmem) {
