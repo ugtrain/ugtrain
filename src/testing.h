@@ -1,6 +1,6 @@
 /* testing.h:    inline functions to check if ugtrain does it right
  *
- * Copyright (c) 2014..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2014..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -24,14 +24,14 @@
 
 #ifdef TESTING
 
-static inline void test_optparsing (struct app_options *opt)
+static inline void test_optparsing (Options *opt)
 {
 	if (opt->exit_after != PART_OPT_PARSING)
 		return;
 	exit(0);
 }
 
-static inline void test_cfgparsing (struct app_options *opt,
+static inline void test_cfgparsing (Options *opt,
 				    list<CfgEntry> *cfg,
 				    list<CfgEntry*> *cfg_act,
 				    list<CfgEntry*> *cfgp_map[])
@@ -41,7 +41,7 @@ static inline void test_cfgparsing (struct app_options *opt,
 	exit(0);
 }
 
-static inline void test_cfgoutput (struct app_options *opt)
+static inline void test_cfgoutput (Options *opt)
 {
 	if (opt->exit_after != PART_CFG_OUTPUT)
 		return;
@@ -50,12 +50,12 @@ static inline void test_cfgoutput (struct app_options *opt)
 
 #else
 
-static inline void test_optparsing (struct app_options *opt) {}
-static inline void test_cfgparsing (struct app_options *opt,
+static inline void test_optparsing (Options *opt) {}
+static inline void test_cfgparsing (Options *opt,
 				    list<CfgEntry> *cfg,
 				    list<CfgEntry*> *cfg_act,
 				    list<CfgEntry*> *cfgp_map[]) {}
-static inline void test_cfgoutput (struct app_options *opt) {}
+static inline void test_cfgoutput (Options *opt) {}
 
 #endif
 

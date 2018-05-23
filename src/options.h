@@ -1,6 +1,6 @@
 /* options.h:     functions and structs for option handling and help
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -26,7 +26,8 @@
 #define LHACK_PRE "libmemhack"
 #define LIB_END   ".so"
 
-struct app_options {
+class Options {
+public:
 	char	*cfg_path;
 	char	*pre_cmd;
 	char	*preload_lib;
@@ -35,7 +36,7 @@ struct app_options {
 	bool	do_adapt;
 	bool	run_scanmem;
 	bool	use_glc;
-	/* no direct CLI input */
+	// no direct CLI input
 	i32	procmem_fd;
 	bool	pure_statmem;
 	bool	have_objdump;
@@ -62,34 +63,28 @@ struct app_options {
 	ptr_t	heap_end;
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
-	/* options for testing */
+	// options for testing
 	TESTING_OPT_VARS
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-	void do_assumptions (struct app_options *opt);
-	void parse_options (i32 argc, char **argv, struct app_options *opt);
+void do_assumptions (Options *opt);
+void parse_options (i32 argc, char **argv, Options *opt);
 
-	/* inline functions */
-	static inline void use_libmemdisc (struct app_options *opt)
-	{
-		if (sizeof(ptr_t) == 8)
-			opt->preload_lib = (char *) LDISC_PRE "64" LIB_END;
-		else if (sizeof(ptr_t) == 4)
-			opt->preload_lib = (char *) LDISC_PRE "32" LIB_END;
-	}
+/* inline functions */
+static inline void use_libmemdisc (Options *opt)
+{
+	if (sizeof(ptr_t) == 8)
+		opt->preload_lib = (char *) LDISC_PRE "64" LIB_END;
+	else if (sizeof(ptr_t) == 4)
+		opt->preload_lib = (char *) LDISC_PRE "32" LIB_END;
+}
 
-	static inline void use_libmemhack (struct app_options *opt)
-	{
-		if (sizeof(ptr_t) == 8)
-			opt->preload_lib = (char *) LHACK_PRE "64" LIB_END;
-		else if (sizeof(ptr_t) == 4)
-			opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
-	}
-#ifdef __cplusplus
-};
-#endif
+static inline void use_libmemhack (Options *opt)
+{
+	if (sizeof(ptr_t) == 8)
+		opt->preload_lib = (char *) LHACK_PRE "64" LIB_END;
+	else if (sizeof(ptr_t) == 4)
+		opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
+}
 
 #endif

@@ -1,6 +1,6 @@
-/* options.c:    option parsing, help, usage, etc.
+/* options.cpp:    option parsing, help, usage, etc.
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -12,9 +12,9 @@
  */
 
 #include <getopt.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 
 /* local includes */
 #include <options.h>
@@ -23,7 +23,7 @@
 
 #define DYNMEM_FILE "/tmp/memhack_file"
 
-void do_assumptions (struct app_options *opt)
+void do_assumptions (Options *opt)
 {
 	/* Adaption handling */
 	/* '-D 1 -A' --> '-D 1', '-S -A' --> '-S' */
@@ -122,20 +122,20 @@ static struct option long_options[] = {
 	{0, 0, 0, 0}
 };
 
-static void init_options (struct app_options *opt)
+static void init_options (Options *opt)
 {
-	memset(opt, 0, sizeof(struct app_options));
+	memset(opt, 0, sizeof(Options));
 
 	/* no direct CLI input */
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
-	opt->dynmem_file = DYNMEM_FILE;
+	opt->dynmem_file = (char *) DYNMEM_FILE;
 }
 
 /*
  * parses the command-line options
  */
-void parse_options (i32 argc, char **argv, struct app_options *opt)
+void parse_options (i32 argc, char **argv, Options *opt)
 {
 	i32 ch = -1, prev_ch = -1, opt_idx = 0;
 
@@ -183,7 +183,7 @@ void parse_options (i32 argc, char **argv, struct app_options *opt)
 			break;
 		case Glc:
 			if (optind == argc || !optarg)
-				opt->pre_cmd = "";
+				opt->pre_cmd = (char *) "";
 			else
 				opt->pre_cmd = optarg;
 			opt->use_glc = true;

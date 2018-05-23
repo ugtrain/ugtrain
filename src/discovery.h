@@ -1,6 +1,6 @@
 /* discovery.h:    discover dynamic memory objects
  *
- * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -28,15 +28,15 @@
 #include <common.h>
 #include <options.h>
 
-bool init_scanmem	(struct app_options *opt, list<CfgEntry> *cfg,
+bool init_scanmem	(Options *opt, list<CfgEntry> *cfg,
 			 list<CfgEntry*> *cfg_act);
-bool init_discovery     (struct app_options *opt, list<CfgEntry> *cfg,
+bool init_discovery     (Options *opt, list<CfgEntry> *cfg,
 		         list<CfgEntry*> *cfg_act);
-i32  prepare_discovery  (struct app_options *opt, list<CfgEntry> *cfg);
-void process_discovery  (struct app_options *opt, list<CfgEntry> *cfg,
+i32  prepare_discovery  (Options *opt, list<CfgEntry> *cfg);
+void process_discovery  (Options *opt, list<CfgEntry> *cfg,
 			 i32 ifd, i32 dfd, i32 ofd, i32 pid,
 			 struct list_head *rlist);
-i32  postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
+i32  postproc_discovery (Options *opt, list<CfgEntry> *cfg,
 			 struct list_head *rlist, vector<string> *lines);
 
 #endif

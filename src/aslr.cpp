@@ -1,6 +1,6 @@
 /* aslr.cpp:    handle Address Space Layout Randomization (ASLR)
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -131,7 +131,7 @@ static inline i32 read_libs_from_fifo (pid_t pid, char *disc_lib,
  * Most libraries are loaded consecutively during game start. So do it
  * after some cycles of no input from the FIFO.
  */
-void do_disc_pic_work (pid_t pid, struct app_options *opt,
+void do_disc_pic_work (pid_t pid, Options *opt,
 		       i32 ifd, i32 ofd, struct list_head *rlist)
 {
 #define CYCLES_BEFORE_RELOAD 2
@@ -276,7 +276,7 @@ static inline void find_exe_region (struct list_head *rlist,
  * handle PIE and early PIC
  * for memory discovery and hacking
  */
-void handle_aslr (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
+void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 		  i32 ofd, pid_t pid, struct list_head *rlist)
 {
 	struct pmap_params params;
@@ -385,7 +385,7 @@ static inline void find_stack_start (struct list_head *rlist,
  * read the stack start from /proc/$pid/maps
  * and store it in opt
  */
-void get_stack_start (struct app_options *opt, pid_t pid,
+void get_stack_start (Options *opt, pid_t pid,
 		      struct list_head *rlist)
 {
 	struct pmap_params params;
@@ -411,7 +411,7 @@ void get_stack_end (SF_PARAMS)
 {
 	struct dynmem_params *dmparams = (struct dynmem_params *) argp;
 	struct sf_params *sfp = dmparams->sfparams;
-	struct app_options *opt = sfp->opt;
+	Options *opt = sfp->opt;
 	list<CfgEntry>::iterator cfg_it;
 	CfgEntry *cfg_en;
 	list<CheckEntry> *chk_lp;
@@ -470,7 +470,7 @@ static inline void find_heap_region (struct list_head *rlist,
  * read the heap start and end from /proc/$pid/maps
  * and store them in opt
  */
-void get_heap_region (struct app_options *opt, pid_t pid,
+void get_heap_region (Options *opt, pid_t pid,
 		      struct list_head *rlist)
 {
 	struct pmap_params params;

@@ -1,6 +1,6 @@
 /* discovery.cpp:    discover dynamic memory objects
  *
- * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -127,7 +127,7 @@ static inline i32 code_addr_to_region (ptr_t *code_addr,
 // post parsing parameters for process_disc1234_malloc()
 struct disc_pp {
 	ptr_t in_addr;
-	struct app_options *opt;
+	Options *opt;
 	struct list_head *rlist;
 };
 
@@ -136,7 +136,7 @@ static void process_disc1234_malloc (MF_PARAMS)
 {
 	struct disc_pp *dpp = (struct disc_pp *) pp->argp;
 	ptr_t in_addr = dpp->in_addr;
-	struct app_options *opt = dpp->opt;
+	Options *opt = dpp->opt;
 	struct list_head *rlist = dpp->rlist;
 	char stage = opt->disc_str[0];
 	ptr_t codes[MAX_BT] = { 0 };
@@ -231,7 +231,7 @@ static void process_disc1234_malloc (MF_PARAMS)
 static void discover_stack_val (SF_PARAMS)
 {
 	struct disc_pp *dpp = (struct disc_pp *) argp;
-	struct app_options *opt = dpp->opt;
+	Options *opt = dpp->opt;
 	ptr_t in_addr = dpp->in_addr;
 	ptr_t stack_start = opt->stack_start;
 
@@ -249,7 +249,7 @@ static inline void rm_dasm_files (void)
 	rm_files_by_pattern((char *) DASM_DIR "*" DASM_SUF);
 }
 
-static i32 postproc_stage1234 (struct app_options *opt, list<CfgEntry> *cfg,
+static i32 postproc_stage1234 (Options *opt, list<CfgEntry> *cfg,
 			       struct list_head *rlist)
 {
 	i32 ifd, pmask = PARSE_S;
@@ -303,7 +303,7 @@ err:
 	return -1;
 }
 
-i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
+i32 postproc_discovery (Options *opt, list<CfgEntry> *cfg,
 			struct list_head *rlist, vector<string> *lines)
 {
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
@@ -315,7 +315,7 @@ i32 postproc_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 struct disc_params {
 	i32 ifd;
 	i32 pid;
-	struct app_options *opt;
+	Options *opt;
 };
 
 /*
@@ -327,7 +327,7 @@ static void run_stage1234_loop (void *argp)
 	struct disc_params *params = (struct disc_params *) argp;
 	i32 ifd = params->ifd;
 	i32 pid = params->pid;
-	struct app_options *opt = params->opt;
+	Options *opt = params->opt;
 	i32 ofd;
 	char buf[PIPE_BUF] = { 0 };
 	ssize_t rbytes, wbytes;
@@ -364,7 +364,7 @@ static void run_stage1234_loop (void *argp)
 	exit(1);
 }
 
-void process_discovery (struct app_options *opt, list<CfgEntry> *cfg,
+void process_discovery (Options *opt, list<CfgEntry> *cfg,
 			i32 ifd, i32 dfd, i32 ofd, i32 pid,
 			struct list_head *rlist)
 {
@@ -446,7 +446,7 @@ out:
 	return ret;
 }
 
-i32 prepare_discovery (struct app_options *opt, list<CfgEntry> *cfg)
+i32 prepare_discovery (Options *opt, list<CfgEntry> *cfg)
 {
 	string disc_str, cmd_str;
 	char *pos, *disc_part;
@@ -528,7 +528,7 @@ err:
 }
 
 static inline i32
-check_beginner_stage4 (struct app_options *opt)
+check_beginner_stage4 (Options *opt)
 {
 	i32 ret;
 	ulong mem_size;
@@ -551,7 +551,7 @@ err:
 	return -1;
 }
 
-bool init_discovery (struct app_options *opt, list<CfgEntry> *cfg,
+bool init_discovery (Options *opt, list<CfgEntry> *cfg,
 		     list<CfgEntry*> *cfg_act)
 {
 	bool allow_empty_cfg = false;
@@ -578,7 +578,7 @@ bool init_discovery (struct app_options *opt, list<CfgEntry> *cfg,
 	return allow_empty_cfg;
 }
 
-bool init_scanmem (struct app_options *opt, list<CfgEntry> *cfg,
+bool init_scanmem (Options *opt, list<CfgEntry> *cfg,
 		   list<CfgEntry*> *cfg_act)
 {
 	bool allow_empty_cfg = true;

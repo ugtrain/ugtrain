@@ -14,7 +14,7 @@ ugtrain_SOURCES = \
 	dump.cpp \
 	fifoparser.cpp \
 	memmgmt.cpp \
-	options.c \
+	options.cpp \
 	ugtrain.cpp \
 	valoutput.cpp
 if LINUX

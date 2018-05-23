@@ -634,7 +634,7 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 	}
 }
 
-static inline void handle_heap_checks (struct app_options *opt,
+static inline void handle_heap_checks (Options *opt,
 				       list<CfgEntry> *cfg)
 {
 	list<CfgEntry>::iterator it;
@@ -697,7 +697,7 @@ static const char *abuse_names[] = { "steam", NULL };
  * Professionals know what they do and don't let others
  * catch them too easily.
  */
-static void detect_abuse (struct app_options *opt)
+static void detect_abuse (Options *opt)
 {
 	i32 i;
 
@@ -712,7 +712,7 @@ err:
 	exit(-1);
 }
 
-static pid_t run_game (struct app_options *opt, char *preload_lib)
+static pid_t run_game (Options *opt, char *preload_lib)
 {
 #define SCANMEM_DELAY_S    3
 #define PROC_CHECK_TMO_MS  2800
@@ -818,7 +818,7 @@ err:
 }
 
 #ifdef __linux__
-static pid_t run_preloader (struct app_options *opt)
+static pid_t run_preloader (Options *opt)
 {
 	pid_t pid;
 
@@ -848,7 +848,7 @@ err:
 #endif
 
 /* returns: 0: success, 1: error, 2: pure static memory detected */
-static i32 prepare_dynmem (struct app_options *opt, list<CfgEntry> *cfg,
+static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 			   i32 *ifd, i32 *ofd, i32 *dfd, pid_t *pid)
 {
 	char obuf[PIPE_BUF] = { 0 };
@@ -1002,7 +1002,7 @@ err:
 	return 1;
 }
 
-static inline i32 get_game_paths (struct app_options *opt)
+static inline i32 get_game_paths (Options *opt)
 {
 	if (opt->preload_lib) {
 		if (!opt->game_path)
@@ -1064,7 +1064,7 @@ out:
 i32 main (i32 argc, char **argv, char **env)
 {
 	vector<string> _lines, *lines = &_lines;
-	struct app_options _opt, *opt = &_opt;
+	Options _opt, *opt = &_opt;
 	list<CfgEntry> _cfg, *cfg = &_cfg;
 	list<CfgEntry*> _cfg_act, *cfg_act = &_cfg_act;
 #define CFGP_MAP_SIZE 128

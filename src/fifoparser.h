@@ -1,6 +1,6 @@
 /* fifoparser.h:    parsing functions to read from FIFO to cfg
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -20,6 +20,7 @@
 #include <lib/system.h>
 #include <cfgentry.h>
 #include <common.h>
+#include <options.h>
 
 #define PARSE_S (1 << 0)
 #define PARSE_C (1 << 1)
@@ -49,7 +50,7 @@ struct lf_params {
 
 // stack end handling parameters
 struct sf_params {
-	struct app_options *opt;
+	Options *opt;
 };
 
 // parameter for the FIFO parser

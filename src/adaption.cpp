@@ -1,6 +1,6 @@
 /* adaption.cpp:    adapt the config by running a script
  *
- * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -50,7 +50,7 @@ static i32 write_config_vect (char *path, vector<string> *lines)
 	return 0;
 }
 
-static i32 take_over_config (struct app_options *opt, list<CfgEntry> *cfg,
+static i32 take_over_config (Options *opt, list<CfgEntry> *cfg,
 			     vector<string> *lines)
 {
 	list<CfgEntry>::iterator cfg_it;
@@ -104,7 +104,7 @@ static inline i32 parse_adp_string (char **start, char **obj_name)
 	return 0;
 }
 
-static i32 parse_adapt_result (struct app_options *opt, list<CfgEntry> *cfg,
+static i32 parse_adapt_result (Options *opt, list<CfgEntry> *cfg,
 			       char *buf, ssize_t buf_len,
 			       vector<string> *lines)
 {
@@ -228,7 +228,7 @@ parse_err:
 	return -1;
 }
 
-static i32 adapt_config (struct app_options *opt, list<CfgEntry> *cfg,
+static i32 adapt_config (Options *opt, list<CfgEntry> *cfg,
 			 vector<string> *lines)
 {
 	bool debug_mode = false;
@@ -273,7 +273,7 @@ err:
 	return -1;
 }
 
-i32 process_adaption (struct app_options *opt, list<CfgEntry> *cfg,
+i32 process_adaption (Options *opt, list<CfgEntry> *cfg,
 		      vector<string> *lines)
 {
 	char ch;

@@ -1,6 +1,6 @@
 /* cfgparser.h:    parsing functions to read in the config file
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -21,7 +21,7 @@
 #include <common.h>
 #include <options.h>
 
-void read_config (struct app_options *opt,
+void read_config (Options *opt,
 		  list<CfgEntry> *cfg,
 		  list<CfgEntry*> *cfg_act,
 		  list<CfgEntry*> *cfgp_map[],

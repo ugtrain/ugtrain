@@ -56,7 +56,7 @@ init_dmparams_early (struct dynmem_params *dmparams)
 }
 
 static inline void
-init_dmparams (struct dynmem_params *dmparams, struct app_options *opt,
+init_dmparams (struct dynmem_params *dmparams, Options *opt,
 	       list<CfgEntry> *cfg, i32 ofd, pid_t pid, struct list_head *rlist)
 {
 	dmparams->lfparams->cfg = cfg;

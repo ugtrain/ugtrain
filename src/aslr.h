@@ -1,6 +1,6 @@
 /* aslr.h:    handle Address Space Layout Randomization (ASLR)
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -29,18 +29,18 @@
 #include <common.h>
 #include <options.h>
 
-void handle_aslr (struct app_options *opt, list<CfgEntry> *cfg, i32 ifd,
+void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 		  i32 ofd, pid_t pid, struct list_head *rlist);
 
-void do_disc_pic_work (pid_t pid, struct app_options *opt,
+void do_disc_pic_work (pid_t pid, Options *opt,
 		       i32 ifd, i32 ofd, struct list_head *rlist);
 
 void get_lib_load_addr (LF_PARAMS);
 
-void get_stack_start (struct app_options *opt, pid_t pid,
+void get_stack_start (Options *opt, pid_t pid,
 		      struct list_head *rlist);
 
-void get_heap_region (struct app_options *opt, pid_t pid,
+void get_heap_region (Options *opt, pid_t pid,
 		      struct list_head *rlist);
 
 void get_stack_end (SF_PARAMS);
