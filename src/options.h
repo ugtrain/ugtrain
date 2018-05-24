@@ -14,8 +14,11 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
+#include <list>
+
 /* local includes */
 #include <common.h>
+#include <cfgentry.h>
 #include <testopts.h>
 
 #define PROG_NAME  "ugtrain"
@@ -63,6 +66,7 @@ public:
 	ptr_t	heap_end;
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
+	list<CacheEntry> *cache_list;  // caching static memory
 	// options for testing
 	TESTING_OPT_VARS
 };

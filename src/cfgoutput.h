@@ -19,8 +19,9 @@
 // local includes
 #include <cfgentry.h>
 #include <common.h>
+#include <options.h>
 
-void output_config (list<CfgEntry> *cfg);
+void output_config (Options *opt, list<CfgEntry> *cfg);
 void output_config_act (list<CfgEntry*> *cfg_act);
 
 #endif

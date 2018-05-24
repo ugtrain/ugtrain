@@ -130,6 +130,7 @@ static void init_options (Options *opt)
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
 	opt->dynmem_file = (char *) DYNMEM_FILE;
+	opt->cache_list = new list<CacheEntry>;
 }
 
 /*

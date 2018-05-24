@@ -274,7 +274,7 @@ static inline void find_exe_region (struct list_head *rlist,
 
 /*
  * handle PIE and early PIC
- * for memory discovery and hacking
+ * for dynamic memory discovery and hacking
  */
 void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 		  i32 ofd, pid_t pid, struct list_head *rlist)
@@ -430,6 +430,11 @@ void get_stack_end (SF_PARAMS)
 			continue;
 		if (cfg_en->type.on_stack) {
 			cfg_en->addr = stack_end - cfg_en->addr;
+			// change the cache address only once
+			if (!cfg_en->cache->is_dirty) {
+				cfg_en->cache->is_dirty = true;
+				cfg_en->cache->offs = stack_end - cfg_en->cache->offs;
+			}
 			cfg_en->type.on_stack = false;
 		}
 
@@ -441,9 +446,20 @@ void get_stack_end (SF_PARAMS)
 			if (!chk_en->type.on_stack)
 				continue;
 			chk_en->addr = stack_end - chk_en->addr;
+			// change the cache address only once
+			if (!chk_en->cache->is_dirty) {
+				chk_en->cache->is_dirty = true;
+				chk_en->cache->offs = stack_end - chk_en->cache->offs;
+			}
 			chk_en->type.on_stack = false;
 		}
 	}
+
+	// clear dirty flags again
+	list<CacheEntry>::iterator cait;
+	list_for_each (opt->cache_list, cait)
+		cait->is_dirty = false;
+
 	// HACK: Wait for the game to fill the stack with permanent data.
 	sleep_sec(1);
 }

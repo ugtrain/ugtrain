@@ -199,7 +199,6 @@ static i32 process_checks (pid_t pid, CfgEntry *cfg_en,
 			   ptr_t mem_offs)
 {
 	DynMemEntry *dynmem = cfg_en->dynmem;
-	PtrMemEntry *ptrmem = cfg_en->ptrmem;
 	list<CheckEntry>::iterator it;
 	CheckEntry *chk_en;
 	value_t _chk_buf, *chk_buf = &_chk_buf;
@@ -221,15 +220,8 @@ static i32 process_checks (pid_t pid, CfgEntry *cfg_en,
 				continue;
 			chk_buf->u32 = dynmem->obj_idx;
 		} else {
-			if (dynmem || ptrmem) {
-				// fill cache and fill chk_buf from cache
-				FILL_CACHE_AND_BUF(chk_buf, chk_en, mem_offs, goto out);
-			} else {
-				mem_addr = mem_offs + chk_en->addr;
-				ret = read_memory(pid, mem_addr, chk_buf, "MEMORY");
-				if (ret)
-					goto out;
-			}
+			// fill cache and fill chk_buf from cache
+			FILL_CACHE_AND_BUF(chk_buf, chk_en, mem_offs, goto out);
 		}
 		ret = or_check_memory(chk_en, chk_buf);
 		if (ret) {
@@ -245,10 +237,9 @@ out:
 
 template <typename T>
 static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
-			    value_t *buf, ptr_t mem_offs)
+			    ptr_t mem_offs)
 {
 	list<CheckEntry> *chk_lp = cfg_en->checks;
-	ptr_t mem_addr;
 	i32 ret;
 
 	if (cfg_en->dynval == DYN_VAL_WATCH)
@@ -268,17 +259,10 @@ static void change_mem_val (pid_t pid, CfgEntry *cfg_en, T read_val, T value,
 	if (cfg_en->cfg_ref && value == 0)
 		goto out;
 
-	memcpy(buf, &value, sizeof(T));
-	mem_addr = mem_offs + cfg_en->addr;
+	// set the new value in the cache
+	memcpy(cfg_en->cache_data, &value, sizeof(T));
+	cfg_en->cache->is_dirty = true;
 
-	if (cfg_en->dynmem || cfg_en->ptrmem) {
-		memcpy(cfg_en->cache_data, &value, sizeof(T));
-		cfg_en->cache->is_dirty = true;
-	} else {
-		ret = write_memory(pid, mem_addr, buf, "MEMORY");
-		if (ret)
-			goto out;
-	}
 	cfg_en->val_set = true;
 out:
 	return;
@@ -345,12 +329,12 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 		case 64:
 			old_val->f64 = buf->f64;
 			handle_dynval(pid, cfg_en, old_val->f64, &value->f64, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->f64, value->f64, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->f64, value->f64, mem_offs);
 			break;
 		case 32:
 			old_val->f32 = buf->f32;
 			handle_dynval(pid, cfg_en, old_val->f32, &value->f32, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->f32, value->f32, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->f32, value->f32, mem_offs);
 			break;
 		}
 	} else if (type->is_signed) {
@@ -358,22 +342,22 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 		case 64:
 			old_val->i64 = buf->i64;
 			handle_dynval(pid, cfg_en, old_val->i64, &value->i64, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i64, value->i64, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i64, value->i64, mem_offs);
 			break;
 		case 32:
 			old_val->i32 = buf->i32;
 			handle_dynval(pid, cfg_en, old_val->i32, &value->i32, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i32, value->i32, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i32, value->i32, mem_offs);
 			break;
 		case 16:
 			old_val->i16 = buf->i16;
 			handle_dynval(pid, cfg_en, old_val->i16, &value->i16, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i16, value->i16, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i16, value->i16, mem_offs);
 			break;
 		default:
 			old_val->i8 = buf->i8;
 			handle_dynval(pid, cfg_en, old_val->i8, &value->i8, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->i8, value->i8, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->i8, value->i8, mem_offs);
 			break;
 		}
 	} else {
@@ -381,22 +365,22 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 		case 64:
 			old_val->u64 = buf->u64;
 			handle_dynval(pid, cfg_en, old_val->u64, &value->u64, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u64, value->u64, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u64, value->u64, mem_offs);
 			break;
 		case 32:
 			old_val->u32 = buf->u32;
 			handle_dynval(pid, cfg_en, old_val->u32, &value->u32, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u32, value->u32, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u32, value->u32, mem_offs);
 			break;
 		case 16:
 			old_val->u16 = buf->u16;
 			handle_dynval(pid, cfg_en, old_val->u16, &value->u16, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u16, value->u16, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u16, value->u16, mem_offs);
 			break;
 		default:
 			old_val->u8 = buf->u8;
 			handle_dynval(pid, cfg_en, old_val->u8, &value->u8, cstr, mem_offs);
-			change_mem_val(pid, cfg_en, old_val->u8, value->u8, buf, mem_offs);
+			change_mem_val(pid, cfg_en, old_val->u8, value->u8, mem_offs);
 			break;
 		}
 	}
@@ -416,7 +400,7 @@ do {								\
 
 #define INVALIDATE_CACHES(mem_type)				\
 do {								\
-	cache_list = &mem_type->cache_list;			\
+	cache_list = mem_type->cache_list;			\
 	list_for_each (cache_list, cait)			\
 		cait->start = PTR_MAX;				\
 } while (0)
@@ -599,15 +583,21 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 
 // TIME CRITICAL! Process all activated config entries.
 // Note: We are attached to the game process and it is frozen.
-static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
+static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 {
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
 	DynMemEntry *old_dynmem = NULL;
+	list<CacheEntry> *cache_list;
+	list<CacheEntry>::iterator cait;
 	value_t _buf, *buf = &_buf;
 	ptr_t mem_addr, mem_offs = 0;
+	i32 ret;
 
 	_buf.i64 = 0;
+
+	// invalidate caches
+	INVALIDATE_CACHES(opt);
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
@@ -620,9 +610,10 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 		} else {
 			if (cfg_en->type.on_stack)
 				continue;
-			mem_addr = cfg_en->addr;
-			if (read_memory(pid, mem_addr, buf, "MEMORY"))
-				continue;
+
+			// fill cache and fill buf from cache
+			FILL_CACHE_AND_BUF(buf, cfg_en, mem_offs, continue);
+
 			if (cfg_en->ptrtgt)
 				process_ptrmem(pid, cfg_en, buf, 0);
 			else
@@ -632,6 +623,8 @@ static void process_act_cfg (pid_t pid, list<CfgEntry*> *cfg_act)
 					cfg_en->cstr);
 		}
 	}
+	// write back caches to target memory
+	WRITE_CACHES();
 }
 
 static inline void handle_heap_checks (Options *opt,
@@ -659,17 +652,25 @@ static inline void handle_heap_checks (Options *opt,
 	}
 }
 
-static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
+static inline void
+handle_statmem_pie (Options *opt, list<CfgEntry> *cfg)
 {
 	list<CfgEntry>::iterator it;
 	list<CheckEntry> *chk_lp;
 	list<CheckEntry>::iterator chk_it;
+	ptr_t code_offs = opt->code_offs;
 
 	list_for_each (cfg, it) {
 		if (it->dynmem || it->ptrmem)
 			continue;
-		if (!it->type.on_stack)
+		if (!it->type.on_stack) {
 			it->addr += code_offs;
+			// change the cache address only once
+			if (!it->cache->is_dirty) {
+				it->cache->is_dirty = true;
+				it->cache->offs += code_offs;
+			}
+		}
 		if (!it->checks)
 			continue;
 		chk_lp = it->checks;
@@ -677,8 +678,18 @@ static inline void handle_statmem_pie (ptr_t code_offs, list<CfgEntry> *cfg)
 			if (chk_it->type.on_stack)
 				continue;
 			chk_it->addr += code_offs;
+			// change the cache address only once
+			if (!chk_it->cache->is_dirty) {
+				chk_it->cache->is_dirty = true;
+				chk_it->cache->offs += code_offs;
+			}
 		}
 	}
+
+	// clear dirty flags again
+	list<CacheEntry>::iterator cait;
+	list_for_each (opt->cache_list, cait)
+		cait->is_dirty = false;
 }
 
 static void reset_terminal (void)
@@ -1108,7 +1119,7 @@ i32 main (i32 argc, char **argv, char **env)
 	get_game_paths(opt);
 
 	cout << "Config:" << endl;
-	output_config(cfg);
+	output_config(opt, cfg);
 	cout << endl;
 	cout << "Activated:" << endl;
 	output_config_act(cfg_act);
@@ -1180,7 +1191,7 @@ i32 main (i32 argc, char **argv, char **env)
 	test_memattach(pid, &opt->procmem_fd);
 
 	handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
-	handle_statmem_pie(opt->code_offs, cfg);
+	handle_statmem_pie(opt, cfg);
 
 	init_dmparams(dmparams, opt, cfg, ofd, pid, rlist);
 
@@ -1232,7 +1243,7 @@ i32 main (i32 argc, char **argv, char **env)
 			read_dynmem_fifo(cfg, dmparams, ifd, pmask);
 
 		// TIME CRITICAL! Process all activated config entries
-		process_act_cfg((opt->procmem_fd >= 0) ? opt->procmem_fd : pid, cfg_act);
+		process_act_cfg(opt, (opt->procmem_fd >= 0) ? opt->procmem_fd : pid, cfg_act);
 
 		detachmem(pid);
 

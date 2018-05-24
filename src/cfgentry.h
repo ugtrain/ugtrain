@@ -73,7 +73,7 @@ public:
 	u32 pr_idx;                   // object print index
 
 	// caching
-	list<CacheEntry> cache_list;  // object cache list
+	list<CacheEntry> *cache_list; // object cache list
 
 	// adaptation
 	u32 adp_size;                 // adapted object size
@@ -100,7 +100,7 @@ public:
 	vector<ptr_t> v_offs;
 
 	// caching
-	list<CacheEntry> cache_list;  // object cache list
+	list<CacheEntry> *cache_list; // object cache list
 };
 
 

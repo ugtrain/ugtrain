@@ -199,7 +199,7 @@ void output_config_act (list<CfgEntry*> *cfg_act)
 
 #define OUTPUT_CACHE(mem_type)					\
 do {								\
-	list<CacheEntry> *cache_list = &mem_type->cache_list;	\
+	list<CacheEntry> *cache_list = mem_type->cache_list;	\
 	CacheEntry *cache;					\
 	list<CacheEntry>::iterator it;				\
 								\
@@ -225,7 +225,7 @@ static void output_grow_method (GrowEntry *grow)
 	}
 }
 
-void output_config (list<CfgEntry> *cfg)
+void output_config (Options *opt, list<CfgEntry> *cfg)
 {
 	if (!cfg || cfg->empty()) {
 		cout << "<none>" << endl;
@@ -272,7 +272,9 @@ void output_config (list<CfgEntry> *cfg)
 		} else {
 			if (old_cfg_en && !old_cfg_en->dynmem && !old_cfg_en->ptrmem)
 				goto skip_hl;
-			cout << "static: " << endl;
+			cout << "static memory:";
+			OUTPUT_CACHE(opt);
+			cout << endl;
 		}
 		old_cfg_en = cfg_en;
 skip_hl:
