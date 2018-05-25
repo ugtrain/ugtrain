@@ -92,7 +92,7 @@ PROG_NAME " is the universal elite game trainer for the CLI\n"
 "			video recording while cheating - assumes \'-P\'\n"
 TESTING_OPT_HELP
 "\n"
-"Report bugs to and ask " PACKAGE_BUGREPORT " for more help!\n"
+"Report bugs to and ask at " PACKAGE_BUGREPORT " for more help!\n"
 ;
 
 static void usage()

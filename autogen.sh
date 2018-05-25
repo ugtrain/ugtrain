@@ -18,60 +18,6 @@ debug ()
   fi
 }
 
-set_and_check_symlink ()
-# set a symlink and check if it works afterwards
-{
-  local tgt="$1"
-  local name="$2"
-  echo -n "+ setting symlink $name/ to $tgt/ ... "
-  ln -sfT "$tgt" "$name" 2>/dev/null
-
-  if [ ! -d "$name" ]; then
-    echo "failed."
-    return 1
-  fi
-
-  cd "$name" 2>/dev/null
-  local rc=$?
-  if [ $rc -ne 0 ]; then
-    rm "$name"
-    echo "failed."
-    return 1
-  fi
-
-  cd ..
-  echo "ok."
-}
-
-machine_check ()
-# check which debian directory is required and set a symlink to it
-{
-  local deb="debian"
-  local deb_harmattan="debian_harmattan"
-  local deb_pc="debian_pc"
-  local machine="`uname -m`"
-  if [ -z "$machine" ]; then
-    echo "not found."
-    return 1
-  fi
-  echo "$machine."
-
-  case "$machine" in
-  "arm")
-    local aegis_manifest="`which aegis-manifest`"
-    if [ -n "$aegis_manifest" ]; then
-      echo "Meego 1.2 Harmattan detected."
-      set_and_check_symlink "$deb_harmattan" "$deb"
-    fi
-    ;;
-  "i686"|"x86_64")
-    set_and_check_symlink "$deb_pc" "$deb"
-    ;;
-  *)
-    ;;
-  esac
-}
-
 version_check ()
 # check the version of a package
 # first argument : complain ('1') or not ('0')
@@ -143,9 +89,6 @@ version_check ()
 
 # Chdir to the srcdir, then run auto* tools.
 cd "$SRCDIR"
-
-echo -n "+ checking machine type ... "
-machine_check
 
 version_check 1 "autoconf" "ftp://ftp.gnu.org/pub/gnu/autoconf/" 2 56 || DIE=1
 version_check 1 "automake" "ftp://ftp.gnu.org/pub/gnu/automake/" 1 8 || DIE=1
