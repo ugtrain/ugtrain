@@ -29,6 +29,11 @@
 #define LHACK_PRE "libmemhack"
 #define LIB_END   ".so"
 
+class StackOpt {
+public:
+	list<CacheEntry> *cache_list;  // caching stack memory
+};
+
 class Options {
 public:
 	char	*cfg_path;
@@ -67,6 +72,7 @@ public:
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
 	list<CacheEntry> *cache_list;  // caching static memory
+	StackOpt *stack;
 	// options for testing
 	TESTING_OPT_VARS
 };

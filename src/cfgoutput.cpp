@@ -197,18 +197,22 @@ void output_config_act (list<CfgEntry*> *cfg_act)
 	}
 }
 
-#define OUTPUT_CACHE(mem_type)					\
-do {								\
-	list<CacheEntry> *cache_list = mem_type->cache_list;	\
-	CacheEntry *cache;					\
-	list<CacheEntry>::iterator it;				\
-								\
-	cout << " (caches at:";					\
-	list_for_each (cache_list, it) {			\
-		cache = &(*it);					\
-		cout << hex << " 0x" << cache->offs << dec;	\
-	}							\
-	cout << ")";						\
+#define OUTPUT_CACHE(mem_type)						\
+do {									\
+	list<CacheEntry> *cache_list = mem_type->cache_list;		\
+	CacheEntry *cache;						\
+	list<CacheEntry>::iterator it;					\
+									\
+	if (cache_list->front().offs != PTR_MAX) {			\
+		cout << " (caches at:";					\
+		list_for_each (cache_list, it) {			\
+			cache = &(*it);					\
+			if (!cache)					\
+				continue;				\
+			cout << hex << " 0x" << cache->offs << dec;	\
+		}							\
+		cout << ")";						\
+	}								\
 } while (0)
 
 static void output_grow_method (GrowEntry *grow)
@@ -273,6 +277,8 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 			if (old_cfg_en && !old_cfg_en->dynmem && !old_cfg_en->ptrmem)
 				goto skip_hl;
 			cout << "static memory:";
+			if (opt->val_on_stack)
+				OUTPUT_CACHE(opt->stack);
 			OUTPUT_CACHE(opt);
 			cout << endl;
 		}

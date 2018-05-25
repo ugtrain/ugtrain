@@ -386,8 +386,9 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 	}
 }
 
-#define WRITE_CACHES()						\
+#define WRITE_CACHES(mem_type)					\
 do {								\
+	cache_list = mem_type->cache_list;			\
 	list_for_each (cache_list, cait) {			\
 		if (!cait->is_dirty)				\
 			continue;				\
@@ -471,7 +472,7 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 		}
 
 		// write back caches to target memory
-		WRITE_CACHES();
+		WRITE_CACHES(ptrtgt);
 	} else {
 		value->ptr = buf->ptr;
 	}
@@ -577,7 +578,7 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 		}
 
 		// write back caches to target memory
-		WRITE_CACHES();
+		WRITE_CACHES(dynmem);
 	}
 }
 
@@ -598,6 +599,8 @@ static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 
 	// invalidate caches
 	INVALIDATE_CACHES(opt);
+	if (opt->val_on_stack)
+		INVALIDATE_CACHES(opt->stack);
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
@@ -624,7 +627,9 @@ static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 		}
 	}
 	// write back caches to target memory
-	WRITE_CACHES();
+	if (opt->val_on_stack)
+		WRITE_CACHES(opt->stack);
+	WRITE_CACHES(opt);
 }
 
 static inline void handle_heap_checks (Options *opt,

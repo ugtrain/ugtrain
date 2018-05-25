@@ -457,7 +457,7 @@ void get_stack_end (SF_PARAMS)
 
 	// clear dirty flags again
 	list<CacheEntry>::iterator cait;
-	list_for_each (opt->cache_list, cait)
+	list_for_each (opt->stack->cache_list, cait)
 		cait->is_dirty = false;
 
 	// HACK: Wait for the game to fill the stack with permanent data.

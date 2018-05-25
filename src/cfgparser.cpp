@@ -93,6 +93,7 @@ public:
 	PtrMemEntry *ptrmem;
 	void *element;		// CfgEntry* or ChkEntry*
 	bool is_check;          // type of void pointer
+	bool on_stack;		// whether this is a stack address
 };
 
 static bool compare_addr_in_list (const AddrEntry first, const AddrEntry second)
@@ -104,6 +105,7 @@ static bool compare_addr_in_list (const AddrEntry first, const AddrEntry second)
 do {							\
 	addr_en.addr = it->addr;			\
 	addr_en.size = it->type.size / 8;		\
+	addr_en.on_stack = it->type.on_stack;		\
 	addr_en.opt = opt;				\
 	addr_en.dynmem = dynmem;			\
 	addr_en.ptrmem = ptrmem;			\
@@ -158,12 +160,10 @@ build_caches (Options *opt, list<CfgEntry> *cfg)
 			BUILD_CACHE(dynmem);
 		else if (ait->ptrmem)
 			BUILD_CACHE(ptrmem);
+		else if (ait->on_stack)
+			BUILD_CACHE(opt->stack);
 		else
 			BUILD_CACHE(opt);
-
-		//TODO Don't use statmem caches for stack values
-		// (mixing caches is unlikely on x86_64 as
-		//  PIE .data offsets start at 0x200000)
 	}
 }
 
@@ -839,11 +839,15 @@ void read_config (Options *opt,
 	name_e name_type;
 	bool in_dynmem = false, in_ptrmem = false;
 	size_t pos;
-	CacheEntry statmem_cache;
+	CacheEntry cache_en;
 
 	// init static memory cache
-	init_cache(&statmem_cache, PTR_MAX);
-	opt->cache_list->push_back(statmem_cache);
+	init_cache(&cache_en, PTR_MAX);
+	opt->cache_list->push_back(cache_en);
+
+	// init stack memory cache
+	init_cache(&cache_en, PTR_MAX);
+	opt->stack->cache_list->push_back(cache_en);
 
 	// read config into string vector
 	tmp_str = string(opt->cfg_path);
@@ -910,6 +914,8 @@ void read_config (Options *opt,
 				FIND_CACHE_START_CHECK(cfg_enp->dynmem);
 			else if (in_ptrmem)
 				FIND_CACHE_START_CHECK(cfg_enp->ptrmem);
+			else if (chk_en.type.on_stack)
+				FIND_CACHE_START_CHECK(opt->stack);
 			else
 				FIND_CACHE_START_CHECK(opt);
 			chk_lp->push_back(chk_en);
@@ -1153,7 +1159,9 @@ void read_config (Options *opt,
 				cfg->back().ptrmem->cfg.push_back(&cfg->back());
 				used_cfg_act = &cfg->back().ptrmem->cfg_act;
 			} else {
-				if (!in_dynmem)
+				if (cfg->back().type.on_stack)
+					FIND_CACHE_START(opt->stack);
+				else if (!in_dynmem)
 					FIND_CACHE_START(opt);
 				cfg->back().ptrmem = NULL;
 				used_cfg_act = cfg_act;
