@@ -552,7 +552,7 @@ static value_t parse_value (string *line, u32 lnr, u32 *start,
 
 skip_check:
 	// Is this a hex value?
-	tmp_str = string(*line, *start, lidx - *start);
+	tmp_str = string(*line, *start, line->length() - *start);
 	if (tmp_str.substr(0, 2) == "0x") {
 		*start += 2;
 		number_base = 16;
