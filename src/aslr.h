@@ -62,4 +62,51 @@ get_regions (pid_t pid, struct list_head *rlist)
 	read_regions(pid, &params);
 }
 
+// ##############################
+// ###### PIC/PIE handling ######
+// ##############################
+
+/*
+ * Handle PIE for static memory
+ */
+static inline void
+handle_statmem_pie (Options *opt, list<CfgEntry> *cfg)
+{
+	list<CfgEntry>::iterator it;
+	list<CheckEntry> *chk_lp;
+	list<CheckEntry>::iterator chk_it;
+	ptr_t code_offs = opt->code_offs;
+
+	list_for_each (cfg, it) {
+		if (it->dynmem || it->ptrmem)
+			continue;
+		if (!it->type.on_stack) {
+			it->addr += code_offs;
+			// change the cache address only once
+			if (!it->cache->is_dirty) {
+				it->cache->is_dirty = true;
+				it->cache->offs += code_offs;
+			}
+		}
+		if (!it->checks)
+			continue;
+		chk_lp = it->checks;
+		list_for_each (chk_lp, chk_it) {
+			if (chk_it->type.on_stack)
+				continue;
+			chk_it->addr += code_offs;
+			// change the cache address only once
+			if (!chk_it->cache->is_dirty) {
+				chk_it->cache->is_dirty = true;
+				chk_it->cache->offs += code_offs;
+			}
+		}
+	}
+
+	// clear dirty flags again
+	list<CacheEntry>::iterator cait;
+	list_for_each (opt->cache_list, cait)
+		cait->is_dirty = false;
+}
+
 #endif
