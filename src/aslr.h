@@ -45,4 +45,21 @@ void get_heap_region (Options *opt, pid_t pid,
 
 void get_stack_end (SF_PARAMS);
 
+/* Inline functions */
+
+/*
+ * Helper function to get the current regions list by pid
+ */
+static inline void
+get_regions (pid_t pid, struct list_head *rlist)
+{
+	struct pmap_params params;
+	char exe_path[MAPS_MAX_PATH];
+
+	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
+	params.exe_path = exe_path;
+	params.rlist = rlist;
+	read_regions(pid, &params);
+}
+
 #endif

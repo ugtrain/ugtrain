@@ -199,17 +199,12 @@ void get_lib_load_addr (LF_PARAMS)
 	pid_t pid = lfparams->pid;
 	i32 ofd = lfparams->ofd;
 	struct list_head *rlist = lfparams->rlist;
-	struct pmap_params params;
-	char exe_path[MAPS_MAX_PATH];
 	ptr_t lib_start = 0, lib_end = 0;
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *old_dynmem = NULL;
 
 	// reload the memory regions
-	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
-	params.exe_path = exe_path;
-	params.rlist = rlist;
-	read_regions(pid, &params);
+	get_regions(pid, rlist);
 
 	// update the game trainer config
 	find_lib_region(rlist, lib_name, &lib_start, &lib_end);
@@ -263,12 +258,12 @@ static inline void find_exe_region (struct list_head *rlist,
 	struct region *it;
 
 	clist_for_each_entry (it, rlist, list) {
-		if (it->type == REGION_TYPE_EXE && it->flags.exec) {
-			*exe_start = (ptr_t) it->start;
-			*exe_end = (ptr_t) (it->start + it->size);
-			*exe_offs = get_exe_offs(&(*it));
-			break;
-		}
+		if (!(it->type == REGION_TYPE_EXE && it->flags.exec))
+			continue;
+		*exe_start = (ptr_t) it->start;
+		*exe_end = (ptr_t) (it->start + it->size);
+		*exe_offs = get_exe_offs(&(*it));
+		break;
 	}
 }
 
@@ -279,14 +274,12 @@ static inline void find_exe_region (struct list_head *rlist,
 void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 		  i32 ofd, pid_t pid, struct list_head *rlist)
 {
-	struct pmap_params params;
 	char buf[PIPE_BUF];
 	ssize_t rbytes;
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *old_dynmem = NULL;
 	ptr_t exe_offs = 0, exe_start = 0, exe_end = 0;
 	ssize_t wbytes;
-	char exe_path[MAPS_MAX_PATH];
 	char obuf[PIPE_BUF];
 	i32 osize = 0;
 
@@ -301,10 +294,7 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 				break;
 		}
 	}
-	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
-	params.exe_path = exe_path;
-	params.rlist = rlist;
-	read_regions(pid, &params);
+	get_regions(pid, rlist);
 	find_exe_region(rlist, &exe_start, &exe_end, &exe_offs);
 	opt->code_offs = exe_offs;
 
@@ -374,10 +364,10 @@ static inline void find_stack_start (struct list_head *rlist,
 	struct region *it;
 
 	clist_for_each_entry (it, rlist, list) {
-		if (it->type == REGION_TYPE_STACK) {
-			*stack_start = (ptr_t) it->start;
-			break;
-		}
+		if (it->type != REGION_TYPE_STACK)
+			continue;
+		*stack_start = (ptr_t) it->start;
+		break;
 	}
 }
 
@@ -388,13 +378,7 @@ static inline void find_stack_start (struct list_head *rlist,
 void get_stack_start (Options *opt, pid_t pid,
 		      struct list_head *rlist)
 {
-	struct pmap_params params;
-	char exe_path[MAPS_MAX_PATH];
-
-	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
-	params.exe_path = exe_path;
-	params.rlist = rlist;
-	read_regions(pid, &params);
+	get_regions(pid, rlist);
 	find_stack_start(rlist, &opt->stack_start);
 }
 
@@ -474,11 +458,11 @@ static inline void find_heap_region (struct list_head *rlist,
 	struct region *it;
 
 	clist_for_each_entry (it, rlist, list) {
-		if (it->type == REGION_TYPE_HEAP) {
-			*heap_start = (ptr_t) it->start;
-			*heap_end = (ptr_t) (it->start + it->size);
-			break;
-		}
+		if (it->type != REGION_TYPE_HEAP)
+			continue;
+		*heap_start = (ptr_t) it->start;
+		*heap_end = (ptr_t) (it->start + it->size);
+		break;
 	}
 }
 
@@ -489,12 +473,6 @@ static inline void find_heap_region (struct list_head *rlist,
 void get_heap_region (Options *opt, pid_t pid,
 		      struct list_head *rlist)
 {
-	struct pmap_params params;
-	char exe_path[MAPS_MAX_PATH];
-
-	get_exe_path_by_pid(pid, exe_path, sizeof(exe_path));
-	params.exe_path = exe_path;
-	params.rlist = rlist;
-	read_regions(pid, &params);
+	get_regions(pid, rlist);
 	find_heap_region(rlist, &opt->heap_start, &opt->heap_end);
 }
