@@ -36,6 +36,16 @@ public:
 	bool is_dirty;                // writing back required?
 };
 
+class LibEntry {
+public:
+	string name;
+	ptr_t start;      // library load address
+	list<CacheEntry> *cache_list;
+	// late PIC handling
+	bool is_loaded;   // for not changing offsets again
+	bool skip_val;    // for skipping 1 cycle value output
+};
+
 class GrowEntry {
 public:
 	size_t size_min;
@@ -123,6 +133,8 @@ typedef enum {
 } check_e;
 
 struct type {
+	char *lib_name;
+	LibEntry *lib;
 	bool on_stack;
 	bool is_signed;
 	bool is_float;

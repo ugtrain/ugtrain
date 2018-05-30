@@ -72,6 +72,7 @@ public:
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
 	list<CacheEntry> *cache_list;  // caching static memory
+	list<LibEntry> *lib_list;      // handling statmem in libraries
 	StackOpt *stack;
 	// options for testing
 	TESTING_OPT_VARS

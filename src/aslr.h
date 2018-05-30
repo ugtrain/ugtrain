@@ -77,19 +77,20 @@ handle_statmem_pie (Options *opt, list<CfgEntry> *cfg)
 	list_for_each (cfg, it) {
 		if (it->dynmem || it->ptrmem)
 			continue;
-		if (!it->type.on_stack) {
-			it->addr += code_offs;
-			// change the cache address only once
-			if (!it->cache->is_dirty) {
-				it->cache->is_dirty = true;
-				it->cache->offs += code_offs;
-			}
+		if (it->type.on_stack || it->type.lib)
+			goto checks;
+		it->addr += code_offs;
+		// change the cache address only once
+		if (!it->cache->is_dirty) {
+			it->cache->is_dirty = true;
+			it->cache->offs += code_offs;
 		}
+checks:
 		if (!it->checks)
 			continue;
 		chk_lp = it->checks;
 		list_for_each (chk_lp, chk_it) {
-			if (chk_it->type.on_stack)
+			if (chk_it->type.on_stack || chk_it->type.lib)
 				continue;
 			chk_it->addr += code_offs;
 			// change the cache address only once
@@ -104,6 +105,83 @@ handle_statmem_pie (Options *opt, list<CfgEntry> *cfg)
 	list<CacheEntry>::iterator cait;
 	list_for_each (opt->cache_list, cait)
 		cait->is_dirty = false;
+}
+
+/*
+ * Handle PIC for static memory
+ */
+static inline void
+handle_statmem_pic (Options *opt, list<CfgEntry> *cfg, bool late_pic)
+{
+	list<CfgEntry>::iterator it;
+	list<CheckEntry> *chk_lp;
+	list<CheckEntry>::iterator chk_it;
+
+	list_for_each (cfg, it) {
+		if (it->dynmem || it->ptrmem)
+			continue;
+		if (!it->type.lib)
+			goto checks;
+		if (!it->type.lib->start || it->type.lib->is_loaded)
+			goto checks;
+		it->addr += it->type.lib->start;
+		// change the cache address only once
+		if (!it->cache->is_dirty) {
+			it->cache->is_dirty = true;
+			it->cache->offs += it->type.lib->start;
+		}
+checks:
+		if (!it->checks)
+			continue;
+		chk_lp = it->checks;
+		list_for_each (chk_lp, chk_it) {
+			if (!chk_it->type.lib)
+				continue;
+			if (!chk_it->type.lib->start || chk_it->type.lib->is_loaded)
+				continue;
+			chk_it->addr += it->type.lib->start;
+			// change the cache address only once
+			if (!chk_it->cache->is_dirty) {
+				chk_it->cache->is_dirty = true;
+				chk_it->cache->offs += chk_it->type.lib->start;
+			}
+		}
+	}
+
+	// clear dirty flags again
+	list<LibEntry>::iterator lit;
+	list<CacheEntry>::iterator cait;
+	list_for_each (opt->lib_list, lit) {
+		list_for_each (lit->cache_list, cait) {
+			if (cait->is_dirty) {
+				lit->is_loaded = true;
+				if (late_pic)
+					lit->skip_val = true;
+			}
+			cait->is_dirty = false;
+		}
+	}
+}
+
+static inline void
+find_lib_regions (struct list_head *rlist, Options *opt)
+{
+	struct region *it;
+	list<LibEntry>::iterator lit;
+
+	clist_for_each_entry (it, rlist, list) {
+		if (!(it->type == REGION_TYPE_CODE && it->flags.exec))
+			continue;
+		list_for_each (opt->lib_list, lit) {
+			if (lit->start ||
+			    !strstr((const char *) it->file_path, lit->name.c_str()))
+				continue;
+			lit->start = (ptr_t) it->start;
+			cout << "Library " << lit->name << " is loaded to: 0x"
+				<< hex << lit->start << dec << endl;
+			break;
+		}
+	}
 }
 
 // #################################

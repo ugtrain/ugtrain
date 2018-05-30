@@ -133,6 +133,7 @@ static void init_options (Options *opt)
 	opt->cache_list = new list<CacheEntry>;
 	opt->stack = new StackOpt;
 	opt->stack->cache_list = new list<CacheEntry>;
+	opt->lib_list = new list<LibEntry>;
 }
 
 /*

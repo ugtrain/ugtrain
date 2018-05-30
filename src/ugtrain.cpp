@@ -170,8 +170,9 @@ static inline i32 handle_cfg_ref (CfgEntry *cfg_ref, value_t *buf)
 			goto err;
 		*buf = vvec->at(dynmem->obj_idx);
 	} else {
-		// Might be a stack value not available yet
-		if (cfg_ref->type.on_stack)
+		// Might be a stack/lib value not available yet
+		if (cfg_ref->type.on_stack ||
+		    (cfg_ref->type.lib && !cfg_ref->type.lib->start))
 			goto err;
 		*buf = cfg_ref->old_val;
 		if (cfg_ref->val_set)
@@ -207,7 +208,8 @@ static i32 process_checks (pid_t pid, CfgEntry *cfg_en,
 
 	list_for_each (chk_lp, it) {
 		chk_en = &(*it);
-		if (chk_en->type.on_stack) {
+		if (chk_en->type.on_stack ||
+		    (chk_en->type.lib && !chk_en->type.lib->start)) {
 			ret = 1;
 			goto out;
 		}
@@ -589,6 +591,7 @@ static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 	list<CfgEntry*>::iterator it;
 	CfgEntry *cfg_en;
 	DynMemEntry *old_dynmem = NULL;
+	list<LibEntry>::iterator lit;
 	list<CacheEntry> *cache_list;
 	list<CacheEntry>::iterator cait;
 	value_t _buf, *buf = &_buf;
@@ -601,6 +604,8 @@ static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 	INVALIDATE_CACHES(opt);
 	if (opt->val_on_stack)
 		INVALIDATE_CACHES(opt->stack);
+	list_for_each (opt->lib_list, lit)
+		INVALIDATE_CACHES(lit);
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
@@ -611,7 +616,8 @@ static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 			old_dynmem = dynmem;
 			process_dynmem_cfg_act(pid, &dynmem->cfg_act, dynmem);
 		} else {
-			if (cfg_en->type.on_stack)
+			if (cfg_en->type.on_stack ||
+			    (cfg_en->type.lib && !cfg_en->type.lib->start))
 				continue;
 
 			// fill cache and fill buf from cache
@@ -627,6 +633,8 @@ static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 		}
 	}
 	// write back caches to target memory
+	list_for_each (opt->lib_list, lit)
+		WRITE_CACHES(lit);
 	if (opt->val_on_stack)
 		WRITE_CACHES(opt->stack);
 	WRITE_CACHES(opt);
@@ -1157,6 +1165,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 	handle_statmem_pie(opt, cfg);
+	handle_statmem_pic(opt, cfg, false);
 
 	init_dmparams(dmparams, opt, cfg, ofd, pid, rlist);
 
@@ -1212,10 +1221,24 @@ i32 main (i32 argc, char **argv, char **env)
 
 		detachmem(pid);
 
+		bool regions_read = false;
 		// read the heap region every cycle as it is growing
 		if (opt->heap_checks) {
 			get_heap_region(opt, pid, rlist);
+			regions_read = true;
 			handle_heap_checks(opt, cfg);
+		}
+
+		// handle late PIC for static memory
+		list<LibEntry>::iterator lit;
+		list_for_each (opt->lib_list, lit) {
+			if (lit->is_loaded)
+				continue;
+			if (!regions_read)
+				get_regions(pid, rlist);
+			regions_read = true;
+			find_lib_regions(rlist, opt);
+			handle_statmem_pic(opt, cfg, true);
 		}
 
 		if (!opt->pure_statmem) {

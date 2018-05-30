@@ -91,6 +91,7 @@ public:
 	Options *opt;
 	DynMemEntry *dynmem;
 	PtrMemEntry *ptrmem;
+	LibEntry *lib;
 	void *element;		// CfgEntry* or ChkEntry*
 	bool is_check;          // type of void pointer
 	bool on_stack;		// whether this is a stack address
@@ -109,6 +110,7 @@ do {							\
 	addr_en.opt = opt;				\
 	addr_en.dynmem = dynmem;			\
 	addr_en.ptrmem = ptrmem;			\
+	addr_en.lib = it->type.lib;			\
 	addr_en.element = (void *) &(*it);		\
 	addr_en.is_check = is_check;			\
 	addrlist->push_back(addr_en);			\
@@ -162,6 +164,8 @@ build_caches (Options *opt, list<CfgEntry> *cfg)
 			BUILD_CACHE(ptrmem);
 		else if (ait->on_stack)
 			BUILD_CACHE(opt->stack);
+		else if (ait->lib)
+			BUILD_CACHE(lib);
 		else
 			BUILD_CACHE(opt);
 	}
@@ -353,6 +357,8 @@ static inline ptr_t get_cfg_en_addr (CheckEntry *chk_en, CfgEntry *cfg_en)
 {
 	if (cfg_en->type.on_stack)
 		chk_en->type.on_stack = true;
+	else if (cfg_en->type.lib_name)
+		chk_en->type.lib_name = cfg_en->type.lib_name;
 	return cfg_en->addr;
 }
 
@@ -386,6 +392,16 @@ start:
 				chk_en->type.on_stack = true;
 			else
 				cfg_en->type.on_stack = true;
+			cfg = NULL; cfg_en = NULL; chk_en = NULL;
+			goto start;
+		} else if (tmp_str == "lib") {
+			if (!cfg_en)
+				cfg_parse_err(line, lnr, lidx);
+			tmp_str = parse_value_name(line, lnr, start, false, NULL);
+			if (chk_en)
+				chk_en->type.lib_name = to_c_str(&tmp_str);
+			else
+				cfg_en->type.lib_name = to_c_str(&tmp_str);
 			cfg = NULL; cfg_en = NULL; chk_en = NULL;
 			goto start;
 		}
@@ -808,6 +824,32 @@ static void read_config_vect (string *path, char *home, vector<string> *lines)
 	cfg_file.close();
 }
 
+#define FIND_ADD_LIB_ENTRY(entry)					\
+do {									\
+	list<LibEntry>::iterator lit;					\
+	bool found = false;						\
+	LibEntry lib_en;						\
+									\
+	list_for_each (opt->lib_list, lit) {				\
+		if (lit->name != entry.type.lib_name)			\
+			continue;					\
+		entry.type.lib = &(*lit);				\
+		found = true;						\
+		break;							\
+	}								\
+	if (!found) {							\
+		lib_en.name = entry.type.lib_name;			\
+		lib_en.start = 0;					\
+		lib_en.is_loaded = false;				\
+		lib_en.skip_val = false;				\
+		init_cache(&cache_en, PTR_MAX);				\
+		lib_en.cache_list = new list<CacheEntry>;		\
+		lib_en.cache_list->push_back(cache_en);			\
+		opt->lib_list->push_back(lib_en);			\
+		entry.type.lib = &opt->lib_list->back();		\
+	}								\
+} while (0)
+
 #define FIND_CACHE_START_CHECK(mem_type)				\
 do {									\
 	if (!chk_en.cfg_ref &&						\
@@ -898,6 +940,10 @@ void read_config (Options *opt,
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
 				opt->val_on_stack = true;
+			} else if (chk_en.type.lib_name) {
+				if (in_dynmem || in_ptrmem)
+					cfg_parse_err(&line, lnr, start);
+				FIND_ADD_LIB_ENTRY(chk_en);
 			}
 			parse_data_type(&line, lnr, &start, &chk_en.type);
 			if (!chk_en.type.size)
@@ -916,6 +962,8 @@ void read_config (Options *opt,
 				FIND_CACHE_START_CHECK(cfg_enp->ptrmem);
 			else if (chk_en.type.on_stack)
 				FIND_CACHE_START_CHECK(opt->stack);
+			else if (chk_en.type.lib)
+				FIND_CACHE_START_CHECK(chk_en.type.lib);
 			else
 				FIND_CACHE_START_CHECK(opt);
 			chk_lp->push_back(chk_en);
@@ -1114,6 +1162,10 @@ void read_config (Options *opt,
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
 				opt->val_on_stack = true;
+			} else if (cfg_en.type.lib_name) {
+				if (in_dynmem || in_ptrmem)
+					cfg_parse_err(&line, lnr, start);
+				FIND_ADD_LIB_ENTRY(cfg_en);
 			}
 			parse_data_type(&line, lnr, &start, &cfg_en.type);
 			cfg_en.ptrtgt = NULL;
@@ -1162,6 +1214,8 @@ void read_config (Options *opt,
 			} else {
 				if (cfg->back().type.on_stack)
 					FIND_CACHE_START(opt->stack);
+				else if (cfg->back().type.lib)
+					FIND_CACHE_START(cfg->back().type.lib);
 				else if (!in_dynmem)
 					FIND_CACHE_START(opt);
 				cfg->back().ptrmem = NULL;

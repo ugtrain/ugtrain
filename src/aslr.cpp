@@ -296,6 +296,7 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 	}
 	get_regions(pid, rlist);
 	find_exe_region(rlist, &exe_start, &exe_end, &exe_offs);
+	find_lib_regions(rlist, opt);
 	opt->code_offs = exe_offs;
 
 	if (opt->pure_statmem)

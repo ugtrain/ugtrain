@@ -98,8 +98,14 @@ static void output_config_en (CfgEntry *cfg_en)
 			<< " " << 8 * sizeof(ptr_t) << "-bit -> "
 			<< cfg_en->ptrtgt->name << endl;
 	} else {
-		cout << "  " << cfg_en->name << ((cfg_en->type.on_stack) ?
-			" stack 0x" : " 0x") << hex << cfg_en->addr << dec
+		cout << "  " << cfg_en->name << " ";
+		if (cfg_en->type.on_stack)
+			cout << "stack 0x";
+		else if (cfg_en->type.lib_name)
+			cout << "lib " << cfg_en->type.lib_name << " 0x";
+		else
+			cout << "0x";
+		cout << hex << cfg_en->addr << dec
 			<< " " << cfg_en->type.size << "-bit ";
 		output_config_val(cfg_en);
 	}
@@ -154,8 +160,14 @@ static void output_checks (CfgEntry *cfg_en)
 	char *check_op = get_check_op(cfg_en->check);
 
 	if (check_op) {
-		cout << "    check " << ((cfg_en->type.on_stack) ? "stack 0x" : "0x")
-			<< hex << cfg_en->addr << dec << check_op;
+		cout << "    check ";
+		if (cfg_en->type.on_stack)
+			cout << "stack 0x";
+		else if (cfg_en->type.lib_name)
+			cout << "lib " << cfg_en->type.lib_name << " 0x";
+		else
+			cout << "0x";
+		cout << hex << cfg_en->addr << dec << check_op;
 		output_val(&cfg_en->type, cfg_en->value, "");
 		cout << endl;
 	}
@@ -163,11 +175,19 @@ static void output_checks (CfgEntry *cfg_en)
 		return;
 
 	list_for_each (chk_lp, it) {
-		if (it->cfg_ref)
-			cout << "    check " << it->cfg_ref->name;
+		cout << "    check ";
+		if (it->cfg_ref) {
+			cout << it->cfg_ref->name;
+			goto skip_addr;
+		}
+		if (it->type.on_stack)
+			cout << "stack 0x";
+		else if (it->type.lib_name)
+			cout << "lib " << it->type.lib_name << " 0x";
 		else
-			cout << "    check " << ((it->type.on_stack) ?
-				"stack 0x" : "0x") << hex << it->addr << dec;
+			cout << "0x";
+		cout  << hex << it->addr << dec;
+skip_addr:
 		for (i = 0; it->check[i] != CHECK_END; i++) {
 			if (i > 0)
 				cout << " ||";
@@ -279,6 +299,9 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 			cout << "static memory:";
 			if (opt->val_on_stack)
 				OUTPUT_CACHE(opt->stack);
+			list<LibEntry>::iterator lit;
+			list_for_each (opt->lib_list, lit)
+				OUTPUT_CACHE(lit);
 			OUTPUT_CACHE(opt);
 			cout << endl;
 		}

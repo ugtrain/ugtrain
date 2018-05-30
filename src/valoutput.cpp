@@ -164,6 +164,15 @@ int output_mem_values (list<CfgEntry*> *cfg_act)
 			mem_offs = 0;
 			if (cfg_en->type.on_stack)
 				continue;
+			if (cfg_en->type.lib) {
+				if (!cfg_en->type.lib->start)
+					continue;
+				// Library for late PIC handling just loaded?
+				if (cfg_en->type.lib->skip_val) {
+					cfg_en->type.lib->skip_val = false;
+					continue;
+				}
+			}
 		}
 		output_mem_val(cfg_en, mem_offs, is_dynmem);
 		if (cfg_en->ptrtgt)
