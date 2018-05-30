@@ -1107,6 +1107,7 @@ void read_config (Options *opt,
 			cfg_en.cfg_ref = NULL;
 			cfg_en.cache = NULL;
 			cfg_en.cache_data = NULL;
+			memset(&cfg_en.old_val, 0, sizeof(value_t));
 			memset(&cfg_en.type, 0, sizeof(cfg_en.type));
 			cfg_en.addr = parse_address(cfg, &cfg_en, NULL, &line, lnr, &start);
 			if (cfg_en.type.on_stack) {
