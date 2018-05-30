@@ -40,9 +40,6 @@ void get_lib_load_addr (LF_PARAMS);
 void get_stack_start (Options *opt, pid_t pid,
 		      struct list_head *rlist);
 
-void get_heap_region (Options *opt, pid_t pid,
-		      struct list_head *rlist);
-
 void get_stack_end (SF_PARAMS);
 
 /* Inline functions */
@@ -107,6 +104,37 @@ handle_statmem_pie (Options *opt, list<CfgEntry> *cfg)
 	list<CacheEntry>::iterator cait;
 	list_for_each (opt->cache_list, cait)
 		cait->is_dirty = false;
+}
+
+// #################################
+// ###### Heap check handling ######
+// #################################
+
+static inline void
+find_heap_region (struct list_head *rlist,
+		  ptr_t *heap_start, ptr_t *heap_end)
+{
+	struct region *it;
+
+	clist_for_each_entry (it, rlist, list) {
+		if (it->type != REGION_TYPE_HEAP)
+			continue;
+		*heap_start = (ptr_t) it->start;
+		*heap_end = (ptr_t) (it->start + it->size);
+		break;
+	}
+}
+
+/*
+ * read the heap start and end from /proc/$pid/maps
+ * and store them in opt
+ */
+static inline void
+get_heap_region (Options *opt, pid_t pid,
+		 struct list_head *rlist)
+{
+	get_regions(pid, rlist);
+	find_heap_region(rlist, &opt->heap_start, &opt->heap_end);
 }
 
 #endif

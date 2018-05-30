@@ -448,31 +448,3 @@ void get_stack_end (SF_PARAMS)
 	sleep_sec(1);
 }
 
-// #################################
-// ###### Heap check handling ######
-// #################################
-
-static inline void find_heap_region (struct list_head *rlist,
-				     ptr_t *heap_start, ptr_t *heap_end)
-{
-	struct region *it;
-
-	clist_for_each_entry (it, rlist, list) {
-		if (it->type != REGION_TYPE_HEAP)
-			continue;
-		*heap_start = (ptr_t) it->start;
-		*heap_end = (ptr_t) (it->start + it->size);
-		break;
-	}
-}
-
-/*
- * read the heap start and end from /proc/$pid/maps
- * and store them in opt
- */
-void get_heap_region (Options *opt, pid_t pid,
-		      struct list_head *rlist)
-{
-	get_regions(pid, rlist);
-	find_heap_region(rlist, &opt->heap_start, &opt->heap_end);
-}
