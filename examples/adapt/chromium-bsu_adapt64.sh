@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Tested with: chromium-bsu 0.9.14.1, 0.9.15, 0.9.15.1
+# Tested with: chromium-bsu 0.9.14.1 .. 0.9.16.1
 
 # We already know that chromium-bsu is a 64-bit C++ application. Therefore,
 # objects are allocated most likely by the "_Znwm" function. This function
