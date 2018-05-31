@@ -46,7 +46,7 @@ void do_assumptions (Options *opt)
 		if (opt->disc_str) {
 			use_libmemdisc(opt);
 		/* '-S' --> '-S -P libmemhack32/64.so',
-		 * '--glc' --> '--glc -P libmemhack32/64.so' */
+		   '--pre-cmd=' --> '--pre-cmd= -P libmemhack32/64.so' */
 		} else if (opt->run_scanmem || opt->pre_cmd) {
 			use_libmemhack(opt);
 		}
@@ -59,7 +59,7 @@ void do_assumptions (Options *opt)
 }
 
 static const char Help[] =
-PROG_NAME " is the universal elite game trainer for the CLI\n"
+PROG_NAME " is the universal elite game trainer\n"
 "\n"
 "Usage: " PROG_NAME " [opts] <config_path>\n"
 "\n"
@@ -85,11 +85,8 @@ PROG_NAME " is the universal elite game trainer for the CLI\n"
 "			using the new code address (rejects if root)\n"
 "Misc Options\n"
 "--pre-cmd=<str>:	together with the assumed \'-P\' it is possible to\n"
-"			specify a preloader command like \'"
-				GLC_PRELOADER "\'\n"
+"			specify a preloader command\n"
 "			- it is only important that it appends to LD_PRELOAD\n"
-"--glc[=str]:		run \'" GLC_PRELOADER "\' with the given options for\n"
-"			video recording while cheating - assumes \'-P\'\n"
 TESTING_OPT_HELP
 "\n"
 "Report bugs to and ask at " PACKAGE_BUGREPORT " for more help!\n"
@@ -104,7 +101,6 @@ static void usage()
 /* use non-printable starting at > 8-bit char table */
 enum {
 	PreCmd = 300,
-	Glc,
 	TESTING_OPT_CHARS
 };
 
@@ -117,7 +113,6 @@ static struct option long_options[] = {
 	{"preload",        2, 0, 'P'},
 	{"scanmem",        0, 0, 'S'},
 	{"pre-cmd",        1, 0, PreCmd },
-	{"glc",            2, 0, Glc },
 	TESTING_OPT_LONG
 	{0, 0, 0, 0}
 };
@@ -185,13 +180,6 @@ void parse_options (i32 argc, char **argv, Options *opt)
 		case PreCmd:
 			opt->pre_cmd = optarg;
 			break;
-		case Glc:
-			if (optind == argc || !optarg)
-				opt->pre_cmd = (char *) "";
-			else
-				opt->pre_cmd = optarg;
-			opt->use_glc = true;
-			break;
 		TESTING_OPT_PARSING
 		default:  /* unknown option */
 			if (optind != argc) {
@@ -202,9 +190,6 @@ void parse_options (i32 argc, char **argv, Options *opt)
 					break;
 				case 'P':
 					opt->preload_lib = argv[optind - 1];
-					break;
-				case Glc:
-					opt->pre_cmd = argv[optind - 1];
 					break;
 				default:
 					usage();

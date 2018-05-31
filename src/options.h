@@ -22,7 +22,6 @@
 #include <testopts.h>
 
 #define PROG_NAME  "ugtrain"
-#define GLC_PRELOADER "glc-capture"
 #define SCANMEM    "scanmem"
 
 #define LDISC_PRE "libmemdisc"
@@ -43,7 +42,6 @@ public:
 	char	*disc_lib;
 	bool	do_adapt;
 	bool	run_scanmem;
-	bool	use_glc;
 	// no direct CLI input
 	i32	procmem_fd;
 	bool	pure_statmem;

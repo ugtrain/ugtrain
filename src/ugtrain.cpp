@@ -714,10 +714,6 @@ static pid_t run_game (Options *opt, char *preload_lib)
 	detect_abuse(opt);
 
 	if (opt->pre_cmd) {
-		if (opt->use_glc) {
-			cmd_str += GLC_PRELOADER;
-			cmd_str += " ";
-		}
 		cmd_str += opt->pre_cmd;
 		cmd_str += " ";
 	}

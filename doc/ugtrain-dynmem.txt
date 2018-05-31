@@ -19,12 +19,12 @@ is only reliable for a single memory object.
 
 The preloader feature (-P) only appends libmemhack to the environment variable
 "LD_PRELOAD" and runs the game. The dynamic loader "ld.so" does the rest. You
-can choose further preloaders if you want like "glc-capture" for recording a
-game cheating video. It is only important that this preloader also appends to
-"LD_PRELOAD". The ugtrain sets an environment variable with the game process
-name. This way libmemhack/disc knows when to activate itself (not in another
-preloader, not in a shell, etc.). This also works for pure static memory.
-See the "--pre-cmd" and "--glc" options of ugtrain.
+can choose further preloaders if you want. It is only important that this
+preloader also appends to "LD_PRELOAD". The ugtrain sets an environment
+variable with the game process name. This way libmemhack/disc knows when to
+activate itself (not in another preloader, not in a shell, etc.). This also
+works for pure static memory.
+See the "--pre-cmd" option of ugtrain.
 
 The lib has a constructor function, malloc() and free() hooks. It wraps
 these functions. In the constructor the lib opens the input and the output

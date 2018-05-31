@@ -15,7 +15,7 @@ _completeUgtrain()
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '-h --help -V --version \
             -P --preload -D --discover= -S --scanmem -A --adapt \
-            --pre-cmd= --glc --glc=' -- $cur ) )
+            --pre-cmd=' -- $cur ) )
     else
         if [ -d ~/.ugtrain ]; then
             local cwd="$(pwd)"

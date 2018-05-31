@@ -6,8 +6,6 @@ Autotools:
 
 Config files:
 + make search paths for config files configurable
-+ support static memory within a library (PIC)
-+ provide separate config compatibility files (distribution, game version, ...)
 
 Options:
 + support common linux options (-V, -v, -q, ...)
@@ -29,42 +27,36 @@ Multi-platform support:
 + add dyn. mem. support for WINE (Inline Hooking)
 
 Trainer:
-+ support PIC in adaption (discovery and hacking work already)
-+ support PIC for static memory
-+ support pointer following from static memory as well
-+ enhance support for growing memory objects (adaption, not only realloc(), ...)
++ support PIC in adaptation (discovery and hacking work already)
++ enhance support for growing memory objects (adaptation, not only realloc(), ...)
 + add keys to disable all configured values and to enable all of them
     (we can only toggle values so far)
 + provide a key for getting help
 + provide a help text for all possible keys
-+ support external control (start/stop locking values)
++ support external control (start/stop freezing values)
 
 Testing:
 + implement (semi-)automatic testing with live-images and (3D enabled) VMs
-+ implement options to stop execution at a certain point for unit testing
++ make use of "make check" and synthetic tests
 
 Demoing:
-+ use live-images to demo ugtrain
-+ record simple 2D games together with ugtrain to provide a set of tutorial videos
++ record games together with ugtrain to provide a set of tutorial videos
 + make ugtrain simpler and better usable
 
 Documentation:
 + create man pages
 + implement an interactive tutorial tool "ugtutor" to use ugtrain step by step
 + let ugtutor detect installed games known to be working with ugtrain configs
-+ rework the whole documentation (move details to an expert doc, hide complexity
-  from beginners)
 
 Other:
 + develop global config handling (/etc/ugtrain.conf, e.g. set preloading method)
 + create much more ugtrain configs for FOSS games
 + record more videos of ugtrain cheating at FOSS games and upload them to YouTube
-+ fix the game capture tool "glc" to support pulseaudio capture correctly
 + further rework the ELF file growing algorihm in "patchelf".
-+ evaluate "Cheat Engine" (source code) for Windows stuff
++ analyze "Cheat Engine" (source code) for Windows stuff
 
 Roadmap:
-0.4.0: Usability improvements, first GUI frontend support
+0.4.0: Simplification, better pointer following, stack + statmem PIC, fixes
 1.0.0: Full Linux support with a lot of configs for FOSS games
 2.0.0: Full GUI frontend support
 3.0.0: Windows support
