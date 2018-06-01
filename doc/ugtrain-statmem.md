@@ -18,6 +18,7 @@
    * [Static Memory Adaptation](#static-memory-adaptation)
    * [Special Cases](#special-cases)
       * [Stack Values](#stack-values)
+      * [Library Values](#library-values)
       * [Pointer Following](#pointer-following)
 
 ### Basics
@@ -32,8 +33,13 @@ and `.bss`. These have own regions in memory.
 
 Only security measures like address space layout randomization with
 position-independent code or a position-independent executable (ASLR/PIC/PIE)
-make this more complex. Ugtrain supports ASLR with PIE but PIC (static memory
-within a library) is not supported, yet. But let us start simple.
+make this more complex. Ugtrain supports ASLR with PIE and PIC (static memory
+within a library).
+
+Although code load addresses differ, there is a static offset of `0x200000`
+between the code and data start on Linux x86_64. So the assembly code usually
+accesses static memory relative to the instruction pointer.
+But let us start simple.
 
 ### Value Entry in Config
 
@@ -242,7 +248,7 @@ The new config looks like this:
 ```
 warzone2100
 Power 0xc3cd44 i32 l 5000 1,0 a
-check 0xc3cd44 i32 g 10
+check this i32 g 10
 ```
 
 This is all you need!
@@ -273,7 +279,7 @@ See: [Stack Values](#stack-values)
 
 **code**
 
-There is no support for static memory within libraries using ASLR/PIC yet.
+See: [Library Values](#library-values)
 
 **misc**
 
@@ -351,6 +357,31 @@ one second so that the game has a chance to fill the stack first. And afterward
 a stack value behaves like all other static memory values. But be careful not
 to corrupt the stack and not to crash the game this way. Start with watching
 such values first.
+
+### Library Values
+
+Static memory values within a library (PIC) are very similar to PIE values.
+But to find them in memory, the scanmem commands `option region_scan_level 3`
+and `reset` have to be entered first. Scanmem ignores the library memory regions
+by default as interesting static memory values within them are really rare.
+
+There are two methods how libraries are loaded: The first one is to link against
+the library and the dynamic loader loads it early into game memory (early PIC
+handling). The second one is to load it later on with `dlopen()` (late PIC
+handling). Ugtrain keeps reading the memory regions in every cycle until all
+libraries are loaded. It is assumed that those do not get reloaded during
+runtime for now.
+
+A real-world example could not be found. So let us assume this:
+```
+Money lib libmygame.so 0x201020 i64 l 999999 A,X a
+check this i64 g 100
+```
+
+The keyword `lib` indicates that this is a library value and that the library
+name will follow. The library name should be unique so that it can be easily
+found as a sub-string in the file name of its memory regions. The rest is
+identical to static memory values within the PIE executable.
 
 ### Pointer Following
 
