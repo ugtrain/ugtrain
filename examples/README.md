@@ -1,5 +1,15 @@
 # Config Syntax
 
+## Table of Contents
+
+   * [Starting the Game](#starting-the-game)
+   * [General Settings](#general-settings)
+   * [Static Memory](#static-memory)
+   * [Dynamic Memory](#dynamic-memory)
+   * [Dynamic Memory Adaptation](#dynamic-memory-adaptation)
+   * [Pointer Memory](#pointer-memory)
+   * [Additional Info](#additional-info)
+
 ## Starting the Game
 
 ### GameProcessName
@@ -152,7 +162,7 @@ memory allocation function like malloc() or a C++ constructor.
 
 The object size is in decimal. The rest are addresses starting with "0x".
 These come from the dynamic memory discovery (libmemdisc) or from the
-dynamic memory adaption. By default it is assumed that memory allocations
+dynamic memory adaptation. By default it is assumed that memory allocations
 come from the game executable. If that is not the case, then the name of the
 library which allocates the memory objects can be put at the end of this
 config line. E.g. the game "Battle Tanks" uses "libbt_objects.so".
@@ -193,11 +203,11 @@ currently displayed by ugtrain like the Ship Name in endless-sky.
 This shows the end of the memory class definition. Static, dynamic or pointer
 memory can follow.
 
-## Dynamic Memory Adaption
+## Dynamic Memory Adaptation
 
 ### [ game_binpath GameBinaryPath ]
 
-The absolute game binary path is used for auto-disassembly during adaption.
+The absolute game binary path is used for auto-disassembly during adaptation.
 It is optional and must end with the GameProcessName. Without this the
 AbsGamePath is assumed. This is only important if the GameProcessCall
 is configured.
@@ -211,14 +221,14 @@ version may differ. But if the object size is still the same, then there
 is a good chance to adapt by searching for the allocation in the disassembly.
 The path is relative to the config path.
 
-By now, adaption can also modify the memory size, the GameProcessName and
+By now, adaptation can also modify the memory size, the GameProcessName and
 the GameBinaryPath. Only memory allocations done from within the executable
 can be adapted for now.
 
 ### adapt_required 1
 
 This is meant to ensure that the user is asked if he wants the automatic
-adaption to be run when he uses this config the first time. This is why
+adaptation to be run when he uses this config the first time. This is why
 this option is likely set in examples. It can be set to '0' afterward.
 
 ## Pointer Memory
