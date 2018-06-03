@@ -10,6 +10,8 @@
    * [Pointer Memory](#pointer-memory)
    * [Additional Info](#additional-info)
 
+-----
+
 ## Starting the Game
 
 ### GameProcessName
@@ -37,6 +39,8 @@ Sometimes it is necessary to add some game command line parameters/options
 and this is the optional config entry to set them.
 
 
+-----
+
 ## General Settings
 
 ### [ dynmemfile AbsoluteFilePath ]
@@ -59,6 +63,8 @@ Ugtrain has single-line macro support. This means that lines containing only
 the MacroName get replaced by the LineSubstitute during parsing. This is
 especially useful for repetitive checks.
 
+
+-----
 
 ## Static Memory
 
@@ -153,6 +159,8 @@ Follow a pointer to a C/C++ ASCII string and print it. Those strings cannot
 be modified. Only watching is possible.
 
 
+-----
+
 ## Dynamic Memory
 
 Dynamic memory cheating is used for objects on the heap allocated by a
@@ -203,6 +211,9 @@ currently displayed by ugtrain like the Ship Name in endless-sky.
 This shows the end of the memory class definition. Static, dynamic or pointer
 memory can follow.
 
+
+-----
+
 ## Dynamic Memory Adaptation
 
 ### [ game_binpath GameBinaryPath ]
@@ -231,6 +242,9 @@ This is meant to ensure that the user is asked if he wants the automatic
 adaptation to be run when he uses this config the first time. This is why
 this option is likely set in examples. It can be set to '0' afterward.
 
+
+-----
+
 ## Pointer Memory
 
 ### ptrmemstart PtrMemName PtrMemSize
@@ -255,6 +269,9 @@ in pointer memory is added to the value of the read pointer value.
 
 This shows the end of the pointer memory definition. Static, dynamic or
 pointer memory can follow.
+
+
+-----
 
 ## Additional Info
 
