@@ -90,15 +90,20 @@ which results in ignoring the wish value and just displaying the current
 value. The difference here is that we can toggle the watching between on
 and off.
 
-Possible memory regions: "stack". Otherwise, the exe regions are assumed.
+Possible memory regions: "stack" and "lib <lib_name>". Otherwise, the exe
+regions are assumed.
 
 The absolute address of a value on the stack is calculated by
 `libc stack end - forward stack offset` (at AbsAddress). Libmemhack reads
 the libc stack end from within the game process and sends it to ugtrain.
 Execution is delayed by 1s to provide the game a chance to fill the stack
-first. This is a mix between static and dynamic memory.
+first. This is a mix between static and dynamic memory cheating.
 **Be careful with this!** It can easily corrupt the stack and crash the game.
 Example: Amount of credits in the game endless-sky.
+
+Static memory within a library (PIC) is configured with "lib <lib_name>".
+Ugtrain reads the memory maps and adds the load addresses of the found
+libraries in every cycle until all configured libraries are loaded.
 
 ### ValName [Region] AbsAddress p PtrMemName <"once" or "always">
 
@@ -127,9 +132,10 @@ heap. Cyclic reading of /proc/$pid/maps is done for this.
 As the AbsAddress, also the keyword "this" can be used to check the current
 value entry by taking over its address.
 
-A stack value can be checked here as well. The check fails until the stack
-value is available and valid. The same applies if a referenced config entry
-is used and it has not yet been read e.g. if that one is a stack value.
+A stack or PIC value can be checked here as well. The check fails until the
+stack or late PIC value is available and valid. The same applies if a referenced
+config entry is used and it has not yet been read e.g. if that one is a
+stack/PIC value.
 
 ### ValName [Region] AbsAddress cstrp watch
 
@@ -253,5 +259,4 @@ See doc/ugtrain-dynmem.txt how to discover and adapt it to other versions.
 Ugtrain detects a position independent executable (PIE) automatically from
 its load address and converts static memory and code addresses between
 in-binary and in-memory. Also the load address of libraries using position
-independent code (PIC) is handled like this. The only exception is that PIC
-support is still missing for static memory.
+independent code (PIC) is handled like this.
