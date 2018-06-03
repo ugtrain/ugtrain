@@ -97,6 +97,8 @@ This is why it is preferred to let ugtrain run the game. The same limitation
 applies to the Linux memory scanner `scanmem`.
 
 
+-----
+
 ## Static Memory Discovery
 
 The command line tool `scanmem` in version >= 0.16 is recommended for the
@@ -317,6 +319,9 @@ floats. If a dynamic memory object has a user-defined name like the ships in
 this game, then the string search might be able to find the address of that
 string and you can search for a pointer pointing to it afterward.
 
+
+-----
+
 ## Static Memory Adaptation
 
 Adapting static memory is quite difficult as the game code accesses it directly
@@ -331,6 +336,9 @@ This address has to be put into the config afterward. But this is not supported,
 yet.
 
 In most cases it is easier to do the discovery with scanmem again.
+
+
+-----
 
 ## Special Cases
 
