@@ -62,7 +62,7 @@ static inline ssize_t code_addr_to_func_name (ptr_t code_addr,
 	cmd_str += ":\" | head -n 1 | grep -o -e \"call.*$\" "
 		   "| grep -o -e \"<.*@plt>\"";
 #if (DISC_DEBUG)
-	cout << "$ " << cmd_str << endl;
+	ugout << "$ " << cmd_str << endl;
 #endif
 	rbytes = run_cmd_pipe(cmd_str.c_str(), NULL, pbuf, buf_size);
 	if (rbytes > 0) {
@@ -84,7 +84,7 @@ static inline i32 disassemble_file (string *ipath, string *opath)
 	cmd_str += " > ";
 	cmd_str += *opath;
 #if (DISC_DEBUG)
-	cout << "$ " << cmd_str << endl;
+	ugout << "$ " << cmd_str << endl;
 #endif
 	ret = run_cmd(cmd_str.c_str(), NULL);
 	if (ret > 0)
@@ -265,15 +265,15 @@ static i32 postproc_stage1234 (Options *opt, list<CfgEntry> *cfg,
 
 	restore_getch();
 
-	cout << "Memory address (e.g. 0xdeadbeef): ";
+	ugout << "Memory address (e.g. 0xdeadbeef): ";
 	fflush(stdout);
 	cin >> hex >> mem_addr;
 	if (!mem_addr) {
-		cerr << "Error: Invalid memory address!" << endl;
+		ugerr << "Error: Invalid memory address!" << endl;
 		goto err_close;
 	}
-	cout << hex << "Searching reverse for 0x" << mem_addr << dec
-	     << " in discovery output.." << endl;
+	ugout << hex << "Searching reverse for 0x" << mem_addr << dec
+	      << " in discovery output.." << endl;
 
 	dpp.in_addr = mem_addr;
 	dpp.opt = opt;
@@ -292,7 +292,7 @@ static i32 postproc_stage1234 (Options *opt, list<CfgEntry> *cfg,
 	rm_dasm_files();
 
 	if (prepare_getch() != 0) {
-		cerr << "Error while terminal preparation!" << endl;
+		ugerr << "Error while terminal preparation!" << endl;
 		goto err;
 	}
 
@@ -405,10 +405,10 @@ void process_discovery (Options *opt, list<CfgEntry> *cfg,
 
 static inline void stage34_args_err (char stage)
 {
-	cerr << "Error: Not enough valid arguments for discovery stage "
-	     << stage << "!" << endl;
-	cerr << "Use at least \'" << stage << ";<size>\'"
-	     << endl;
+	ugerr << "Error: Not enough valid arguments for discovery stage "
+	      << stage << "!" << endl;
+	ugerr << "Use at least \'" << stage << ";<size>\'"
+	      << endl;
 }
 
 // Does the user request to filter the backtrace to the given lib?
@@ -430,7 +430,7 @@ static inline i32 parse_bt_filter (char **disc_part, char **disc_lib,
 	}
 	*pos = '\0';
 #if (DISC_DEBUG)
-	cout << "PIC: filtering backtrace to " << *disc_part << endl;
+	ugout << "PIC: filtering backtrace to " << *disc_part << endl;
 #endif
 	if (strncmp(*disc_part, "exe", sizeof("exe") - 1) == 0) {
 		*disc_lib = (char *) "\0";
@@ -486,13 +486,13 @@ i32 prepare_discovery (Options *opt, list<CfgEntry> *cfg)
 		} else {
 			ret = sscanf(disc_part, ";%lu", &mem_size);
 			if (ret < 0) {
-				cerr << "Syntax error in discovery string!"
-				     << endl;
-				cerr << "disc_str: " << opt->disc_str << endl;
+				ugerr << "Syntax error in discovery string!"
+				      << endl;
+				ugerr << "disc_str: " << opt->disc_str << endl;
 				goto err;
 			}
 		}
-		cout << "disc_str: " << opt->disc_str << endl;
+		ugout << "disc_str: " << opt->disc_str << endl;
 		break;
 	case '3':
 		ret = strncmp(&disc_part[1], ";" GBT_CMD ";",
@@ -511,11 +511,11 @@ i32 prepare_discovery (Options *opt, list<CfgEntry> *cfg)
 		}
 		opt->code_addr = code_addr;
 		if (mem_size == 0) {
-			cerr << "Error: Too much data! Please discover the "
-				"size first!" << endl;
+			ugerr << "Error: Too much data! Please discover the "
+				 "size first!" << endl;
 			goto err;
 		}
-		cout << "disc_str: " << opt->disc_str << endl;
+		ugout << "disc_str: " << opt->disc_str << endl;
 		break;
 	default:
 		goto err;
@@ -523,7 +523,7 @@ i32 prepare_discovery (Options *opt, list<CfgEntry> *cfg)
 
 	return 0;
 err:
-	cerr << "Error while preparing discovery!" << endl;
+	ugerr << "Error while preparing discovery!" << endl;
 	return -1;
 }
 
@@ -547,7 +547,7 @@ check_beginner_stage4 (Options *opt)
 	}
 	return 0;
 err:
-	cerr << "Invalid discovery string.";
+	ugerr << "Invalid discovery string.";
 	return -1;
 }
 
@@ -565,10 +565,10 @@ bool init_discovery (Options *opt, list<CfgEntry> *cfg,
 			opt->have_objdump = tool_is_available(
 				(char *) "objdump");
 			if (!opt->have_objdump)
-				cerr << "Backtrace helpers and symbol "
+				ugerr << "Backtrace helpers and symbol "
 				    "lookup aren't available." << endl;
 		}
-		cout << "Clearing config for discovery!" << endl;
+		ugout << "Clearing config for discovery!" << endl;
 		cfg->clear();
 		cfg_act->clear();
 		allow_empty_cfg = true;
@@ -585,7 +585,7 @@ bool init_scanmem (Options *opt, list<CfgEntry> *cfg,
 
 	if (!tool_is_available((char *) "scanmem"))
 		exit(-1);
-	cout << "Clearing config for scanmem!" << endl;
+	ugout << "Clearing config for scanmem!" << endl;
 	cfg->clear();
 	cfg_act->clear();
 

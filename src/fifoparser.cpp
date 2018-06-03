@@ -177,7 +177,7 @@ skip_o:
 	goto next;
 
 parse_err:
-	cerr << "parse error at ppos: " << pstart - ibuf << endl;
+	ugerr << "parse error at ppos: " << pstart - ibuf << endl;
 	cerr << ibuf;
 	memset(ibuf, 0, tmp_ilen);
 	*ilen = 0;
@@ -248,7 +248,7 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 
 	return tmp_ilen;
 parse_err:
-	cerr << "parse error at ppos: 0" << endl;
+	ugerr << "parse error at ppos: 0" << endl;
 	cerr << ibuf;
 	memset(ibuf, 0, sizeof(ibuf));
 	ilen = 0;

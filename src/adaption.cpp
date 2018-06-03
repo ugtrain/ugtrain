@@ -40,7 +40,7 @@ static i32 write_config_vect (char *path, vector<string> *lines)
 
 	cfg_file.open(path, fstream::trunc);
 	if (!cfg_file.is_open()) {
-		cerr << "File \"" << path << "\" doesn't exist!" << endl;
+		ugerr << "File \"" << path << "\" doesn't exist!" << endl;
 		return -1;
 	}
 	vect_for_each (lines, it)
@@ -76,7 +76,7 @@ static i32 take_over_config (Options *opt, list<CfgEntry> *cfg,
 		lines->at(lnr) = "adapt_required 0";
 
 	// Write back config
-	cout << "Writing back config.." << endl;
+	ugout << "Writing back config.." << endl;
 	ret = write_config_vect(opt->cfg_path, lines);
 	if (ret)
 		return ret;
@@ -194,14 +194,14 @@ static i32 parse_adapt_result (Options *opt, list<CfgEntry> *cfg,
 			    tmp->name == string(obj_name)) {
 				tmp->adp_size = malloc_size;
 				tmp->adp_addr = code_addr;
-				cout << "Class " << tmp->name
-				     << ", old_size: " << tmp->mem_size
-				     << ", new_size: " << tmp->adp_size
-				     << endl;
-				cout << "Class " << tmp->name
-				     << ", old_code: 0x" << hex << tmp->code_addr
-				     << ", new_code: 0x" << tmp->adp_addr
-				     << dec << endl;
+				ugout << "Class " << tmp->name
+				      << ", old_size: " << tmp->mem_size
+				      << ", new_size: " << tmp->adp_size
+				      << endl;
+				ugout << "Class " << tmp->name
+				      << ", old_code: 0x" << hex << tmp->code_addr
+				      << ", new_code: 0x" << tmp->adp_addr
+				      << dec << endl;
 				found = true;
 				break;
 			}
@@ -220,11 +220,11 @@ static i32 parse_adapt_result (Options *opt, list<CfgEntry> *cfg,
 
 	return 0;
 parse_err:
-	cerr << "Error while parsing adaption output!" << endl;
+	ugerr << "Error while parsing adaptation output!" << endl;
 	if (buf[buf_len - 1] == '\n')
-		cerr << "-->" << start;
+		ugerr << "-->" << start;
 	else
-		cerr << "-->" << start << endl;
+		ugerr << "-->" << start << endl;
 	return -1;
 }
 
@@ -253,7 +253,7 @@ start:
 		run_cmd(cmd, cmdv);
 	if (read_bytes <= 0)
 		goto err;
-	cout << "Adaption return:" << endl;
+	ugout << "Adaptation return:" << endl;
 	if (pbuf[read_bytes - 1] == '\n')
 		cout << pbuf;
 	else
@@ -269,7 +269,7 @@ err:
 		cmdv[2] = (char *) "DEBUG";
 		goto start;
 	}
-	cerr << "Error while running adaption script!" << endl;
+	ugerr << "Error while running adaptation script!" << endl;
 	return -1;
 }
 
@@ -282,13 +282,13 @@ i32 process_adaption (Options *opt, list<CfgEntry> *cfg,
 	if (opt->adp_required && !opt->do_adapt && !opt->disc_str &&
 	    !opt->run_scanmem) {
 		if (!opt->adp_script) {
-			cerr << "Error, adaption required but no adaption script!" << endl;
+			ugerr << "Error, adaptation required but no adaptation script!" << endl;
 			ret = -1;
 			goto out;
 		}
-		cout << "Adaption to your compiler/game version is required." << endl;
-		cout << "Adaption script: " << opt->adp_script << endl;
-		cout << "Run the adaption script, now (y/n)? : ";
+		ugout << "Adaptation to your compiler/game version is required." << endl;
+		ugout << "Adaptation script: " << opt->adp_script << endl;
+		ugout << "Run the adaptation script, now (y/n)? : ";
 		fflush(stdout);
 		ch = 'n';
 		ch = do_getch();
@@ -301,14 +301,14 @@ i32 process_adaption (Options *opt, list<CfgEntry> *cfg,
 
 	if (opt->do_adapt) {
 		if (!opt->adp_script) {
-			cerr << "Error, no adaption script!" << endl;
+			ugerr << "Error, no adaptation script!" << endl;
 			ret = -1;
 			goto out;
 		}
 		ret = adapt_config(opt, cfg, lines);
 		if (ret) {
-			cerr << "Error while size or code address adaption!"
-			     << endl;
+			ugerr << "Error while size or code address adaptation!"
+			      << endl;
 			goto out;
 		}
 		ret = take_over_config(opt, cfg, lines);

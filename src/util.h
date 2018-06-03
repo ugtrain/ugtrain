@@ -33,7 +33,7 @@ init_atexit (void (*function)(void))
 {
 	if (likely(atexit(function) == 0))
 		return;
-	cerr << "Error while registering exit handler!" << endl;
+	ugerr << "Error while registering exit handler!" << endl;
 	exit(-1);
 }
 
@@ -71,10 +71,10 @@ tool_is_available (char *name)
 {
 	bool ret = false;
 	char *tmp_path = get_abs_app_path(name);
-	cout << "Checking if " << name << " is available: ";
+	ugout << "Checking if " << name << " is available: ";
 	if (!tmp_path) {
 		cout << "no" << endl;
-		cerr << "Please consider installing " << name << "!" << endl;
+		ugerr << "Please consider installing " << name << "!" << endl;
 	} else {
 		cout << "yes" << endl;
 		free(tmp_path);
@@ -88,7 +88,7 @@ test_memattach (pid_t pid, i32 *fd)
 {
 	if (likely(memattach_test(pid, fd) == 0))
 		return;
-	cerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;
+	ugerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;
 	exit(-1);
 }
 
@@ -98,7 +98,7 @@ memattach_err_once (pid_t pid)
 	static bool reported = false;
 
 	if (!reported) {
-		cerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
+		ugerr << "MEMORY ATTACH ERROR PID[" << pid << "]!" << endl;
 		reported = true;
 	}
 }
@@ -108,7 +108,7 @@ detachmem (pid_t pid)
 {
 	if (likely(memdetach(pid) == 0))
 		return;
-	cerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
+	ugerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
 	exit(-1);
 }
 
@@ -119,8 +119,8 @@ _read_memory (pid_t pid, ptr_t mem_addr, void *buf, size_t buf_len, const char *
 
 	ret = memread(pid, mem_addr, buf, buf_len);
 	if (ret)
-		cerr << pfx << " READ ERROR PID[" << pid << "] ("
-		     << hex << mem_addr << dec << ")!" << endl;
+		ugerr << pfx << " READ ERROR PID[" << pid << "] ("
+		      << hex << mem_addr << dec << ")!" << endl;
 	return ret;
 }
 
@@ -137,8 +137,8 @@ _write_memory (pid_t pid, ptr_t mem_addr, void *buf, size_t buf_len, const char 
 
 	ret = memwrite(pid, mem_addr, buf, buf_len);
 	if (ret)
-		cerr << pfx << " WRITE ERROR PID[" << pid << "] ("
-		     << hex << mem_addr << dec << ")!" << endl;
+		ugerr << pfx << " WRITE ERROR PID[" << pid << "] ("
+		      << hex << mem_addr << dec << ")!" << endl;
 	return ret;
 }
 

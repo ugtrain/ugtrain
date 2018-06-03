@@ -308,8 +308,8 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 		if (!mem_addr)
 			break;
 		if (memread(pid, mem_addr, cstr, MAX_CSTR))
-			cerr << "STRING READ ERROR PID[" << pid << "] ("
-			     << hex << mem_addr << dec << ")!" << endl;
+			ugerr << "STRING READ ERROR PID[" << pid << "] ("
+			      << hex << mem_addr << dec << ")!" << endl;
 		break;
 	default:
 		break;
@@ -492,7 +492,7 @@ static inline void process_mallocs (list<CfgEntry> *cfg, struct mqueue *mq,
 	pbytes = parse_dynmem_buf(cfg, NULL, mq->data, &ilen, mq->end, pmask,
 		false, 0, &pcb);
 	if (pbytes <= 0 && mq->end > 0)
-		cerr << "Malloc queue parsing error!" << endl;
+		ugerr << "Malloc queue parsing error!" << endl;
 	// reinit malloc queue
 	mq->end = 0;
 	memset(mq->data, 0, mq->size);
@@ -692,7 +692,7 @@ static void detect_abuse (Options *opt)
 	}
 	return;
 err:
-	cerr << "Abuse detected! Cannot allow this." << endl;
+	ugerr << "Abuse detected! Cannot allow this." << endl;
 	exit(-1);
 }
 
@@ -748,10 +748,10 @@ static pid_t run_game (Options *opt, char *preload_lib)
 		restore_getch();
 		ignore_sigint();
 
-		cout << "$ " << pcmdv[0] << " " << pcmdv[1]
-		     << " `pidof " << opt->proc_name
-		     << " | cut -d \' \' -f 1` & --> "
-		     << "$ " << cmd_str << " &" << endl;
+		ugout << "$ " << pcmdv[0] << " " << pcmdv[1]
+		      << " `pidof " << opt->proc_name
+		      << " | cut -d \' \' -f 1` & --> "
+		      << "$ " << cmd_str << " &" << endl;
 
 		cmd = cmd_str.c_str();
 		pid = run_pgrp_bg(pcmd, pcmdv, cmd, NULL, pid_str,
@@ -762,7 +762,7 @@ static pid_t run_game (Options *opt, char *preload_lib)
 		else
 			reset_sigint();
 	} else {
-		cout << "$ " << cmd_str << " &" << endl;
+		ugout << "$ " << cmd_str << " &" << endl;
 
 		cmd = cmd_str.c_str();
 		pid = run_cmd_bg(cmd, NULL, false, preload_lib);
@@ -788,7 +788,7 @@ static pid_t run_game (Options *opt, char *preload_lib)
 
 	return pid;
 err:
-	cerr << "Error while running the game!" << endl;
+	ugerr << "Error while running the game!" << endl;
 	return -1;
 
 #undef PROC_CHECK_CYCLES
@@ -955,15 +955,15 @@ skip_memhack:
 
 	// Run the game with a lib preloaded but not as root
 	if (opt->preload_lib && getuid() != 0) {
-		cout << "Starting game with " << opt->preload_lib
-		     << " preloaded.." << endl;
+		ugout << "Starting game with " << opt->preload_lib
+		      << " preloaded.." << endl;
 		*pid = run_preloader(opt);
 		if (*pid <= 0)
 			goto err;
 	} else {
 		goto err;
 	}
-	cout << "Waiting for preloaded library.." << endl;
+	ugout << "Waiting for preloaded library.." << endl;
 	*ofd = open(DYNMEM_OUT, O_WRONLY | O_TRUNC);
 	if (*ofd < 0) {
 		perror("open ofd");
@@ -988,8 +988,8 @@ static inline i32 get_game_paths (Options *opt)
 		if (!opt->game_path)
 			opt->game_path = get_abs_app_path(opt->game_call);
 		if (!opt->game_path) {
-			cerr << "Absolute game path not found or invalid!"
-			     << endl;
+			ugerr << "Absolute game path not found or invalid!"
+			      << endl;
 			return -1;
 		}
 	}
@@ -1013,23 +1013,23 @@ static void init_user_cfg_dir (char *home)
 	if (dir_exists(user_cfg_dir))
 		return;
 
-	cout << "First run of " << PROG_NAME << " detected:" << endl;
-	cout << "+ Creating \""<< user_cfg_dir << "/\"." << endl;
+	ugout << "First run of " << PROG_NAME << " detected:" << endl;
+	ugout << "+ Creating \""<< user_cfg_dir << "/\"." << endl;
 	ret = create_dir(user_cfg_dir);
 	if (ret || !dir_exists(EXAMPLES_DIR))
 		goto out;
-	cout << "+ Copying examples to \"" << user_cfg_dir << "/\"." << endl;
+	ugout << "+ Copying examples to \"" << user_cfg_dir << "/\"." << endl;
 	cmd_str = "cp -R " EXAMPLES_DIR "/* ";
 	cmd_str += dir_str;
 	ret = run_cmd(cmd_str.c_str(), NULL);
 	if (ret < 0) {
-		cerr << "Command \"" << cmd_str << "\" failed." << endl;
+		ugerr << "Command \"" << cmd_str << "\" failed." << endl;
 		goto out;
 	}
 	if (!tool_is_available((char *) "find") ||
 	    !tool_is_available((char *) "gunzip"))
 		goto out;
-	cout << "+ Extracting examples in \"" << user_cfg_dir << "/\"." << endl;
+	ugout << "+ Extracting examples in \"" << user_cfg_dir << "/\"." << endl;
 	cmd_str = "find ";
 	cmd_str += user_cfg_dir;
 	cmd_str += " -name \"*.gz\" -exec gunzip {} \\; 2>/dev/null";
@@ -1078,7 +1078,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	read_config(opt, cfg, cfg_act, cfgp_map, lines);
 	test_cfgparsing(opt, cfg, cfg_act, cfgp_map);
-	cout << "Found config for \"" << opt->proc_name << "\"." << endl;
+	ugout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
 	if (opt->disc_str)
 		allow_empty_cfg = init_discovery(opt, cfg, cfg_act);
@@ -1087,19 +1087,19 @@ i32 main (i32 argc, char **argv, char **env)
 
 	get_game_paths(opt);
 
-	cout << "Config:" << endl;
+	ugout << "Config:" << endl;
 	output_config(opt, cfg);
-	cout << endl;
-	cout << "Activated:" << endl;
+	ugout << endl;
+	ugout << "Activated:" << endl;
 	output_config_act(cfg_act);
-	cout << endl;
+	ugout << endl;
 
 	if (cfg->empty() && !allow_empty_cfg)
 		return -1;
 	test_cfgoutput(opt);
 
 	if (prepare_getch() != 0) {
-		cerr << "Error while terminal preparation!" << endl;
+		ugerr << "Error while terminal preparation!" << endl;
 		return -1;
 	}
 
@@ -1118,7 +1118,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (ret == 2) {
 		opt->pure_statmem = true;
 	} else if (ret != 0) {
-		cerr << "Error while dyn. mem. preparation!" << endl;
+		ugerr << "Error while dyn. mem. preparation!" << endl;
 		return -1;
 	}
 
@@ -1131,12 +1131,12 @@ i32 main (i32 argc, char **argv, char **env)
 		if (getuid() == 0)
 			return -1;
 #endif
-		cout << "Starting the game.." << endl;
+		ugout << "Starting the game.." << endl;
 		pid = run_game(opt, NULL);
 		if (pid < 0)
 			goto pid_err;
 	}
-	cout << "PID: " << pid << endl;
+	ugout << "PID: " << pid << endl;
 
 	if (opt->disc_str) {
 		process_discovery(opt, cfg, ifd, dfd, ofd, pid, rlist);
@@ -1267,6 +1267,6 @@ i32 main (i32 argc, char **argv, char **env)
 
 	return 0;
 pid_err:
-	cerr << "PID not found or invalid!" << endl;
+	ugerr << "PID not found or invalid!" << endl;
 	return -1;
 }

@@ -201,7 +201,7 @@ static CfgEntry *find_cfg_en (list<CfgEntry> *cfg, string *name)
 
 static inline void proc_name_err (string *line, u32 lidx)
 {
-	cerr << "First line doesn't contain a valid process name!" << endl;
+	ugerr << "First line doesn't contain a valid process name!" << endl;
 	cerr << string(*line, 0, lidx) << "<--" << endl;
 	exit(-1);
 }
@@ -209,8 +209,8 @@ static inline void proc_name_err (string *line, u32 lidx)
 #define cfg_parse_err(line, lnr, lidx) _cfg_parse_err(line, lnr, lidx, __FILE__, __LINE__)
 static inline void _cfg_parse_err (string *line, u32 lnr, u32 lidx, const char *cfile, i32 cline)
 {
-	cerr << "Error while parsing config (line " << ++lnr
-	     << ", " << cfile << ":" << cline << ")!" << endl;
+	ugerr << "Error while parsing config (line " << ++lnr
+	      << ", " << cfile << ":" << cline << ")!" << endl;
 	cerr << string(*line, 0, lidx) << "<--" << endl;
 	exit(-1);
 }
@@ -789,8 +789,8 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 
 static inline void pr_warn_statmem_ptr (void)
 {
-	cout << "Pointer following from static memory is experimental."
-	     << endl;
+	ugout << "Pointer following from static memory is experimental."
+	      << endl;
 }
 
 static void read_config_vect (string *path, char *home, vector<string> *lines)
@@ -812,11 +812,11 @@ static void read_config_vect (string *path, char *home, vector<string> *lines)
 
 		cfg_file.open(path->c_str());
 		if (!cfg_file.is_open()) {
-			cerr << "File \"" << *path << "\" doesn't exist!" << endl;
+			ugerr << "File \"" << *path << "\" doesn't exist!" << endl;
 			exit(-1);
 		}
 	}
-	cout << "Loading config file \"" << *path << "\"." << endl;
+	ugout << "Loading config file \"" << *path << "\"." << endl;
 	while (cfg_file.good()) {
 		getline(cfg_file, line);
 		lines->push_back(line);

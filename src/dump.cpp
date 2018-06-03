@@ -55,8 +55,8 @@ static void dump_ptr_mem (pid_t pid, i32 mfd, u32 obj_id, u32 ptr_id,
 		close(fd);
 		ret = rename(fname.c_str(), backup.c_str());
 		if (ret) {
-			cerr << "renaming " << fname << " to "
-			     << backup << " failed!" << endl;
+			ugerr << "Renaming " << fname << " to "
+			      << backup << " failed!" << endl;
 			goto err;
 		}
 	}
@@ -65,7 +65,7 @@ static void dump_ptr_mem (pid_t pid, i32 mfd, u32 obj_id, u32 ptr_id,
 		goto err;
 	wbytes = write(fd, buf, sizeof(buf));
 	if (wbytes < (ssize_t) sizeof(buf))
-		cerr << fname << ": Write error!" << endl;
+		ugerr << fname << ": Write error!" << endl;
 	close(fd);
 	return;
 err_detach:
@@ -105,8 +105,8 @@ static void dump_mem_obj (pid_t pid, i32 mfd, u32 class_id, u32 obj_id,
 		close(fd);
 		ret = rename(fname.c_str(), backup.c_str());
 		if (ret) {
-			cerr << "renaming " << fname << " to "
-			     << backup << " failed!" << endl;
+			ugerr << "Renaming " << fname << " to "
+			      << backup << " failed!" << endl;
 			goto err;
 		}
 	}
@@ -115,7 +115,7 @@ static void dump_mem_obj (pid_t pid, i32 mfd, u32 class_id, u32 obj_id,
 		goto err;
 	wbytes = write(fd, buf, sizeof(buf));
 	if (wbytes < (ssize_t) sizeof(buf))
-		cerr << fname << ": Write error!" << endl;
+		ugerr << fname << ": Write error!" << endl;
 	close(fd);
 	return;
 err_detach:
@@ -136,12 +136,12 @@ static inline void dump_maps (pid_t pid)
 		close(fd);
 		ret = rename(fname.c_str(), backup.c_str());
 		if (ret) {
-			cerr << "renaming " << fname << " to "
-			     << backup << " failed!" << endl;
+			ugerr << "Renaming " << fname << " to "
+			      << backup << " failed!" << endl;
 			goto out;
 		}
 	}
-	cout << ">>> Dumping memory maps to " << fname << endl;
+	ugout << ">>> Dumping memory maps to " << fname << endl;
 	write_maps_to_file(fname.c_str(), pid);
 out:
 	return;
@@ -159,10 +159,10 @@ void dump_all_mem_obj (pid_t pid, i32 mfd, list<CfgEntry> *cfg)
 		if (it->dynmem && it->dynmem != old_dynmem) {
 			obj_id = 0;
 			for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
-				cout << ">>> Dumping Class " << class_id
-				     << " Obj " << obj_id << " at 0x"
-				     << hex << it->dynmem->v_maddr[obj_id]
-				     << dec << endl;
+				ugout << ">>> Dumping Class " << class_id
+				      << " Obj " << obj_id << " at 0x"
+				      << hex << it->dynmem->v_maddr[obj_id]
+				      << dec << endl;
 				dump_mem_obj(pid, mfd, class_id, obj_id,
 					     it->dynmem->v_maddr[obj_id],
 					     it->dynmem->mem_size);

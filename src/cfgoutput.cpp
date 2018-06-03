@@ -91,14 +91,14 @@ static void output_config_val (CfgEntry *cfg_en)
 	}
 }
 
-static void output_config_en (CfgEntry *cfg_en)
+static void output_config_en (CfgEntry *cfg_en, const char *pfx)
 {
 	if (cfg_en->ptrtgt) {
-		cout << "  " << cfg_en->name << " 0x" << hex << cfg_en->addr << dec
+		ugout << pfx << "  " << cfg_en->name << " 0x" << hex << cfg_en->addr << dec
 			<< " " << 8 * sizeof(ptr_t) << "-bit -> "
 			<< cfg_en->ptrtgt->name << endl;
 	} else {
-		cout << "  " << cfg_en->name << " ";
+		ugout << pfx << "  " << cfg_en->name << " ";
 		if (cfg_en->type.on_stack)
 			cout << "stack 0x";
 		else if (cfg_en->type.lib_name)
@@ -115,11 +115,11 @@ static void output_ptrmem_act (CfgEntry *cfg_en)
 {
 	list<CfgEntry*> *cfg_act = &cfg_en->ptrtgt->cfg_act;
 	list<CfgEntry*>::iterator it;
+	const char *pfx = "  ->";
 
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
-		cout << "  ->";
-		output_config_en(cfg_en);
+		output_config_en(cfg_en, pfx);
 	}
 }
 
@@ -160,7 +160,7 @@ static void output_checks (CfgEntry *cfg_en)
 	char *check_op = get_check_op(cfg_en->check);
 
 	if (check_op) {
-		cout << "    check ";
+		ugout << "    check ";
 		if (cfg_en->type.on_stack)
 			cout << "stack 0x";
 		else if (cfg_en->type.lib_name)
@@ -175,7 +175,7 @@ static void output_checks (CfgEntry *cfg_en)
 		return;
 
 	list_for_each (chk_lp, it) {
-		cout << "    check ";
+		ugout << "    check ";
 		if (it->cfg_ref) {
 			cout << it->cfg_ref->name;
 			goto skip_addr;
@@ -202,7 +202,7 @@ skip_addr:
 void output_config_act (list<CfgEntry*> *cfg_act)
 {
 	if (!cfg_act || cfg_act->empty()) {
-		cout << "<none>" << endl;
+		ugout << "<none>" << endl;
 		return;
 	}
 
@@ -211,7 +211,7 @@ void output_config_act (list<CfgEntry*> *cfg_act)
 	list<CfgEntry*>::iterator it;
 	list_for_each (cfg_act, it) {
 		cfg_en = *it;
-		output_config_en(cfg_en);
+		output_config_en(cfg_en, "");
 		if (cfg_en->ptrtgt)
 			output_ptrmem_act(cfg_en);
 	}
@@ -252,7 +252,7 @@ static void output_grow_method (GrowEntry *grow)
 void output_config (Options *opt, list<CfgEntry> *cfg)
 {
 	if (!cfg || cfg->empty()) {
-		cout << "<none>" << endl;
+		ugout << "<none>" << endl;
 		return;
 	}
 
@@ -268,10 +268,10 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 			GrowEntry *grow = dynmem->grow;
 			if (old_cfg_en && dynmem == old_cfg_en->dynmem)
 				goto skip_hl;
-			cout << "dynmem: " << dynmem->name << " "
-			     << dynmem->mem_size << " 0x" << hex
-			     << dynmem->code_addr << " 0x" << dynmem->stack_offs
-			     << dec;
+			ugout << "dynmem: " << dynmem->name << " "
+			      << dynmem->mem_size << " 0x" << hex
+			      << dynmem->code_addr << " 0x" << dynmem->stack_offs
+			      << dec;
 			if (dynmem->lib)
 				cout << " " << dynmem->lib;
 			if (grow) {
@@ -289,14 +289,14 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 			PtrMemEntry *ptrmem = cfg_en->ptrmem;
 			if (old_cfg_en && ptrmem == old_cfg_en->ptrmem)
 				goto skip_hl;
-			cout << "ptrmem: " << ptrmem->name << " "
+			ugout << "ptrmem: " << ptrmem->name << " "
 				<<  ptrmem->mem_size;
 			OUTPUT_CACHE(ptrmem);
 			cout << endl;
 		} else {
 			if (old_cfg_en && !old_cfg_en->dynmem && !old_cfg_en->ptrmem)
 				goto skip_hl;
-			cout << "static memory:";
+			ugout << "static memory:";
 			if (opt->val_on_stack)
 				OUTPUT_CACHE(opt->stack);
 			list<LibEntry>::iterator lit;
@@ -308,7 +308,7 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 		old_cfg_en = cfg_en;
 skip_hl:
 		// value line
-		output_config_en(cfg_en);
+		output_config_en(cfg_en, "");
 		output_checks(cfg_en);
 	}
 }

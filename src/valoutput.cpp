@@ -34,13 +34,13 @@ static void output_mem_val (CfgEntry *cfg_en, ptr_t mem_offs, bool is_dynmem)
 			     << cfg_en->addr + mem_offs
 			     << ", Data: 0x";
 	} else if (is_dynmem && cfg_en->dynmem->v_maddr.size() > 1) {
-		cout << cfg_en->name << "[" << cfg_en->dynmem->pr_idx << "]"
-		     << " at 0x" << hex << cfg_en->addr + mem_offs
-		     << ", Data: 0x";
+		ugout << cfg_en->name << "[" << cfg_en->dynmem->pr_idx << "]"
+		      << " at 0x" << hex << cfg_en->addr + mem_offs
+		      << ", Data: 0x";
 	} else {
-		cout << cfg_en->name << " at 0x" << hex
-		     << cfg_en->addr + mem_offs
-		     << ", Data: 0x";
+		ugout << cfg_en->name << " at 0x" << hex
+		      << cfg_en->addr + mem_offs
+		      << ", Data: 0x";
 	}
 
 	if (type->is_cstrp && cfg_en->cstr) {
@@ -153,11 +153,11 @@ int output_mem_values (list<CfgEntry*> *cfg_act)
 					cfg_en->v_cstr[cfg_en->dynmem->pr_idx];
 				is_dynmem = true;
 				if (cfg_en->dynmem != old_dynmem) {
-					cout << "*" << cfg_en->dynmem->name << "["
-					     << cfg_en->dynmem->pr_idx << "]" << " = 0x"
-					     << hex << mem_offs << dec << ", "
-					     << mvec->size() << " obj." << endl;
-						old_dynmem = cfg_en->dynmem;
+					ugout << "*" << cfg_en->dynmem->name << "["
+					      << cfg_en->dynmem->pr_idx << "]" << " = 0x"
+					      << hex << mem_offs << dec << ", "
+					      << mvec->size() << " obj." << endl;
+						 old_dynmem = cfg_en->dynmem;
 				}
 			}
 		} else {

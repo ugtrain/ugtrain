@@ -177,7 +177,7 @@ find_lib_regions (struct list_head *rlist, Options *opt)
 			    !strstr((const char *) it->file_path, lit->name.c_str()))
 				continue;
 			lit->start = (ptr_t) it->start;
-			cout << "Library " << lit->name << " is loaded to: 0x"
+			ugout << "===> Library " << lit->name << " is loaded to: 0x"
 				<< hex << lit->start << dec << endl;
 			break;
 		}

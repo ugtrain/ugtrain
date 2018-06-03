@@ -86,7 +86,7 @@ static void handle_disc_pic (LF_PARAMS)
 	char *disc_lib = lfp->disc_lib;
 	i32 ret;
 
-	//cout << lib_name << " loaded" << endl;
+	//ugout << lib_name << " loaded" << endl;
 
 	if (disc_lib && disc_lib[0] != '\0' &&
 	    strstr(lib_name, disc_lib)) {
@@ -183,8 +183,8 @@ static inline void find_lib_region (struct list_head *rlist, char *lib,
 			return;
 		}
 	}
-	cout << "Couldn't find load address of " << lib
-	     << " for PIC handling." << endl;
+	ugerr << "Couldn't find load address of " << lib
+	      << " for PIC handling." << endl;
 
 	*lib_start = 0;
 	*lib_end = UINTPTR_MAX;
@@ -244,10 +244,10 @@ static inline ptr_t get_exe_offs (struct region *r)
 	/* PIE detection */
 	ptr_t exe_offs = calc_exe_offs(r->start);
 
-	cout << "exe_offs: 0x" << hex << exe_offs << dec << endl;
+	ugout << "exe_offs: 0x" << hex << exe_offs << dec << endl;
 	if (exe_offs)
-		cout << "PIE (position independent executable) detected!"
-		     << endl;
+		ugout << "PIE (position independent executable) detected!"
+		      << endl;
 	return exe_offs;
 }
 
@@ -404,7 +404,7 @@ void get_stack_end (SF_PARAMS)
 	CheckEntry *chk_en;
 
 	opt->stack_end = stack_end;
-	cout << "stack_end: 0x" << hex << stack_end << dec << endl;
+	ugout << "stack_end: 0x" << hex << stack_end << dec << endl;
 
 	if (!opt->val_on_stack)
 		return;

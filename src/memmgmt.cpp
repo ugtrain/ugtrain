@@ -147,9 +147,9 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 		}
 		num_kicked -= dynmem->num_freed;
 		if (process_kicked && num_kicked > 0)
-			cout << "===> Obj. " << dynmem->name
-			     << " kicked out " << num_kicked
-			     << " time(s); remaining: " << mvec->size() << endl;
+			ugout << "===> Obj. " << dynmem->name
+			      << " kicked out " << num_kicked
+			      << " time(s); remaining: " << mvec->size() << endl;
 		dynmem->num_freed = 0;
 		old_dynmem = dynmem;
 	}
@@ -170,17 +170,17 @@ int output_dynmem_changes (list<CfgEntry> *cfg)
 			continue;
 		mvec = &dynmem->v_maddr;
 		if (dynmem->num_alloc > 0) {
-			cout << "===> Obj. " << dynmem->name
-			     << " created " << dynmem->num_alloc
-			     << " time(s)";
+			ugout << "===> Obj. " << dynmem->name
+			      << " created " << dynmem->num_alloc
+			      << " time(s)";
 			if (dynmem->num_freed == 0)
 				cout << "; now: " << mvec->size();
 			cout << endl;
 		}
 		if (dynmem->num_freed > 0)
-			cout << "===> Obj. " << dynmem->name
-			     << " freed " << dynmem->num_freed
-			     << " time(s); remaining: " << mvec->size() -
+			ugout << "===> Obj. " << dynmem->name
+			      << " freed " << dynmem->num_freed
+			      << " time(s); remaining: " << mvec->size() -
 				dynmem->num_freed << endl;
 		if (cout.fail())
 			goto err;
