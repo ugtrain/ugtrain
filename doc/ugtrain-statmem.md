@@ -284,9 +284,9 @@ See: [Library Values](#library-values)
 **misc**
 
 If you find matches in a misc region, then this means that it has been created
-by `mmap()` directly. This is often the case if a scripting engine like those
-for Java or JavaScript is used. Scripting engine specific hacks are required
-here. The memory allocation functions are located inside the scripting engine.
+by `mmap()` directly. This is often the case if a runtime engine like those
+for Java or JavaScript is used. Runtime engine specific hacks are required
+here. The memory allocation functions are located inside the runtime engine.
 So the engine has to be analyzed or reverse-engineered.
 
 There is no support in ugtrain for this so far.
