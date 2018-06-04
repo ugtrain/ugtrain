@@ -164,7 +164,7 @@ void do_disc_pic_work (pid_t pid, Options *opt,
 // ##### Memory Hacking #####
 
 /*
- * Libraries are always built as position independent code (PIC).
+ * Libraries are always built as position-independent code (PIC).
  * So we have to find the start and the end of their code regions.
  */
 static inline void find_lib_region (struct list_head *rlist, char *lib,
@@ -183,8 +183,6 @@ static inline void find_lib_region (struct list_head *rlist, char *lib,
 			return;
 		}
 	}
-	ugerr << "Couldn't find load address of " << lib
-	      << " for PIC handling." << endl;
 
 	*lib_start = 0;
 	*lib_end = UINTPTR_MAX;
