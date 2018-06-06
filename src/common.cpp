@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include <cstdlib>
 #include <cstring>
 
 // local includes
@@ -20,6 +21,15 @@
 char *to_c_str (string *str)
 {
 	char *cstr = new char[str->size() + 1];
+
+	cstr[str->size()] = '\0';
+	memcpy(cstr, str->c_str(), str->size());
+	return cstr;
+}
+
+char *to_c_str_c (string *str)
+{
+	char *cstr = (char *) malloc(str->size() + 1);
 
 	cstr[str->size()] = '\0';
 	memcpy(cstr, str->c_str(), str->size());

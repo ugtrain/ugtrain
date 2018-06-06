@@ -62,6 +62,7 @@ enum grow_type {
 /* Common functions */
 #ifdef __cplusplus
 	char *to_c_str(string *str);
+	char *to_c_str_c(string *str);
 #endif
 
 #endif

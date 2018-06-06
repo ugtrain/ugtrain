@@ -39,6 +39,8 @@ static void alloc_ptrmem (CfgEntry *cfg_en)
 		if (cfg_en->type.is_cstrp)
 			cstr = (char *) calloc(1, MAX_CSTR + 1);
 		cfg_en->v_cstr.push_back(cstr);
+		if (cstr)
+			free(cstr);
 	}
 }
 
@@ -66,6 +68,8 @@ void alloc_dynmem (list<CfgEntry> *cfg)
 				if (cfg_en->type.is_cstrp)
 					cstr = (char *) calloc(1, MAX_CSTR + 1);
 				cfg_en->v_cstr.push_back(cstr);
+				if (cstr)
+					free(cstr);
 				if (cfg_en->ptrtgt)
 					alloc_ptrmem(cfg_en);
 			}

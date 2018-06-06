@@ -156,13 +156,21 @@ static i32 parse_adapt_result (Options *opt, list<CfgEntry> *cfg,
 				if (lnr == 0) {
 					tmp_line = string(obj_name);
 					if (strcmp(opt->game_call, opt->proc_name) == 0) {
+						if (opt->proc_name)
+							delete[] opt->proc_name;
 						opt->proc_name = to_c_str(&tmp_line);
-						opt->game_call = opt->proc_name;
+						if (opt->game_call)
+							delete[] opt->game_call;
+						opt->game_call = to_c_str(&tmp_line);
 					} else {
+						if (opt->proc_name)
+							delete[] opt->proc_name;
 						opt->proc_name = to_c_str(&tmp_line);
 					}
 				} else if ((u32) lnr == opt->binpath_line) {
 					tmp_line = string(obj_name);
+					if (opt->game_binpath)
+						delete[] opt->game_binpath;
 					opt->game_binpath = to_c_str(&tmp_line);
 					if (strcmp(basename(opt->game_binpath),
 					    opt->proc_name) != 0)

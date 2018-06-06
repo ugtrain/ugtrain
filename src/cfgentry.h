@@ -32,7 +32,7 @@ class CacheEntry {
 public:
 	ptr_t offs;                   // offset within dynmem object
 	ptr_t start;                  // target memory address or cache valid?
-	void *data;                   // target memory r/w buffer
+	char *data;                   // target memory r/w buffer
 	bool is_dirty;                // writing back required?
 };
 

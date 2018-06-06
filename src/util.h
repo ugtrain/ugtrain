@@ -104,12 +104,14 @@ memattach_err_once (pid_t pid)
 }
 
 static inline void
-detachmem (pid_t pid)
+memdetach_err_once (pid_t pid)
 {
-	if (likely(memdetach(pid) == 0))
-		return;
-	ugerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
-	exit(-1);
+	static bool reported = false;
+
+	if (!reported) {
+		ugerr << "MEMORY DETACH ERROR PID[" << pid << "]!" << endl;
+		reported = true;
+	}
 }
 
 static inline i32

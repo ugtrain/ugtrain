@@ -355,10 +355,16 @@ static bool parse_obj_num_chk (list<CfgEntry> *cfg, CheckEntry *chk_en,
 
 static inline ptr_t get_cfg_en_addr (CheckEntry *chk_en, CfgEntry *cfg_en)
 {
-	if (cfg_en->type.on_stack)
+	string tmp_str;
+
+	if (cfg_en->type.on_stack) {
 		chk_en->type.on_stack = true;
-	else if (cfg_en->type.lib_name)
-		chk_en->type.lib_name = cfg_en->type.lib_name;
+	} else if (cfg_en->type.lib_name) {
+		if (chk_en->type.lib_name)
+			delete[] chk_en->type.lib_name;
+		tmp_str = cfg_en->type.lib_name;
+		chk_en->type.lib_name = to_c_str(&tmp_str);
+	}
 	return cfg_en->addr;
 }
 
@@ -898,7 +904,8 @@ void read_config (Options *opt,
 
 	// parse config
 	opt->proc_name = parse_proc_name(&lines->at(0), &start);
-	opt->game_call = opt->proc_name;
+	tmp_str = opt->proc_name;
+	opt->game_call = to_c_str(&tmp_str);
 
 	for (lnr = 1; lnr < lines->size(); lnr++) {
 		line = lines->at(lnr);
@@ -1011,6 +1018,8 @@ void read_config (Options *opt,
 
 			tmp_str = parse_value_name(&line, lnr,
 				&start, true, NULL);
+			if (opt->dynmem_file)
+				delete[] opt->dynmem_file;
 			opt->dynmem_file = to_c_str(&tmp_str);
 			break;
 
@@ -1082,7 +1091,7 @@ void read_config (Options *opt,
 				cfg_parse_err(&line, lnr, start);
 
 			// Copy into C string
-			opt->game_path = to_c_str(&tmp_str);
+			opt->game_path = to_c_str_c(&tmp_str);
 			break;
 
 		case NAME_GAME_CALL:
@@ -1093,6 +1102,8 @@ void read_config (Options *opt,
 				  lnr, &start, false, NULL);
 
 			// Copy into C string
+			if (opt->game_call)
+				delete[] opt->game_call;
 			opt->game_call = to_c_str(&tmp_str);
 			break;
 

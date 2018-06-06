@@ -117,14 +117,59 @@ static struct option long_options[] = {
 	{0, 0, 0, 0}
 };
 
+void cleanup_options (Options *opt)
+{
+	list<CacheEntry>::iterator cait;
+	list<LibEntry>::iterator lit;
+
+	list_for_each (opt->lib_list, lit) {
+		list_for_each (lit->cache_list, cait)
+			delete[] cait->data;
+		lit->cache_list->clear();
+		delete lit->cache_list;
+	}
+	opt->lib_list->clear();
+	delete opt->lib_list;
+	list_for_each (opt->stack->cache_list, cait)
+		delete[] cait->data;
+	opt->stack->cache_list->clear();
+	delete opt->stack->cache_list;
+	delete opt->stack;
+	list_for_each (opt->cache_list, cait)
+		delete[] cait->data;
+	opt->cache_list->clear();
+	delete opt->cache_list;
+	if (opt->cfg_path)
+		delete[] opt->cfg_path;
+	if (opt->dynmem_file)
+		delete[] opt->dynmem_file;
+	if (opt->game_path) {
+		free(opt->game_path);
+		opt->game_path = NULL;
+	}
+	if (opt->game_binpath)
+		delete[] opt->game_binpath;
+	if (opt->game_call)
+		delete[] opt->game_call;
+	if (opt->game_params)
+		delete[] opt->game_params;
+	if (opt->proc_name)
+		delete[] opt->proc_name;
+	if (opt->adp_script)
+		delete[] opt->adp_script;
+}
+
 static void init_options (Options *opt)
 {
+	string tmp_str;
+
 	memset(opt, 0, sizeof(Options));
 
 	/* no direct CLI input */
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
-	opt->dynmem_file = (char *) DYNMEM_FILE;
+	tmp_str = DYNMEM_FILE;
+	opt->dynmem_file = to_c_str(&tmp_str);
 	opt->cache_list = new list<CacheEntry>;
 	opt->stack = new StackOpt;
 	opt->stack->cache_list = new list<CacheEntry>;

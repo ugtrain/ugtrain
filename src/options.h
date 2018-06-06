@@ -69,15 +69,19 @@ public:
 	ptr_t	heap_end;
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
-	list<CacheEntry> *cache_list;  // caching static memory
-	list<LibEntry> *lib_list;      // handling statmem in libraries
-	StackOpt *stack;
+	list<CfgEntry>		*cfg;
+	list<CfgEntry*>		*cfg_act;
+	list<CfgEntry*>		**cfgp_map;
+	list<CacheEntry>	*cache_list;	// caching static memory
+	list<LibEntry>		*lib_list;	// handling statmem in libraries
+	StackOpt		*stack;
 	// options for testing
 	TESTING_OPT_VARS
 };
 
 void do_assumptions (Options *opt);
 void parse_options (i32 argc, char **argv, Options *opt);
+void cleanup_options (Options *opt);
 
 /* inline functions */
 static inline void use_libmemdisc (Options *opt)

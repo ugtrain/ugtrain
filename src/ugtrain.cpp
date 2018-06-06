@@ -63,6 +63,83 @@
 #define DYNMEM_OUT "/tmp/memhack_in"
 #define MEMDISC_IN "/tmp/memdisc_out"
 
+#define CFGP_MAP_SIZE 128
+
+
+#define CLEANUP_MEM(mem_type, code)				\
+do {								\
+	list<CfgEntry>::iterator cfg_it;			\
+	list<CacheEntry>::iterator cait;			\
+								\
+	list_for_each (cfg, cfg_it) {				\
+		if (cfg_it->mem_type != mem_type)		\
+			continue;				\
+		cfg_it->mem_type = NULL;			\
+	}							\
+	list_for_each (mem_type->cache_list, cait)		\
+		delete[] cait->data;				\
+	mem_type->cache_list->clear();				\
+	delete mem_type->cache_list;				\
+	code;							\
+	delete mem_type;					\
+} while (0)
+
+/* Make Valgrind happy to avoid false-positive leak reporting */
+static void
+cleanup_ugtrain (Options *opt, struct list_head *rlist,
+		 struct dynmem_params *dmparams)
+{
+	list<CfgEntry> *cfg = opt->cfg;
+	list<CfgEntry*> *cfg_act = opt->cfg_act;
+	list<CfgEntry*> **cfgp_map = opt->cfgp_map;
+	list<CfgEntry>::iterator it;
+	i32 ch_idx;
+
+	// Clean up memory regions list and malloc() queue
+	rlist_clear(rlist);
+	free(dmparams->mqueue->data);
+
+	// Clean up active config and key map
+	cfg_act->clear();
+	for (ch_idx = 0; ch_idx < CFGP_MAP_SIZE; ch_idx++) {
+		if (!cfgp_map[ch_idx])
+			continue;
+		cfgp_map[ch_idx]->clear();
+		delete cfgp_map[ch_idx];
+	}
+	// Clean up static memory config
+	list_for_each (cfg, it) {
+		if (it->dynmem || it->ptrmem)
+			continue;
+		if (it->type.is_cstrp)
+			free(it->cstr);
+		if (it->type.lib_name)
+			delete[] it->type.lib_name;
+	}
+	// Clean up dynamic/pointer memory config
+	list_for_each (cfg, it) {
+		DynMemEntry *dynmem = it->dynmem;
+		PtrMemEntry *ptrmem = it->ptrmem;
+		if (dynmem)
+			CLEANUP_MEM(dynmem,
+				if (dynmem->lib) delete[] dynmem->lib);
+		else if (ptrmem)
+			CLEANUP_MEM(ptrmem, ;);
+		// Clean up checks
+		if (it->checks) {
+			list<CheckEntry>::iterator chk_it;
+			list_for_each (it->checks, chk_it) {
+				if (chk_it->type.lib_name)
+					delete[] chk_it->type.lib_name;
+			}
+			it->checks->clear();
+			delete it->checks;
+		}
+	}
+	cfg->clear();
+
+	cleanup_options(opt);
+}
 
 /* returns:  0: check passed,  1: not passed */
 template <typename T>
@@ -993,8 +1070,10 @@ static inline i32 get_game_paths (Options *opt)
 			return -1;
 		}
 	}
-	if (!opt->game_binpath)
-		opt->game_binpath = opt->game_path;
+	if (!opt->game_binpath) {
+		string tmp_str = opt->game_path;
+		opt->game_binpath = to_c_str(&tmp_str);
+	}
 
 	return 0;
 }
@@ -1047,7 +1126,6 @@ i32 main (i32 argc, char **argv, char **env)
 	Options _opt, *opt = &_opt;
 	list<CfgEntry> _cfg, *cfg = &_cfg;
 	list<CfgEntry*> _cfg_act, *cfg_act = &_cfg_act;
-#define CFGP_MAP_SIZE 128
 	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
 	struct dynmem_params _dmparams, *dmparams = &_dmparams;
 	struct mqueue *mq = &dmparams->_mqueue;
@@ -1073,6 +1151,9 @@ i32 main (i32 argc, char **argv, char **env)
 #endif
 
 	parse_options(argc, argv, opt);
+	opt->cfg = cfg;
+	opt->cfg_act = cfg_act;
+	opt->cfgp_map = cfgp_map;
 	test_optparsing(opt);
 	opt->home = home;
 
@@ -1188,7 +1269,7 @@ i32 main (i32 argc, char **argv, char **env)
 		if (cfg_act->empty()) {
 			pstate = check_process(pid, opt->proc_name);
 			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
-				return 0;
+				goto out;
 			continue;
 		}
 
@@ -1200,7 +1281,7 @@ i32 main (i32 argc, char **argv, char **env)
 		if (memattach(pid) != 0) {
 			pstate = check_process(pid, opt->proc_name);
 			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
-				return 0;
+				goto out;
 			// coming here often when ending the game
 			memattach_err_once(pid);
 			continue;
@@ -1215,7 +1296,13 @@ i32 main (i32 argc, char **argv, char **env)
 		// TIME CRITICAL! Process all activated config entries
 		process_act_cfg(opt, (opt->procmem_fd >= 0) ? opt->procmem_fd : pid, cfg_act);
 
-		detachmem(pid);
+		if (memdetach(pid) != 0) {
+			pstate = check_process(pid, opt->proc_name);
+			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
+				goto out;
+			memdetach_err_once(pid);
+			continue;
+		}
 
 		bool regions_read = false;
 		// read the heap region every cycle as it is growing
@@ -1264,7 +1351,8 @@ i32 main (i32 argc, char **argv, char **env)
 		}
 
 	}
-
+out:
+	cleanup_ugtrain(opt, rlist, dmparams);
 	return 0;
 pid_err:
 	ugerr << "PID not found or invalid!" << endl;
