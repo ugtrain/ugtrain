@@ -1164,6 +1164,7 @@ void read_config (Options *opt,
 			cfg_en.checks = NULL;
 			cfg_en.dynval = DYN_VAL_OFF;
 			cfg_en.cfg_ref = NULL;
+			cfg_en.val_set = false;
 			cfg_en.cache = NULL;
 			cfg_en.cache_data = NULL;
 			memset(&cfg_en.old_val, 0, sizeof(value_t));
