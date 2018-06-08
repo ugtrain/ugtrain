@@ -1,6 +1,6 @@
 ## Description
 
-The ugtrain (say U-G-train) is an advanced free and universal game trainer for
+The ugtrain (say You-Gee-train) is an advanced free and universal game trainer for
 the command line under GPLv3 license. It is a research project and a tool for
 advanced users who want latest and really working Linux game cheating methods
 at the cost of no GUI and limited usability.
@@ -12,10 +12,10 @@ with others. **Example configs** for games which allow cheating are included.
 These also come with **automatic adaptation** for dynamic memory so that you can
 use them right away on your system after executing it.
 
-Furthermore, security measures like **ASLR and PIE are bypassed**. Together with
+Furthermore, security measures like **ASLR/PIC/PIE are bypassed**. Together with
 **universal checks**, reliable and stable static memory cheating is provided.
-Ugtrain works with most games on Linux this way. With **scanmem** it integrates
-the best memory search on Linux and there is even **no need for root
+Ugtrain works with most C/C++ games on Linux this way. With **scanmem** it
+integrates the best memory search on Linux and there is even **no need for root
 privileges**.
 
 What a **game trainer** is: <br/>
@@ -99,8 +99,10 @@ Make sure that the following packages are installed on your system: <br/>
 Special configure options: <br/>
 Compile hooking libs as 32 and 64 bit (EXPERIMENTAL): <br/>
 `./configure --prefix=/usr --enable-multilib` <br/>
-Compile hooking libs with GLIB function hooking (EXPERIMENTAL): <br/>
-`./configure --prefix=/usr --enable-glib`
+Compile hooking libs with glib2 function hooking (EXPERIMENTAL): <br/>
+`./configure --prefix=/usr --enable-glib` <br/>
+Compile without `/proc/$pid/mem` support: <br/>
+`./configure --prefix=/usr --disable-procmem`
 
 ## How to Use
 
@@ -130,7 +132,6 @@ adaptation can be triggered explicitly as well: <br/>
 **CPU Architecture**
 
 * PCs: tested on x86 and x86\_64 only
-* smartphones: tested on ARMv7 (OMAP3630 in Nokia N9) only
 * embedded: tested on Raspberry Pi only
 
 **Operating System**
@@ -146,7 +147,6 @@ adaptation can be triggered explicitly as well: <br/>
 **Static Memory**
 
 * no adaptation yet
-* no support for values within a library (PIC) yet
 
 **Dynamic Memory**
 
