@@ -112,8 +112,7 @@ if test "$enable_multilib" != "no" -a bits64 != "no"; then
   AC_MSG_CHECKING([whether $CC works])
   AC_LINK_IFELSE([AC_LANG_PROGRAM()],AC_MSG_RESULT([yes]),
 		 [AC_MSG_RESULT([no])
-		  AC_MSG_ERROR([Cannot build a 32-bit program, you need \
-				to install 32-bit development libraries.])])
+		  AC_MSG_ERROR([You need to install 32-bit C development libraries.])])
   CC="$TMP_CC"
 fi
 
