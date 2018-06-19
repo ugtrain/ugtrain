@@ -56,7 +56,7 @@ static inline void send_lib_bounds (i32 ofd, ptr_t lib_start, ptr_t lib_end)
  *
  * Assumptions: disc_lib != NULL, disc_lib[0] != '\0'
  */
-static inline i32 send_bt_addrs (struct map *map, void *data)
+static inline i32 send_bt_addrs (struct region_map *map, void *data)
 {
 	struct lf_disc_params *lfp = (struct lf_disc_params *) data;
 	char *disc_lib = lfp->disc_lib;

@@ -3,7 +3,7 @@
  * Copyright (C) 2006,2007,2009 Tavis Ormandy <taviso@sdf.lonestar.org>
  * Copyright (C) 2009           Eli Dupree <elidupree@charter.net>
  * Copyright (C) 2009,2010      WANG Lu <coolwanglu@gmail.com>
- * Copyright (C) 2014..2015     Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (C) 2014..2018     Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * Code in this file has been taken from scanmem.
  *
@@ -79,7 +79,7 @@ const char *region_type_names[] = REGION_TYPE_NAMES;
  *
  * append all executable and writable regions to a regions list
  */
-i32 process_map (struct map *map, void *data)
+i32 process_map (struct region_map *map, void *data)
 {
 	struct pmap_params *params = (struct pmap_params *) data;
 	char *exe_path = params->exe_path;
@@ -232,7 +232,7 @@ error:
  * Assumption: pid > 0
  * Inspired by dl_iterate_phdr().
  */
-i32 read_maps (pid_t pid, i32 (*callback)(struct map *map, void *data),
+i32 read_maps (pid_t pid, i32 (*callback)(struct region_map *map, void *data),
 	       void *data)
 {
 	FILE *maps;
@@ -247,7 +247,7 @@ i32 read_maps (pid_t pid, i32 (*callback)(struct map *map, void *data),
 
 	/* read every line of the maps file, parse them and call the callback */
 	while (getline(&line, &len, maps) != -1) {
-		struct map map;
+		struct region_map map;
 
 		/* slight overallocation */
 		map.file_path = (char *) alloca(len);

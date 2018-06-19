@@ -122,6 +122,9 @@ void cleanup_options (Options *opt)
 	list<CacheEntry>::iterator cait;
 	list<LibEntry>::iterator lit;
 
+	// Free cache lists first
+	if (!opt->lib_list)
+		goto skip_lib_list;
 	list_for_each (opt->lib_list, lit) {
 		list_for_each (lit->cache_list, cait)
 			delete[] cait->data;
@@ -130,15 +133,23 @@ void cleanup_options (Options *opt)
 	}
 	opt->lib_list->clear();
 	delete opt->lib_list;
+skip_lib_list:
+	if (!opt->stack || !opt->stack->cache_list)
+		goto skip_stack_cache;
 	list_for_each (opt->stack->cache_list, cait)
 		delete[] cait->data;
 	opt->stack->cache_list->clear();
 	delete opt->stack->cache_list;
 	delete opt->stack;
+skip_stack_cache:
+	if (!opt->cache_list)
+		goto skip_statmem_cache;
 	list_for_each (opt->cache_list, cait)
 		delete[] cait->data;
 	opt->cache_list->clear();
 	delete opt->cache_list;
+
+skip_statmem_cache:
 	if (opt->cfg_path)
 		delete[] opt->cfg_path;
 	if (opt->dynmem_file)

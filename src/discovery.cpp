@@ -386,6 +386,7 @@ void process_discovery (Options *opt, list<CfgEntry> *cfg,
 		get_stack_start(opt, pid, rlist);
 		if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
 			handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
+		rlist_clear(rlist);
 		worker_pid = fork_proc(run_stage1234_loop, &params);
 		if (opt->disc_str[0] >= '3' && opt->disc_lib &&
 		    opt->disc_lib[0] != '\0')
@@ -551,8 +552,7 @@ err:
 	return -1;
 }
 
-bool init_discovery (Options *opt, list<CfgEntry> *cfg,
-		     list<CfgEntry*> *cfg_act)
+bool init_discovery (Options *opt)
 {
 	bool allow_empty_cfg = false;
 
@@ -569,8 +569,7 @@ bool init_discovery (Options *opt, list<CfgEntry> *cfg,
 				    "lookup aren't available." << endl;
 		}
 		ugout << "Clearing config for discovery!" << endl;
-		cfg->clear();
-		cfg_act->clear();
+		clear_config();
 		allow_empty_cfg = true;
 	} else {
 		opt->run_scanmem = false;

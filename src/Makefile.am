@@ -16,6 +16,7 @@ ugtrain_SOURCES = \
 	memmgmt.cpp \
 	options.cpp \
 	ugtrain.cpp \
+	util.cpp \
 	valoutput.cpp
 if LINUX
 ugtrain_SOURCES += \

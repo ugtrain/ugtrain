@@ -28,6 +28,9 @@
 #define LHACK_PRE "libmemhack"
 #define LIB_END   ".so"
 
+// Struct declarations
+struct list_head;
+
 class StackOpt {
 public:
 	list<CacheEntry> *cache_list;  // caching stack memory
@@ -46,8 +49,8 @@ public:
 	i32	procmem_fd;
 	bool	pure_statmem;
 	bool	have_objdump;
-	bool    val_on_stack;
-	bool    heap_checks;
+	bool	val_on_stack;
+	bool	heap_checks;
 	bool	use_gbt;
 	bool	adp_required;
 	u32	adp_req_line;
@@ -57,7 +60,7 @@ public:
 	char	*game_call;
 	char	*game_path;
 	char	*game_binpath;
-	u32     binpath_line;
+	u32	binpath_line;
 	char	*game_params;
 	char	*dynmem_file;
 	ptr_t	disc_addr;
@@ -69,6 +72,7 @@ public:
 	ptr_t	heap_end;
 	size_t	disc_offs;
 	pid_t	scanmem_pid;
+	struct list_head	*rlist;
 	list<CfgEntry>		*cfg;
 	list<CfgEntry*>		*cfg_act;
 	list<CfgEntry*>		**cfgp_map;

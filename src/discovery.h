@@ -30,8 +30,7 @@
 
 bool init_scanmem	(Options *opt, list<CfgEntry> *cfg,
 			 list<CfgEntry*> *cfg_act);
-bool init_discovery     (Options *opt, list<CfgEntry> *cfg,
-		         list<CfgEntry*> *cfg_act);
+bool init_discovery     (Options *opt);
 i32  prepare_discovery  (Options *opt, list<CfgEntry> *cfg);
 void process_discovery  (Options *opt, list<CfgEntry> *cfg,
 			 i32 ifd, i32 dfd, i32 ofd, i32 pid,

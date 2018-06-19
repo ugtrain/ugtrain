@@ -31,7 +31,7 @@
 #define MAPS_MAX_PATH 256
 
 /* a map obtained from /proc/$pid/maps */
-struct map {
+struct region_map {
 	ulong start;
 	ulong end;
 	char read, write, exec, cow;
@@ -42,9 +42,9 @@ struct map {
 #ifdef __cplusplus
 extern "C" {
 #endif
-	i32 read_maps   (pid_t pid, i32 (*callback)(struct map *map, void *data),
-			 void *data);
-	i32 process_map (struct map *map, void *data);
+	i32 read_maps   (pid_t pid, i32 (*callback)(struct region_map *map,
+			 void *data), void *data);
+	i32 process_map (struct region_map *map, void *data);
 	i32 write_maps_to_file (const char *path, pid_t pid);
 #ifdef __cplusplus
 };

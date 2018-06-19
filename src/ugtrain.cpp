@@ -63,83 +63,6 @@
 #define DYNMEM_OUT "/tmp/memhack_in"
 #define MEMDISC_IN "/tmp/memdisc_out"
 
-#define CFGP_MAP_SIZE 128
-
-
-#define CLEANUP_MEM(mem_type, code)				\
-do {								\
-	list<CfgEntry>::iterator cfg_it;			\
-	list<CacheEntry>::iterator cait;			\
-								\
-	list_for_each (cfg, cfg_it) {				\
-		if (cfg_it->mem_type != mem_type)		\
-			continue;				\
-		cfg_it->mem_type = NULL;			\
-	}							\
-	list_for_each (mem_type->cache_list, cait)		\
-		delete[] cait->data;				\
-	mem_type->cache_list->clear();				\
-	delete mem_type->cache_list;				\
-	code;							\
-	delete mem_type;					\
-} while (0)
-
-/* Make Valgrind happy to avoid false-positive leak reporting */
-static void
-cleanup_ugtrain (Options *opt, struct list_head *rlist,
-		 struct dynmem_params *dmparams)
-{
-	list<CfgEntry> *cfg = opt->cfg;
-	list<CfgEntry*> *cfg_act = opt->cfg_act;
-	list<CfgEntry*> **cfgp_map = opt->cfgp_map;
-	list<CfgEntry>::iterator it;
-	i32 ch_idx;
-
-	// Clean up memory regions list and malloc() queue
-	rlist_clear(rlist);
-	free(dmparams->mqueue->data);
-
-	// Clean up active config and key map
-	cfg_act->clear();
-	for (ch_idx = 0; ch_idx < CFGP_MAP_SIZE; ch_idx++) {
-		if (!cfgp_map[ch_idx])
-			continue;
-		cfgp_map[ch_idx]->clear();
-		delete cfgp_map[ch_idx];
-	}
-	// Clean up static memory config
-	list_for_each (cfg, it) {
-		if (it->dynmem || it->ptrmem)
-			continue;
-		if (it->type.is_cstrp)
-			free(it->cstr);
-		if (it->type.lib_name)
-			delete[] it->type.lib_name;
-	}
-	// Clean up dynamic/pointer memory config
-	list_for_each (cfg, it) {
-		DynMemEntry *dynmem = it->dynmem;
-		PtrMemEntry *ptrmem = it->ptrmem;
-		if (dynmem)
-			CLEANUP_MEM(dynmem,
-				if (dynmem->lib) delete[] dynmem->lib);
-		else if (ptrmem)
-			CLEANUP_MEM(ptrmem, ;);
-		// Clean up checks
-		if (it->checks) {
-			list<CheckEntry>::iterator chk_it;
-			list_for_each (it->checks, chk_it) {
-				if (chk_it->type.lib_name)
-					delete[] chk_it->type.lib_name;
-			}
-			it->checks->clear();
-			delete it->checks;
-		}
-	}
-	cfg->clear();
-
-	cleanup_options(opt);
-}
 
 /* returns:  0: check passed,  1: not passed */
 template <typename T>
@@ -1123,13 +1046,14 @@ out:
 i32 main (i32 argc, char **argv, char **env)
 {
 	vector<string> _lines, *lines = &_lines;
-	Options _opt, *opt = &_opt;
-	list<CfgEntry> _cfg, *cfg = &_cfg;
-	list<CfgEntry*> _cfg_act, *cfg_act = &_cfg_act;
-	list<CfgEntry*> *cfgp_map[CFGP_MAP_SIZE] = { NULL };
-	struct dynmem_params _dmparams, *dmparams = &_dmparams;
+	Globals *gbl = get_globals();
+	Options *opt = gbl->opt;
+	list<CfgEntry> *cfg = gbl->cfg;
+	list<CfgEntry*> *cfg_act = gbl->cfg_act;
+	list<CfgEntry*> **cfgp_map = gbl->cfgp_map;
+	struct dynmem_params *dmparams = gbl->dmparams;
+	struct list_head *rlist = gbl->rlist;
 	struct mqueue *mq = &dmparams->_mqueue;
-	struct list_head _rlist, *rlist = &_rlist;
 	pid_t pid = -1;
 	i32 ret, pmask = PARSE_S | PARSE_C;
 	char ch;
@@ -1138,9 +1062,9 @@ i32 main (i32 argc, char **argv, char **env)
 	bool allow_empty_cfg = false;
 	enum pstate pstate;
 
-	INIT_LIST_HEAD(rlist);
 	init_dmparams_early(dmparams);
 	init_atexit(restore_getch);
+	init_atexit(cleanup_ugtrain_atexit);
 
 	get_home_path(&home);
 	if (!home)
@@ -1151,9 +1075,6 @@ i32 main (i32 argc, char **argv, char **env)
 #endif
 
 	parse_options(argc, argv, opt);
-	opt->cfg = cfg;
-	opt->cfg_act = cfg_act;
-	opt->cfgp_map = cfgp_map;
 	test_optparsing(opt);
 	opt->home = home;
 
@@ -1162,7 +1083,7 @@ i32 main (i32 argc, char **argv, char **env)
 	ugout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
 	if (opt->disc_str)
-		allow_empty_cfg = init_discovery(opt, cfg, cfg_act);
+		allow_empty_cfg = init_discovery(opt);
 	else if (opt->run_scanmem)
 		allow_empty_cfg = init_scanmem(opt, cfg, cfg_act);
 
@@ -1223,8 +1144,7 @@ i32 main (i32 argc, char **argv, char **env)
 		process_discovery(opt, cfg, ifd, dfd, ofd, pid, rlist);
 		//list_regions(rlist);
 		ret = postproc_discovery(opt, cfg, rlist, lines);
-		if (ret)
-			return -1;
+		return ret;
 	} else if (opt->scanmem_pid > 0) {
 		wait_orphan(pid, opt->proc_name);
 		wait_proc(opt->scanmem_pid);
@@ -1352,7 +1272,6 @@ i32 main (i32 argc, char **argv, char **env)
 
 	}
 out:
-	cleanup_ugtrain(opt, rlist, dmparams);
 	return 0;
 pid_err:
 	ugerr << "PID not found or invalid!" << endl;

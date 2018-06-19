@@ -27,7 +27,7 @@ const char *region_type_names[] = REGION_TYPE_NAMES;
 /*
  * callback for read_maps()
  */
-i32 process_map (struct map *map, void *data)
+i32 process_map (struct region_map *map, void *data)
 {
 	return -1;
 }
@@ -38,7 +38,7 @@ i32 process_map (struct map *map, void *data)
  * -1: fopen(), alloca() or sscanf() error,
  * return code of callback() != 0.
  */
-i32 read_maps (pid_t pid, i32 (*callback)(struct map *map, void *data),
+i32 read_maps (pid_t pid, i32 (*callback)(struct region_map *map, void *data),
 	       void *data)
 {
 	return -1;

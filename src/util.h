@@ -25,9 +25,29 @@
 #include <cfgentry.h>
 #include <fifoparser.h>
 #include <lib/memattach.h>
+#include <lib/maps.h>
 #include <lib/system.h>
 
+#define CFGP_MAP_SIZE 128
 
+
+class Globals {
+public:
+	Options *opt;
+	list<CfgEntry> *cfg;
+	list<CfgEntry*> *cfg_act;
+	list<CfgEntry*> **cfgp_map;
+	struct dynmem_params *dmparams;
+	struct list_head *rlist;
+};
+
+
+/* Function declarations */
+Globals *get_globals (void);
+void clear_config (void);
+void cleanup_ugtrain_atexit (void);
+
+/* Inline functions */
 static inline void
 init_atexit (void (*function)(void))
 {
