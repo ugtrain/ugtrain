@@ -34,6 +34,7 @@
 class Globals {
 public:
 	Options *opt;
+	vector<string> *cfg_lines;
 	list<CfgEntry> *cfg;
 	list<CfgEntry*> *cfg_act;
 	list<CfgEntry*> **cfgp_map;
@@ -43,6 +44,7 @@ public:
 
 
 /* Function declarations */
+void init_opt_globals (Options *opt);
 Globals *get_globals (void);
 void clear_config (void);
 void cleanup_ugtrain_atexit (void);

@@ -799,7 +799,9 @@ static inline void pr_warn_statmem_ptr (void)
 	      << endl;
 }
 
-static void read_config_vect (string *path, char *home, vector<string> *lines)
+static void
+read_config_vect (string *path, char *home,
+		  vector<string> *cfg_lines)
 {
 	ifstream cfg_file;
 	string line;
@@ -825,7 +827,7 @@ static void read_config_vect (string *path, char *home, vector<string> *lines)
 	ugout << "Loading config file \"" << *path << "\"." << endl;
 	while (cfg_file.good()) {
 		getline(cfg_file, line);
-		lines->push_back(line);
+		cfg_lines->push_back(line);
 	}
 	cfg_file.close();
 }
@@ -869,12 +871,11 @@ do {									\
 		mem_type->cache_list->back().offs = cfg_en.addr;	\
 } while (0)
 
-void read_config (Options *opt,
-		  list<CfgEntry> *cfg,
-		  list<CfgEntry*> *cfg_act,
-		  list<CfgEntry*> *cfgp_map[],
-		  vector<string> *lines)
+void read_config (Options *opt, vector<string> *cfg_lines)
 {
+	list<CfgEntry> *cfg = opt->cfg;
+	list<CfgEntry*> *cfg_act = opt->cfg_act;
+	list<CfgEntry*> **cfgp_map = opt->cfgp_map;
 	string tmp_str, key, line;
 	CfgEntry cfg_en;
 	CfgEntry *cfg_enp;
@@ -899,16 +900,16 @@ void read_config (Options *opt,
 
 	// read config into string vector
 	tmp_str = string(opt->cfg_path);
-	read_config_vect(&tmp_str, opt->home, lines);
+	read_config_vect(&tmp_str, opt->home, cfg_lines);
 	opt->cfg_path = to_c_str(&tmp_str);
 
 	// parse config
-	opt->proc_name = parse_proc_name(&lines->at(0), &start);
+	opt->proc_name = parse_proc_name(&cfg_lines->at(0), &start);
 	tmp_str = opt->proc_name;
 	opt->game_call = to_c_str(&tmp_str);
 
-	for (lnr = 1; lnr < lines->size(); lnr++) {
-		line = lines->at(lnr);
+	for (lnr = 1; lnr < cfg_lines->size(); lnr++) {
+		line = cfg_lines->at(lnr);
 		start = 0;
 		if (line.length() <= 0 || line[0] == '#')
 			continue;

@@ -19,6 +19,7 @@
 /* local includes */
 #include <options.h>
 #include <testopts.h>
+#include <util.h>
 
 
 #define DYNMEM_FILE "/tmp/memhack_file"
@@ -177,6 +178,7 @@ static void init_options (Options *opt)
 	memset(opt, 0, sizeof(Options));
 
 	/* no direct CLI input */
+	init_opt_globals(opt);
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
 	tmp_str = DYNMEM_FILE;

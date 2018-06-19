@@ -28,14 +28,10 @@
 #include <common.h>
 #include <options.h>
 
-bool init_scanmem	(Options *opt, list<CfgEntry> *cfg,
-			 list<CfgEntry*> *cfg_act);
+bool init_scanmem	(Options *opt);
 bool init_discovery     (Options *opt);
-i32  prepare_discovery  (Options *opt, list<CfgEntry> *cfg);
-void process_discovery  (Options *opt, list<CfgEntry> *cfg,
-			 i32 ifd, i32 dfd, i32 ofd, i32 pid,
-			 struct list_head *rlist);
-i32  postproc_discovery (Options *opt, list<CfgEntry> *cfg,
-			 struct list_head *rlist, vector<string> *lines);
+i32  prepare_discovery  (Options *opt);
+void process_discovery  (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid);
+i32  postproc_discovery (Options *opt);
 
 #endif

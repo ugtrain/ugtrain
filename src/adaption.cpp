@@ -31,28 +31,28 @@
 #include <commont.cpp>
 
 
-static i32 write_config_vect (char *path, vector<string> *lines)
+static i32 write_config_vect (char *path, vector<string> *cfg_lines)
 {
 	ofstream cfg_file;
 	vector<string>::iterator it;
 
-	lines->pop_back();
+	cfg_lines->pop_back();
 
 	cfg_file.open(path, fstream::trunc);
 	if (!cfg_file.is_open()) {
 		ugerr << "File \"" << path << "\" doesn't exist!" << endl;
 		return -1;
 	}
-	vect_for_each (lines, it)
+	vect_for_each (cfg_lines, it)
 		cfg_file << (*it) << endl;
 
 	cfg_file.close();
 	return 0;
 }
 
-static i32 take_over_config (Options *opt, list<CfgEntry> *cfg,
-			     vector<string> *lines)
+static i32 take_over_config (Options *opt, vector<string> *cfg_lines)
 {
+	list<CfgEntry> *cfg = opt->cfg;
 	list<CfgEntry>::iterator cfg_it;
 	DynMemEntry *tmp = NULL;
 	u32 lnr;
@@ -65,7 +65,7 @@ static i32 take_over_config (Options *opt, list<CfgEntry> *cfg,
 		tmp->mem_size = tmp->adp_size;
 		tmp->code_addr = tmp->adp_addr;
 		lnr = tmp->cfg_line;
-		lines->at(lnr) = "dynmemstart " + tmp->name + " "
+		cfg_lines->at(lnr) = "dynmemstart " + tmp->name + " "
 			+ to_string(tmp->mem_size) + " 0x"
 			+ to_xstring(tmp->code_addr) + " 0x"
 			+ to_xstring(tmp->stack_offs);
@@ -73,11 +73,11 @@ static i32 take_over_config (Options *opt, list<CfgEntry> *cfg,
 	// Adaption isn't required anymore
 	lnr = opt->adp_req_line;
 	if (lnr > 0)
-		lines->at(lnr) = "adapt_required 0";
+		cfg_lines->at(lnr) = "adapt_required 0";
 
 	// Write back config
 	ugout << "Writing back config.." << endl;
-	ret = write_config_vect(opt->cfg_path, lines);
+	ret = write_config_vect(opt->cfg_path, cfg_lines);
 	if (ret)
 		return ret;
 
@@ -104,10 +104,10 @@ static inline i32 parse_adp_string (char **start, char **obj_name)
 	return 0;
 }
 
-static i32 parse_adapt_result (Options *opt, list<CfgEntry> *cfg,
-			       char *buf, ssize_t buf_len,
-			       vector<string> *lines)
+static i32 parse_adapt_result (Options *opt, char *buf, ssize_t buf_len,
+			       vector<string> *cfg_lines)
 {
+	list<CfgEntry> *cfg = opt->cfg;
 	char *end = buf, *start = buf;
 	ssize_t size;
 	i32 lnr = -1;		// -1: object name, >= 0: reserved cfg entry
@@ -177,7 +177,7 @@ static i32 parse_adapt_result (Options *opt, list<CfgEntry> *cfg,
 						goto parse_err;
 					tmp_line = "game_binpath " + string(obj_name);
 				}
-				lines->at(lnr) = tmp_line;
+				cfg_lines->at(lnr) = tmp_line;
 				lnr = -1;
 				continue;
 			}
@@ -236,8 +236,7 @@ parse_err:
 	return -1;
 }
 
-static i32 adapt_config (Options *opt, list<CfgEntry> *cfg,
-			 vector<string> *lines)
+static i32 adapt_config (Options *opt, vector<string> *cfg_lines)
 {
 	bool debug_mode = false;
 	char pbuf[PIPE_BUF] = { 0 };
@@ -267,7 +266,7 @@ start:
 	else
 		cout << pbuf << endl;
 
-	if (parse_adapt_result(opt, cfg, pbuf, read_bytes, lines) != 0)
+	if (parse_adapt_result(opt, pbuf, read_bytes, cfg_lines) != 0)
 		goto err;
 
 	return 0;
@@ -281,8 +280,7 @@ err:
 	return -1;
 }
 
-i32 process_adaption (Options *opt, list<CfgEntry> *cfg,
-		      vector<string> *lines)
+i32 process_adaptation (Options *opt, vector<string> *cfg_lines)
 {
 	char ch;
 	i32 ret = 0;
@@ -313,13 +311,13 @@ i32 process_adaption (Options *opt, list<CfgEntry> *cfg,
 			ret = -1;
 			goto out;
 		}
-		ret = adapt_config(opt, cfg, lines);
+		ret = adapt_config(opt, cfg_lines);
 		if (ret) {
 			ugerr << "Error while size or code address adaptation!"
 			      << endl;
 			goto out;
 		}
-		ret = take_over_config(opt, cfg, lines);
+		ret = take_over_config(opt, cfg_lines);
 		if (ret)
 			goto out;
 	}

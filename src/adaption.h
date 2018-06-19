@@ -21,7 +21,6 @@
 #include <common.h>
 #include <options.h>
 
-i32 process_adaption (Options *opt, list<CfgEntry> *cfg,
-		      vector<string> *lines);
+i32 process_adaptation (Options *opt, vector<string> *cfg_lines);
 
 #endif

@@ -249,9 +249,10 @@ static inline void rm_dasm_files (void)
 	rm_files_by_pattern((char *) DASM_DIR "*" DASM_SUF);
 }
 
-static i32 postproc_stage1234 (Options *opt, list<CfgEntry> *cfg,
-			       struct list_head *rlist)
+static i32 postproc_stage1234 (Options *opt)
 {
+	list<CfgEntry> *cfg = opt->cfg;
+	struct list_head *rlist = opt->rlist;
 	i32 ifd, pmask = PARSE_S;
 	ptr_t mem_addr;
 	struct disc_pp dpp;
@@ -303,11 +304,10 @@ err:
 	return -1;
 }
 
-i32 postproc_discovery (Options *opt, list<CfgEntry> *cfg,
-			struct list_head *rlist, vector<string> *lines)
+i32 postproc_discovery (Options *opt)
 {
 	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
-		return postproc_stage1234(opt, cfg, rlist);
+		return postproc_stage1234(opt);
 	return -1;
 }
 
@@ -364,10 +364,10 @@ static void run_stage1234_loop (void *argp)
 	exit(1);
 }
 
-void process_discovery (Options *opt, list<CfgEntry> *cfg,
-			i32 ifd, i32 dfd, i32 ofd, i32 pid,
-			struct list_head *rlist)
+void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 {
+	list<CfgEntry> *cfg = opt->cfg;
+	struct list_head *rlist = opt->rlist;
 	pid_t worker_pid;
 
 	if (opt->disc_str[0] == 'p')
@@ -447,7 +447,7 @@ out:
 	return ret;
 }
 
-i32 prepare_discovery (Options *opt, list<CfgEntry> *cfg)
+i32 prepare_discovery (Options *opt)
 {
 	string disc_str, cmd_str;
 	char *pos, *disc_part;
@@ -577,9 +577,10 @@ bool init_discovery (Options *opt)
 	return allow_empty_cfg;
 }
 
-bool init_scanmem (Options *opt, list<CfgEntry> *cfg,
-		   list<CfgEntry*> *cfg_act)
+bool init_scanmem (Options *opt)
 {
+	list<CfgEntry> *cfg = opt->cfg;
+	list<CfgEntry*> *cfg_act = opt->cfg_act;
 	bool allow_empty_cfg = true;
 
 	if (!tool_is_available((char *) "scanmem"))

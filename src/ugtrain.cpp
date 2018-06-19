@@ -1045,9 +1045,9 @@ out:
 
 i32 main (i32 argc, char **argv, char **env)
 {
-	vector<string> _lines, *lines = &_lines;
 	Globals *gbl = get_globals();
 	Options *opt = gbl->opt;
+	vector<string> *cfg_lines = gbl->cfg_lines;
 	list<CfgEntry> *cfg = gbl->cfg;
 	list<CfgEntry*> *cfg_act = gbl->cfg_act;
 	list<CfgEntry*> **cfgp_map = gbl->cfgp_map;
@@ -1078,14 +1078,14 @@ i32 main (i32 argc, char **argv, char **env)
 	test_optparsing(opt);
 	opt->home = home;
 
-	read_config(opt, cfg, cfg_act, cfgp_map, lines);
-	test_cfgparsing(opt, cfg, cfg_act, cfgp_map);
+	read_config(opt, cfg_lines);
+	test_cfgparsing(opt);
 	ugout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
 	if (opt->disc_str)
 		allow_empty_cfg = init_discovery(opt);
 	else if (opt->run_scanmem)
-		allow_empty_cfg = init_scanmem(opt, cfg, cfg_act);
+		allow_empty_cfg = init_scanmem(opt);
 
 	get_game_paths(opt);
 
@@ -1105,15 +1105,16 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	ret = process_adaption(opt, cfg, lines);
+	ret = process_adaptation(opt, cfg_lines);
 	if (ret)
 		return ret;
+	cfg_lines->clear();
 
 	ret = get_game_paths(opt);
 	if (ret)
 		return ret;
 
-	if (prepare_discovery(opt, cfg) != 0)
+	if (prepare_discovery(opt) != 0)
 		return -1;
 
 	ret = prepare_dynmem(opt, cfg, &ifd, &ofd, &dfd, &pid);
@@ -1141,9 +1142,9 @@ i32 main (i32 argc, char **argv, char **env)
 	ugout << "PID: " << pid << endl;
 
 	if (opt->disc_str) {
-		process_discovery(opt, cfg, ifd, dfd, ofd, pid, rlist);
+		process_discovery(opt, ifd, dfd, ofd, pid);
 		//list_regions(rlist);
-		ret = postproc_discovery(opt, cfg, rlist, lines);
+		ret = postproc_discovery(opt);
 		return ret;
 	} else if (opt->scanmem_pid > 0) {
 		wait_orphan(pid, opt->proc_name);

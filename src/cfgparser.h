@@ -21,11 +21,7 @@
 #include <common.h>
 #include <options.h>
 
-void read_config (Options *opt,
-		  list<CfgEntry> *cfg,
-		  list<CfgEntry*> *cfg_act,
-		  list<CfgEntry*> *cfgp_map[],
-		  vector<string> *lines);
+void read_config (Options *opt, vector<string> *cfg_lines);
 
-void write_config_vect (char *path, vector<string> *lines);
+void write_config_vect (char *path, vector<string> *cfg_lines);
 #endif

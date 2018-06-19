@@ -17,6 +17,7 @@
 
 /* Static variables for atexit() handler */
 static Options _static_opt, *static_opt = &_static_opt;
+static vector<string> _static_cfg_lines, *static_cfg_lines = &_static_cfg_lines;
 static list<CfgEntry> _static_cfg, *static_cfg = &_static_cfg;
 static list<CfgEntry*> _static_cfg_act, *static_cfg_act = &_static_cfg_act;
 static list<CfgEntry*> *static_cfgp_map[CFGP_MAP_SIZE] = { NULL };
@@ -24,19 +25,23 @@ static struct dynmem_params _static_dmparams, *static_dmparams = &_static_dmpara
 static LIST_HEAD(_static_rlist);
 static struct list_head *static_rlist = &_static_rlist;
 static Globals static_globals = {
-	static_opt, static_cfg, static_cfg_act, static_cfgp_map,
+	static_opt, static_cfg_lines, static_cfg, static_cfg_act, static_cfgp_map,
 	static_dmparams, static_rlist
 };
 
 
+void init_opt_globals (Options *opt)
+{
+	opt->cfg = static_cfg;
+	opt->cfg_act = static_cfg_act;
+	opt->cfgp_map = static_cfgp_map;
+	opt->rlist = static_rlist;
+}
+
 /* Get static variables for atexit() handler */
 Globals *get_globals (void)
 {
-	static_opt->cfg = static_cfg;
-	static_opt->cfg_act = static_cfg_act;
-	static_opt->cfgp_map = static_cfgp_map;
-	static_opt->rlist = static_rlist;
-
+	init_opt_globals(static_opt);
 	return &static_globals;
 }
 
@@ -75,6 +80,9 @@ void clear_config (void)
 		free(dmparams->mqueue->data);
 		dmparams->mqueue->data = NULL;
 	}
+
+	// Clean up config lines read
+	static_cfg_lines->clear();
 
 	// Clean up active config and key map
 	cfg_act->clear();

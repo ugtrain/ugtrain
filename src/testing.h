@@ -31,10 +31,7 @@ static inline void test_optparsing (Options *opt)
 	exit(0);
 }
 
-static inline void test_cfgparsing (Options *opt,
-				    list<CfgEntry> *cfg,
-				    list<CfgEntry*> *cfg_act,
-				    list<CfgEntry*> *cfgp_map[])
+static inline void test_cfgparsing (Options *opt)
 {
 	if (opt->exit_after != PART_CFG_PARSING)
 		return;
@@ -51,10 +48,7 @@ static inline void test_cfgoutput (Options *opt)
 #else
 
 static inline void test_optparsing (Options *opt) {}
-static inline void test_cfgparsing (Options *opt,
-				    list<CfgEntry> *cfg,
-				    list<CfgEntry*> *cfg_act,
-				    list<CfgEntry*> *cfgp_map[]) {}
+static inline void test_cfgparsing (Options *opt) {}
 static inline void test_cfgoutput (Options *opt) {}
 
 #endif
