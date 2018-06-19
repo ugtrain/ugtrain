@@ -386,7 +386,6 @@ void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 		get_stack_start(opt, pid, rlist);
 		if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
 			handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
-		rlist_clear(rlist);
 		worker_pid = fork_proc(run_stage1234_loop, &params);
 		if (opt->disc_str[0] >= '3' && opt->disc_lib &&
 		    opt->disc_lib[0] != '\0')
