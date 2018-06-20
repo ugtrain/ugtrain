@@ -228,6 +228,11 @@ static inline void reset_sigint (void)
 	signal(SIGINT, SIG_DFL);
 }
 
+static inline void set_sigterm_handler (void (*sighandler)(i32))
+{
+	signal(SIGTERM, sighandler);
+}
+
 #else
 
 /* Path separator */
@@ -309,6 +314,10 @@ static inline void ignore_sigint (void)
 }
 
 static inline void reset_sigint (void)
+{
+}
+
+static inline void set_sigterm_handler (void (*sighandler)(i32))
 {
 }
 

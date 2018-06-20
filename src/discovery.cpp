@@ -318,8 +318,21 @@ struct disc_params {
 	Options *opt;
 };
 
+// exit the worker regularly for cleanup
+static bool worker_should_exit = false;
+
+static void sigterm_handler (i32 signum)
+{
+	worker_should_exit = true;
+}
+
+#define EXIT_CHECK()						\
+	if (worker_should_exit)					\
+		break
+
 /*
  * worker process
+ * pumps data from FIFO into dynmem discovery file
  * changed values aren't available in the parent
  */
 static void run_stage1234_loop (void *argp)
@@ -333,6 +346,8 @@ static void run_stage1234_loop (void *argp)
 	ssize_t rbytes, wbytes;
 	enum pstate pstate;
 
+	set_sigterm_handler(sigterm_handler);
+
 	ofd = open(opt->dynmem_file, O_WRONLY | O_CREAT | O_TRUNC,
 		   0644);
 
@@ -342,24 +357,31 @@ static void run_stage1234_loop (void *argp)
 	}
 
 	while (true) {
+		EXIT_CHECK();
 		sleep_sec_unless_input(1, ifd);
+		EXIT_CHECK();
 		rbytes = read(ifd, buf, sizeof(buf) - 1);
 		if (rbytes == 0 || (rbytes < 0 && errno == EAGAIN)) {
 			pstate = check_process(pid, NULL);
-			if (pstate == PROC_DEAD || pstate == PROC_ZOMBIE)
+			if (pstate == PROC_DEAD || pstate == PROC_ZOMBIE) {
+				EXIT_CHECK();
 				sleep_sec(1);
+			}
 			continue;
 		}
 		if (rbytes < 0) {
 			perror("read");
-			break;
+			goto err;
 		}
 		wbytes = write(ofd, buf, rbytes);
 		if (wbytes != rbytes) {
 			perror("write");
-			break;
+			goto err;
 		}
 	}
+	close(ofd);
+	exit(0);
+err:
 	close(ofd);
 	exit(1);
 }
