@@ -28,9 +28,9 @@
 
 // late PIC discovery handling parameters
 struct lf_disc_params {
-	char  *disc_lib;
-	pid_t pid;
-	i32   ofd;
+	string *disc_lib;
+	pid_t  pid;
+	i32    ofd;
 };
 
 // malloc queue to delay malloc processing

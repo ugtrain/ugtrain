@@ -15,6 +15,7 @@
 #define OPTIONS_H
 
 #include <list>
+#include <string>
 
 /* local includes */
 #include <common.h>
@@ -41,8 +42,8 @@ public:
 	char	*cfg_path;
 	char	*pre_cmd;
 	char	*preload_lib;
-	char	*disc_str;
-	char	*disc_lib;
+	string	*disc_str;
+	string	*disc_lib;
 	bool	do_adapt;
 	bool	run_scanmem;
 	// no direct CLI input

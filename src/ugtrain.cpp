@@ -840,9 +840,9 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 #endif
 
 	// Check for discovery first
-	if (opt->disc_str) {
+	if (!opt->disc_str->empty()) {
 		pos += snprintf(obuf + pos, sizeof(obuf) - pos, "%s",
-				opt->disc_str);
+				opt->disc_str->c_str());
 		if (pos + 2 > sizeof(obuf)) {
 			fprintf(stderr, "Buffer overflow\n");
 			goto err;
@@ -938,7 +938,7 @@ skip_memhack:
 		goto err;
 	if (setup_fifo(DYNMEM_OUT))
 		goto err;
-	if (opt->disc_str) {
+	if (!opt->disc_str->empty()) {
 		if (setup_fifo(MEMDISC_IN))
 			goto err;
 		*dfd = open(MEMDISC_IN, O_RDONLY | O_NONBLOCK);
@@ -1082,7 +1082,7 @@ i32 main (i32 argc, char **argv, char **env)
 	test_cfgparsing(opt);
 	ugout << "Found config for \"" << opt->proc_name << "\"." << endl;
 
-	if (opt->disc_str)
+	if (!opt->disc_str->empty())
 		allow_empty_cfg = init_discovery(opt);
 	else if (opt->run_scanmem)
 		allow_empty_cfg = init_scanmem(opt);
@@ -1141,7 +1141,7 @@ i32 main (i32 argc, char **argv, char **env)
 	}
 	ugout << "PID: " << pid << endl;
 
-	if (opt->disc_str) {
+	if (!opt->disc_str->empty()) {
 		process_discovery(opt, ifd, dfd, ofd, pid);
 		//list_regions(rlist);
 		ret = postproc_discovery(opt);
@@ -1153,7 +1153,7 @@ i32 main (i32 argc, char **argv, char **env)
 		return 0;
 	}
 
-	if (opt->do_adapt || opt->disc_str || opt->run_scanmem)
+	if (opt->do_adapt || !opt->disc_str->empty() || opt->run_scanmem)
 		return -1;
 
 	if (set_getch_nb(1) != 0)

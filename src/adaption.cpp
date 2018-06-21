@@ -83,7 +83,7 @@ static i32 take_over_config (Options *opt, vector<string> *cfg_lines)
 
 	// Run game with libmemhack
 	opt->do_adapt = false;
-	opt->disc_str = NULL;
+	opt->disc_str->clear();
 	use_libmemhack(opt);
 
 	return ret;
@@ -285,7 +285,7 @@ i32 process_adaptation (Options *opt, vector<string> *cfg_lines)
 	char ch;
 	i32 ret = 0;
 
-	if (opt->adp_required && !opt->do_adapt && !opt->disc_str &&
+	if (opt->adp_required && !opt->do_adapt && opt->disc_str->empty() &&
 	    !opt->run_scanmem) {
 		if (!opt->adp_script) {
 			ugerr << "Error, adaptation required but no adaptation script!" << endl;

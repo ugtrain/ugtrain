@@ -54,19 +54,19 @@ static inline void send_lib_bounds (i32 ofd, ptr_t lib_start, ptr_t lib_end)
  * sends found code addresses as the new backtrace filter to libmemdisc,
  * returns 1 for stopping the iteration (disc_lib found) and 0 otherwise
  *
- * Assumptions: disc_lib != NULL, disc_lib[0] != '\0'
+ * Assumptions: disc_lib != NULL, disc_lib not empty, disc_lib[0] != '\1'
  */
 static inline i32 send_bt_addrs (struct region_map *map, void *data)
 {
 	struct lf_disc_params *lfp = (struct lf_disc_params *) data;
-	char *disc_lib = lfp->disc_lib;
+	string *disc_lib = lfp->disc_lib;
 	i32 ofd = lfp->ofd;
 	char *lib_name = basename(map->file_path);
 	ptr_t lib_start, lib_end;
 
 	if (map->exec != 'x')
 		goto out;
-	if (!strstr(lib_name, disc_lib))
+	if (!strstr(lib_name, disc_lib->c_str()))
 		goto out;
 
 	lib_start = (ptr_t) map->start;
@@ -83,13 +83,13 @@ static void handle_disc_pic (LF_PARAMS)
 	struct lf_disc_params *lfp = (struct lf_disc_params *) argp;
 	pid_t pid = lfp->pid;
 	i32 ofd = lfp->ofd;
-	char *disc_lib = lfp->disc_lib;
+	string *disc_lib = lfp->disc_lib;
 	i32 ret;
 
 	//ugout << lib_name << " loaded" << endl;
 
-	if (disc_lib && disc_lib[0] != '\0' &&
-	    strstr(lib_name, disc_lib)) {
+	if (!disc_lib->empty() && disc_lib->at(0) != '\1' &&
+	    strstr(lib_name, disc_lib->c_str())) {
 		ret = read_maps(pid, send_bt_addrs, lfp);
 		if (!ret)
 			send_lib_bounds(ofd, 0, UINTPTR_MAX);
@@ -101,8 +101,9 @@ static void handle_disc_pic (LF_PARAMS)
  *  0: data has been read
  * -1: no data read
  */
-static inline i32 read_libs_from_fifo (pid_t pid, char *disc_lib,
-				       i32 ifd, i32 ofd)
+static inline i32
+read_libs_from_fifo (pid_t pid, string *disc_lib,
+		     i32 ifd, i32 ofd)
 {
 	ssize_t rbytes;
 	struct parse_cb pcb = { NULL };
@@ -167,7 +168,7 @@ void do_disc_pic_work (pid_t pid, Options *opt,
  * Libraries are always built as position-independent code (PIC).
  * So we have to find the start and the end of their code regions.
  */
-static inline void find_lib_region (struct list_head *rlist, char *lib,
+static inline void find_lib_region (struct list_head *rlist, const char *lib,
 				    ptr_t *lib_start, ptr_t *lib_end)
 {
 	struct region *it;
@@ -299,17 +300,17 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 
 	if (opt->pure_statmem)
 		return;
-	if (opt->disc_str) {
-		if (!opt->disc_lib)
+	if (!opt->disc_str->empty()) {
+		if (opt->disc_lib->empty())
 			return;
-		if (opt->disc_lib[0] == '\0') {   // PIE
+		if (opt->disc_lib->at(0) == '\1') {   // PIE
 			osize += snprintf(obuf + osize, sizeof(obuf) - osize,
 				PRI_PTR ";" PRI_PTR ";" PRI_PTR "\n", exe_start,
 				exe_end, exe_offs);
 		} else {                          // early PIC
 			ptr_t lib_start, lib_end;
 
-			find_lib_region(rlist, opt->disc_lib, &lib_start,
+			find_lib_region(rlist, opt->disc_lib->c_str(), &lib_start,
 				&lib_end);
 			// notify libmemdisc that we are ready for PIC handling
 			// and send backtrace filter for early library load

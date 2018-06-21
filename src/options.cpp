@@ -17,6 +17,7 @@
 #include <cstring>
 
 /* local includes */
+#include <common.h>
 #include <options.h>
 #include <testopts.h>
 #include <util.h>
@@ -26,35 +27,26 @@
 
 void do_assumptions (Options *opt)
 {
-	/* Adaption handling */
+	/* Adaptation handling */
 	/* '-D 1 -A' --> '-D 1', '-S -A' --> '-S' */
-	if ((opt->disc_str && opt->disc_str[0] != '5') || opt->run_scanmem)
+	if (!opt->disc_str->empty() || opt->run_scanmem)
 		opt->do_adapt = false;
-
-	if (opt->do_adapt) {
-		/* '-A' --> '-A -D 5' */
-		if (!opt->disc_str)
-			opt->disc_str = (char *) "5";
-		/* '-P libmemhack*' -> '' */
-		if (opt->preload_lib && strncmp(opt->preload_lib, LHACK_PRE,
-		    sizeof(LHACK_PRE) - 1) == 0)
-			opt->preload_lib = NULL;
-	}
 
 	/* Preloading/Starting handling */
 	if (!opt->preload_lib) {
 		/* '-D <str>' --> '-D <str> -P libmemdisc32/64.so' */
-		if (opt->disc_str) {
+		if (!opt->disc_str->empty()) {
 			use_libmemdisc(opt);
 		/* '-S' --> '-S -P libmemhack32/64.so',
+		   '-A' --> '-A -P libmemhack32/64.so',
 		   '--pre-cmd=' --> '--pre-cmd= -P libmemhack32/64.so' */
-		} else if (opt->run_scanmem || opt->pre_cmd) {
+		} else if (opt->run_scanmem || opt->pre_cmd || opt->do_adapt) {
 			use_libmemhack(opt);
 		}
 	/* '-P libmemhack32/64.so -D <str>' -->
 	   '-D <str> -P libmemdisc32/64.so' */
-	} else if (opt->disc_str && strncmp(opt->preload_lib, LHACK_PRE,
-	    sizeof(LHACK_PRE) - 1) == 0) {
+	} else if (!opt->disc_str->empty() && strncmp(opt->preload_lib,
+	    LHACK_PRE, sizeof(LHACK_PRE) - 1) == 0) {
 		use_libmemdisc(opt);
 	}
 }
@@ -71,19 +63,17 @@ PROG_NAME " is the universal elite game trainer\n"
 "--preload, -P [lib]:	start the game preloaded with the given lib -\n"
 "			without argument, \'-P " LHACK_PRE "32/64"
 				LIB_END "\' is assumed\n"
-"			(depending on \'sizeof(void *)\', ignored for root)\n"
 "			- starts the game for pure static memory as well\n"
 "--discover, -D [str]:	do discovery by sending the string to the discovery\n"
 "			library - without \'-P\', \'-P "
 				LDISC_PRE "32/64" LIB_END "\'\n"
-"			is assumed depending on \'sizeof(void *)\'\n"
+"			is assumed\n"
 "--scanmem, -S:		run \'scanmem\' without/together with \'-D\' in the\n"
 "			same process group as the game (avoid root access)\n"
 "			- assumes \'-P\' and ignores the config\n"
-"--adapt, -A:		run the adaption script from the config to determine\n"
-"			malloc code addresses and discover the stack offsets\n"
-"			- assumes \'-D 5\' (stage 5: finding stack offset)\n"
-"			using the new code address (rejects if root)\n"
+"--adapt, -A:		run the adaptation script from the config to determine\n"
+"			the new malloc code addresses and start the game with\n"
+"			the \'-P\' option\n"
 "Misc Options\n"
 "--pre-cmd=<str>:	together with the assumed \'-P\' it is possible to\n"
 "			specify a preloader command\n"
@@ -169,6 +159,10 @@ skip_statmem_cache:
 		delete[] opt->proc_name;
 	if (opt->adp_script)
 		delete[] opt->adp_script;
+	if (opt->disc_lib)
+		delete opt->disc_lib;
+	if (opt->disc_str)
+		delete opt->disc_str;
 }
 
 static void init_options (Options *opt)
@@ -181,6 +175,8 @@ static void init_options (Options *opt)
 	init_opt_globals(opt);
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
+	opt->disc_str = new string;
+	opt->disc_lib = new string;
 	tmp_str = DYNMEM_FILE;
 	opt->dynmem_file = to_c_str(&tmp_str);
 	opt->cache_list = new list<CacheEntry>;
@@ -222,9 +218,9 @@ void parse_options (i32 argc, char **argv, Options *opt)
 			break;
 		case 'D':
 			if (optind == argc || !optarg)
-				opt->disc_str = (char *) "2";
+				*opt->disc_str = "2";
 			else
-				opt->disc_str = optarg;
+				*opt->disc_str = optarg;
 			break;
 		case 'P':
 			if (optind == argc || !optarg)
@@ -244,7 +240,7 @@ void parse_options (i32 argc, char **argv, Options *opt)
 				/* optional argument handling */
 				switch (prev_ch) {
 				case 'D':
-					opt->disc_str = argv[optind - 1];
+					*opt->disc_str = argv[optind - 1];
 					break;
 				case 'P':
 					opt->preload_lib = argv[optind - 1];

@@ -138,7 +138,7 @@ static void process_disc1234_malloc (MF_PARAMS)
 	ptr_t in_addr = dpp->in_addr;
 	Options *opt = dpp->opt;
 	struct list_head *rlist = dpp->rlist;
-	char stage = opt->disc_str[0];
+	char stage = opt->disc_str->at(0);
 	ptr_t codes[MAX_BT] = { 0 };
 	ptr_t soffs[MAX_BT] = { 0 };
 	char *sep_pos;
@@ -306,7 +306,7 @@ err:
 
 i32 postproc_discovery (Options *opt)
 {
-	if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4')
+	if (opt->disc_str->at(0) >= '1' && opt->disc_str->at(0) <= '4')
 		return postproc_stage1234(opt);
 	return -1;
 }
@@ -392,9 +392,9 @@ void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 	struct list_head *rlist = opt->rlist;
 	pid_t worker_pid;
 
-	if (opt->disc_str[0] == 'p')
+	if (opt->disc_str->at(0) == 'p')
 		opt->disc_str[0] = opt->disc_str[opt->disc_offs];
-	if (opt->disc_str[0] == '0') {
+	if (opt->disc_str->at(0) == '0') {
 		if (opt->scanmem_pid > 0) {
 			wait_orphan(pid, opt->proc_name);
 			wait_proc(opt->scanmem_pid);
@@ -403,14 +403,14 @@ void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 			wait_orphan(pid, opt->proc_name);
 		}
 		exit(0);
-	} else if (opt->disc_str[0] >= '1' && opt->disc_str[0] <= '4') {
+	} else if (opt->disc_str->at(0) >= '1' && opt->disc_str->at(0) <= '4') {
 		struct disc_params params = { dfd, pid, opt };
 		get_stack_start(opt, pid, rlist);
-		if (opt->disc_str[0] >= '3' || opt->disc_offs > 0)
+		if (opt->disc_str->at(0) >= '3' || opt->disc_offs > 0)
 			handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 		worker_pid = fork_proc(run_stage1234_loop, &params);
-		if (opt->disc_str[0] >= '3' && opt->disc_lib &&
-		    opt->disc_lib[0] != '\0')
+		if (opt->disc_str->at(0) >= '3' && !opt->disc_lib->empty() &&
+		    opt->disc_lib->at(0) != '\1')
 			do_disc_pic_work(pid, opt, ifd, ofd, rlist);
 		else
 			wait_orphan(pid, opt->proc_name);
@@ -435,7 +435,7 @@ static inline void stage34_args_err (char stage)
 
 // Does the user request to filter the backtrace to the given lib?
 // returns 0 for success, -1 for error
-static inline i32 parse_bt_filter (char **disc_part, char **disc_lib,
+static inline i32 parse_bt_filter (char **disc_part, string *disc_lib,
 				   char stage)
 {
 	i32 ret = -1;
@@ -454,12 +454,10 @@ static inline i32 parse_bt_filter (char **disc_part, char **disc_lib,
 #if (DISC_DEBUG)
 	ugout << "PIC: filtering backtrace to " << *disc_part << endl;
 #endif
-	if (strncmp(*disc_part, "exe", sizeof("exe") - 1) == 0) {
-		*disc_lib = (char *) "\0";
-	} else {
-		*disc_lib = new char[strlen(*disc_part) + 1];
-		strcpy(*disc_lib, *disc_part);
-	}
+	if (strncmp(*disc_part, "exe", sizeof("exe") - 1) == 0)
+		*disc_lib = "\1";
+	else
+		*disc_lib = *disc_part;
 	*pos = ';';
 	*disc_part = pos;
 success:
@@ -470,31 +468,33 @@ out:
 
 i32 prepare_discovery (Options *opt)
 {
-	string disc_str, cmd_str;
-	char *pos, *disc_part;
+	string cmd_str;
+	char *pos, *disc_part, *disc_str;
 	char stage;
 	i32 ret;
 	list<CfgEntry>::iterator it;
 	ptr_t code_addr = 0;
 	ulong mem_size = 0;
 
-	if (!opt->disc_str)
+	if (opt->disc_str->empty())
 		return 0;
 
-	if (opt->disc_str[0] == 'p') {
-		disc_part = opt->disc_str + 1;
+	disc_str = (char *) opt->disc_str->c_str();
+
+	if (disc_str[0] == 'p') {
+		disc_part = disc_str + 1;
 		pos = strstr(disc_part, ";;");
 		if (!pos)
 			goto err;
-		opt->disc_offs = pos - opt->disc_str + 2;
+		opt->disc_offs = pos - disc_str + 2;
 	}
 
-	disc_part = opt->disc_str + opt->disc_offs;
+	disc_part = disc_str + opt->disc_offs;
 	stage = disc_part[0];
 	switch (stage) {
 	case '0':
 		// just get stack end and heap start
-		opt->disc_str = (char *) "0";
+		*opt->disc_str = "0";
 		opt->disc_offs = 0;
 		break;
 	case '1':
@@ -502,19 +502,17 @@ i32 prepare_discovery (Options *opt)
 	case '2':
 		disc_part++;
 		if (disc_part[0] == '\0') {
-			disc_str = opt->disc_str;
-			disc_str += ";0";
-			opt->disc_str = to_c_str(&disc_str);
+			*opt->disc_str += ";0";
 		} else {
 			ret = sscanf(disc_part, ";%lu", &mem_size);
 			if (ret < 0) {
 				ugerr << "Syntax error in discovery string!"
 				      << endl;
-				ugerr << "disc_str: " << opt->disc_str << endl;
+				ugerr << "disc_str: " << *opt->disc_str << endl;
 				goto err;
 			}
 		}
-		ugout << "disc_str: " << opt->disc_str << endl;
+		ugout << "disc_str: " << *opt->disc_str << endl;
 		break;
 	case '3':
 		ret = strncmp(&disc_part[1], ";" GBT_CMD ";",
@@ -524,7 +522,7 @@ i32 prepare_discovery (Options *opt)
 		// fall through
 	case '4':
 		disc_part++;
-		if (parse_bt_filter(&disc_part, &opt->disc_lib, stage))
+		if (parse_bt_filter(&disc_part, opt->disc_lib, stage))
 			goto err;
 		ret = sscanf(disc_part, ";%lu;" SCN_PTR, &mem_size, &code_addr);
 		if (ret < 1) {
@@ -537,7 +535,7 @@ i32 prepare_discovery (Options *opt)
 				 "size first!" << endl;
 			goto err;
 		}
-		ugout << "disc_str: " << opt->disc_str << endl;
+		ugout << "disc_str: " << *opt->disc_str << endl;
 		break;
 	default:
 		goto err;
@@ -555,17 +553,17 @@ check_beginner_stage4 (Options *opt)
 	i32 ret;
 	ulong mem_size;
 
-	ret = sscanf(opt->disc_str, "%lu", &mem_size);
+	ret = sscanf(opt->disc_str->c_str(), "%lu", &mem_size);
 	if (ret == 1 && mem_size >= 8) {
 		u32 i;
 		string disc_str;
-		for (i = 0; i < strlen(opt->disc_str); i++) {
-			if (!isdigit(opt->disc_str[i]))
+		for (i = 0; i < opt->disc_str->length(); i++) {
+			if (!isdigit(opt->disc_str->c_str()[i]))
 				goto err;
 		}
 		disc_str = "4;";
-		disc_str += opt->disc_str;
-		opt->disc_str = to_c_str(&disc_str);
+		disc_str += *opt->disc_str;
+		*opt->disc_str = disc_str;
 	}
 	return 0;
 err:
@@ -579,10 +577,10 @@ bool init_discovery (Options *opt)
 
 	if (check_beginner_stage4(opt) != 0)
 		exit(-1);
-	if (opt->disc_str[0] >= '0' && opt->disc_str[0] <= '4') {
+	if (opt->disc_str->at(0) >= '0' && opt->disc_str->at(0) <= '4') {
 		if (opt->run_scanmem && !tool_is_available((char *) "scanmem"))
 			exit(-1);
-		if (opt->disc_str[0] >= '3') {
+		if (opt->disc_str->at(0) >= '3') {
 			opt->have_objdump = tool_is_available(
 				(char *) "objdump");
 			if (!opt->have_objdump)
