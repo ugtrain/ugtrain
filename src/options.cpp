@@ -142,7 +142,7 @@ skip_stack_cache:
 
 skip_statmem_cache:
 	if (opt->cfg_path)
-		delete[] opt->cfg_path;
+		delete opt->cfg_path;
 	if (opt->dynmem_file)
 		delete[] opt->dynmem_file;
 	if (opt->game_path) {
@@ -175,6 +175,7 @@ static void init_options (Options *opt)
 	init_opt_globals(opt);
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
+	opt->cfg_path = new string;
 	opt->disc_str = new string;
 	opt->disc_lib = new string;
 	tmp_str = DYNMEM_FILE;
@@ -250,12 +251,12 @@ void parse_options (i32 argc, char **argv, Options *opt)
 					break;
 				}
 			} else {
-				opt->cfg_path = argv[optind - 1];
+				*opt->cfg_path = argv[optind - 1];
 			}
 			break;
 		}
 	}
-	if (!opt->cfg_path)
+	if (opt->cfg_path->empty())
 	       usage();
 
 	do_assumptions(opt);

@@ -31,16 +31,16 @@
 #include <commont.cpp>
 
 
-static i32 write_config_vect (char *path, vector<string> *cfg_lines)
+static i32 write_config_vect (string *path, vector<string> *cfg_lines)
 {
 	ofstream cfg_file;
 	vector<string>::iterator it;
 
 	cfg_lines->pop_back();
 
-	cfg_file.open(path, fstream::trunc);
+	cfg_file.open(path->c_str(), fstream::trunc);
 	if (!cfg_file.is_open()) {
-		ugerr << "File \"" << path << "\" doesn't exist!" << endl;
+		ugerr << "File \"" << *path << "\" doesn't exist!" << endl;
 		return -1;
 	}
 	vect_for_each (cfg_lines, it)

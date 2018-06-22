@@ -39,7 +39,7 @@ public:
 
 class Options {
 public:
-	char	*cfg_path;
+	string	*cfg_path;
 	char	*pre_cmd;
 	char	*preload_lib;
 	string	*disc_str;

@@ -899,9 +899,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 	opt->stack->cache_list->push_back(cache_en);
 
 	// read config into string vector
-	tmp_str = string(opt->cfg_path);
-	read_config_vect(&tmp_str, opt->home, cfg_lines);
-	opt->cfg_path = to_c_str(&tmp_str);
+	read_config_vect(opt->cfg_path, opt->home, cfg_lines);
 
 	// parse config
 	opt->proc_name = parse_proc_name(&cfg_lines->at(0), &start);
@@ -1052,7 +1050,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
-			tmp_str = string(opt->cfg_path);
+			tmp_str = *opt->cfg_path;
 			pos = tmp_str.rfind("/");
 			if (pos != string::npos)
 				tmp_str.erase(pos + 1, string::npos);
