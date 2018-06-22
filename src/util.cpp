@@ -16,7 +16,7 @@
 
 
 /* Static variables for atexit() handler */
-static Options _static_opt, *static_opt = &_static_opt;
+static Options _static_opt = { 0 }, *static_opt = &_static_opt;
 static vector<string> _static_cfg_lines, *static_cfg_lines = &_static_cfg_lines;
 static list<CfgEntry> _static_cfg, *static_cfg = &_static_cfg;
 static list<CfgEntry*> _static_cfg_act, *static_cfg_act = &_static_cfg_act;
@@ -30,7 +30,8 @@ static Globals static_globals = {
 };
 
 
-void init_opt_globals (Options *opt)
+static inline void
+init_opt_globals (Options *opt)
 {
 	opt->cfg = static_cfg;
 	opt->cfg_act = static_cfg_act;

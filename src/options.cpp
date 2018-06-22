@@ -169,10 +169,9 @@ static void init_options (Options *opt)
 {
 	string tmp_str;
 
-	memset(opt, 0, sizeof(Options));
+	// opt is initialized to zero in util.cpp
 
-	/* no direct CLI input */
-	init_opt_globals(opt);
+	// no direct CLI input
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
 	opt->cfg_path = new string;

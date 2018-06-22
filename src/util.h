@@ -44,7 +44,6 @@ public:
 
 
 /* Function declarations */
-void init_opt_globals (Options *opt);
 Globals *get_globals (void);
 void clear_config (void);
 void cleanup_ugtrain_atexit (void);
