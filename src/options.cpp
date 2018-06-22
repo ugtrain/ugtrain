@@ -156,7 +156,7 @@ skip_statmem_cache:
 	if (opt->game_params)
 		delete[] opt->game_params;
 	if (opt->proc_name)
-		delete[] opt->proc_name;
+		delete opt->proc_name;
 	if (opt->adp_script)
 		delete[] opt->adp_script;
 	if (opt->disc_lib)
@@ -175,6 +175,7 @@ static void init_options (Options *opt)
 	opt->procmem_fd = -1;
 	opt->scanmem_pid = -1;
 	opt->cfg_path = new string;
+	opt->proc_name = new string;
 	opt->disc_str = new string;
 	opt->disc_lib = new string;
 	tmp_str = DYNMEM_FILE;

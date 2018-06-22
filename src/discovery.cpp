@@ -396,11 +396,11 @@ void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 		opt->disc_str[0] = opt->disc_str[opt->disc_offs];
 	if (opt->disc_str->at(0) == '0') {
 		if (opt->scanmem_pid > 0) {
-			wait_orphan(pid, opt->proc_name);
+			wait_orphan(pid, opt->proc_name->c_str());
 			wait_proc(opt->scanmem_pid);
 			reset_sigint();
 		} else {
-			wait_orphan(pid, opt->proc_name);
+			wait_orphan(pid, opt->proc_name->c_str());
 		}
 		exit(0);
 	} else if (opt->disc_str->at(0) >= '1' && opt->disc_str->at(0) <= '4') {
@@ -413,7 +413,7 @@ void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 		    opt->disc_lib->at(0) != '\1')
 			do_disc_pic_work(pid, opt, ifd, ofd, rlist);
 		else
-			wait_orphan(pid, opt->proc_name);
+			wait_orphan(pid, opt->proc_name->c_str());
 		if (opt->scanmem_pid > 0) {
 			wait_proc(opt->scanmem_pid);
 			reset_sigint();

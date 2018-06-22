@@ -57,7 +57,7 @@ public:
 	u32	adp_req_line;
 	char	*adp_script;
 	char	*home;
-	char	*proc_name;
+	string  *proc_name;
 	char	*game_call;
 	char	*game_path;
 	char	*game_binpath;

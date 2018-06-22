@@ -155,17 +155,13 @@ static i32 parse_adapt_result (Options *opt, char *buf, ssize_t buf_len,
 					goto parse_err;
 				if (lnr == 0) {
 					tmp_line = string(obj_name);
-					if (strcmp(opt->game_call, opt->proc_name) == 0) {
-						if (opt->proc_name)
-							delete[] opt->proc_name;
-						opt->proc_name = to_c_str(&tmp_line);
+					if (strcmp(opt->game_call, opt->proc_name->c_str()) == 0) {
+						*opt->proc_name = tmp_line;
 						if (opt->game_call)
 							delete[] opt->game_call;
 						opt->game_call = to_c_str(&tmp_line);
 					} else {
-						if (opt->proc_name)
-							delete[] opt->proc_name;
-						opt->proc_name = to_c_str(&tmp_line);
+						*opt->proc_name = tmp_line;
 					}
 				} else if ((u32) lnr == opt->binpath_line) {
 					tmp_line = string(obj_name);
@@ -173,7 +169,7 @@ static i32 parse_adapt_result (Options *opt, char *buf, ssize_t buf_len,
 						delete[] opt->game_binpath;
 					opt->game_binpath = to_c_str(&tmp_line);
 					if (strcmp(basename(opt->game_binpath),
-					    opt->proc_name) != 0)
+					    opt->proc_name->c_str()) != 0)
 						goto parse_err;
 					tmp_line = "game_binpath " + string(obj_name);
 				}

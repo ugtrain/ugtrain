@@ -1,6 +1,6 @@
 /* system.h:    provide OS specific helpers (e.g. run cmds)
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -48,16 +48,16 @@ enum pstate {
 extern "C" {
 #endif
 	char    *get_abs_app_path (char *app_name);
-	pid_t   proc_to_pid (char *proc_name);
+	pid_t   proc_to_pid (const char *proc_name);
 	ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
 			      char *pbuf, size_t pbuf_size);
 	pid_t   run_cmd_bg (const char *cmd, char *const cmdv[],
 			    bool do_wait, char *preload_lib);
 	pid_t   run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 			     const char *ccmd, char *const ccmdv[],
-			     char *const pid_cmd, char *proc_name,
+			     char *const pid_cmd, const char *proc_name,
 			     u32 delay, bool do_wait, char *preload_lib);
-	enum pstate check_process (pid_t pid, char *proc_name);
+	enum pstate check_process (pid_t pid, const char *proc_name);
 	pid_t   fork_proc (void (*task) (void *), void *argp);
 #ifdef __cplusplus
 };
@@ -194,7 +194,7 @@ static inline void sleep_sec_unless_input2 (u32 sec, i32 fd1, i32 fd2)
  * wait more reliably than waitpid() as the game process
  * may be forked off or belong to init
  */
-static inline void wait_orphan (pid_t pid, char *proc_name)
+static inline void wait_orphan (pid_t pid, const char *proc_name)
 {
 	enum pstate pstate;
 	while (true) {
@@ -297,7 +297,7 @@ static inline void sleep_sec_unless_input2 (u32 sec, i32 fd1, i32 fd2)
 	sleep_sec(sec);
 }
 
-static inline void wait_orphan (pid_t pid, char *proc_name)
+static inline void wait_orphan (pid_t pid, const char *proc_name)
 {
 }
 

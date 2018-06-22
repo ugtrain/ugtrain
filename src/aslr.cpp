@@ -154,7 +154,7 @@ void do_disc_pic_work (pid_t pid, Options *opt,
 		} else if (!ret) {
 			i = CYCLES_BEFORE_RELOAD;
 		}
-		pstate = check_process(pid, opt->proc_name);
+		pstate = check_process(pid, opt->proc_name->c_str());
 		if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 			return;
 		sleep_sec_unless_input(1, ifd);

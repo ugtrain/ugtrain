@@ -1,6 +1,6 @@
 /* system_l.c:    provide OS specific helpers (e.g. run cmds)
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -69,7 +69,7 @@ err:
  *
  * Assumption: (pid > 0)  --> Please check your PID before!
  */
-enum pstate check_process (pid_t pid, char *proc_name)
+enum pstate check_process (pid_t pid, const char *proc_name)
 {
 	char pbuf[PIPE_BUF] = { 0 };
 	DIR *dir;
@@ -162,7 +162,7 @@ err:
  */
 pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   const char *ccmd, char *const ccmdv[],
-		   char *const pid_str, char *proc_name,
+		   char *const pid_str, const char *proc_name,
 		   u32 delay, bool do_wait, char *preload_lib)
 {
 	pid_t ppid, cpid, game_pid = -1;
@@ -352,7 +352,7 @@ child_err:
  * Parameters: the process name
  * Returns: the pid or -1
  */
-pid_t proc_to_pid (char *proc_name)
+pid_t proc_to_pid (const char *proc_name)
 {
 	pid_t pid;
 	char pbuf[PIPE_BUF] = { 0 };
@@ -361,7 +361,7 @@ pid_t proc_to_pid (char *proc_name)
 	char *token;
 
 	cmdv[0] = (char *) "pidof";
-	cmdv[1] = proc_name;
+	cmdv[1] = (char *) proc_name;
 	cmdv[2] = NULL;
 
 	if (run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf)) <= 0)

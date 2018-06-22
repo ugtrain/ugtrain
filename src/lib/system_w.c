@@ -1,6 +1,6 @@
 /* system_w.c:    provide OS specific helpers (e.g. run cmds)
  *
- * Copyright (c) 2012..2015 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -33,14 +33,14 @@ pid_t fork_proc (void (*task) (void *), void *argp)
 	return -1;
 }
 
-enum pstate check_process (pid_t pid, char *proc_name)
+enum pstate check_process (pid_t pid, const char *proc_name)
 {
 	return PROC_ERR;
 }
 
 pid_t run_pgrp_bg (const char *pcmd, char *const pcmdv[],
 		   const char *ccmd, char *const ccmdv[],
-		   char *const pid_str, char *proc_name,
+		   char *const pid_str, const char *proc_name,
 		   u32 delay, bool do_wait, char *preload_lib)
 {
 	return -1;
@@ -85,7 +85,7 @@ ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
  * Parameters: the process name
  * Returns: the pid or -1
  */
-pid_t proc_to_pid (char *proc_name)
+pid_t proc_to_pid (const char *proc_name)
 {
 	return -1;
 }

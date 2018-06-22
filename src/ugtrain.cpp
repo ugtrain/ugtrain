@@ -687,7 +687,7 @@ static void detect_abuse (Options *opt)
 
 	for (i = 0; abuse_names[i] != NULL; i++) {
 		if (strcmp(opt->game_call, abuse_names[i]) == 0 ||
-		    strcmp(opt->proc_name, abuse_names[i]) == 0)
+		    strcmp(opt->proc_name->c_str(), abuse_names[i]) == 0)
 			goto err;
 	}
 	return;
@@ -704,7 +704,7 @@ static pid_t run_game (Options *opt, char *preload_lib)
 #define PROC_CHECK_CYCLES  (PROC_CHECK_TMO_MS / PROC_CHECK_POLL_MS)
 
 	pid_t pid = -1;
-	pid_t old_game_pid = proc_to_pid(opt->proc_name);
+	pid_t old_game_pid = proc_to_pid(opt->proc_name->c_str());
 	u32 i, pos;
 	enum pstate pstate = PROC_ERR;
 	string cmd_str, game_path;
@@ -749,13 +749,13 @@ static pid_t run_game (Options *opt, char *preload_lib)
 		ignore_sigint();
 
 		ugout << "$ " << pcmdv[0] << " " << pcmdv[1]
-		      << " `pidof " << opt->proc_name
+		      << " `pidof " << *opt->proc_name
 		      << " | cut -d \' \' -f 1` & --> "
 		      << "$ " << cmd_str << " &" << endl;
 
 		cmd = cmd_str.c_str();
 		pid = run_pgrp_bg(pcmd, pcmdv, cmd, NULL, pid_str,
-				  opt->proc_name, SCANMEM_DELAY_S,
+				  opt->proc_name->c_str(), SCANMEM_DELAY_S,
 				  false, preload_lib);
 		if (pid > 0)
 			opt->scanmem_pid = pid;
@@ -774,12 +774,12 @@ static pid_t run_game (Options *opt, char *preload_lib)
 	for (i = 0; i < PROC_CHECK_CYCLES; i++) {
 		sleep_msec(PROC_CHECK_POLL_MS);
 		// handling of a loader which may end very late after forking
-		pid = proc_to_pid(opt->proc_name);
+		pid = proc_to_pid(opt->proc_name->c_str());
 		if (pid == old_game_pid)
 			pid = -1;
 		if (pid < 0)
 			continue;
-		pstate = check_process(pid, opt->proc_name);
+		pstate = check_process(pid, opt->proc_name->c_str());
 		if (pstate == PROC_RUNNING)
 			break;
 	}
@@ -802,7 +802,7 @@ static pid_t run_preloader (Options *opt)
 {
 	pid_t pid;
 
-	setenv(UGT_GAME_PROC_NAME, opt->proc_name, 1);
+	setenv(UGT_GAME_PROC_NAME, opt->proc_name->c_str(), 1);
 
 	pid = run_game(opt, opt->preload_lib);
 	return pid;
@@ -1080,7 +1080,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 	read_config(opt, cfg_lines);
 	test_cfgparsing(opt);
-	ugout << "Found config for \"" << opt->proc_name << "\"." << endl;
+	ugout << "Found config for \"" << *opt->proc_name << "\"." << endl;
 
 	if (!opt->disc_str->empty())
 		allow_empty_cfg = init_discovery(opt);
@@ -1125,7 +1125,7 @@ i32 main (i32 argc, char **argv, char **env)
 		return -1;
 	}
 
-	pid = proc_to_pid(opt->proc_name);
+	pid = proc_to_pid(opt->proc_name->c_str());
 	if (pid < 0 && (!opt->pure_statmem || !opt->preload_lib)) {
 		goto pid_err;
 	} else if (opt->pure_statmem && opt->preload_lib) {
@@ -1147,7 +1147,7 @@ i32 main (i32 argc, char **argv, char **env)
 		ret = postproc_discovery(opt);
 		return ret;
 	} else if (opt->scanmem_pid > 0) {
-		wait_orphan(pid, opt->proc_name);
+		wait_orphan(pid, opt->proc_name->c_str());
 		wait_proc(opt->scanmem_pid);
 		reset_sigint();
 		return 0;
@@ -1188,7 +1188,7 @@ i32 main (i32 argc, char **argv, char **env)
 
 		// check for active config
 		if (cfg_act->empty()) {
-			pstate = check_process(pid, opt->proc_name);
+			pstate = check_process(pid, opt->proc_name->c_str());
 			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 				goto out;
 			continue;
@@ -1200,7 +1200,7 @@ i32 main (i32 argc, char **argv, char **env)
 		}
 
 		if (memattach(pid) != 0) {
-			pstate = check_process(pid, opt->proc_name);
+			pstate = check_process(pid, opt->proc_name->c_str());
 			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 				goto out;
 			// coming here often when ending the game
@@ -1218,7 +1218,7 @@ i32 main (i32 argc, char **argv, char **env)
 		process_act_cfg(opt, (opt->procmem_fd >= 0) ? opt->procmem_fd : pid, cfg_act);
 
 		if (memdetach(pid) != 0) {
-			pstate = check_process(pid, opt->proc_name);
+			pstate = check_process(pid, opt->proc_name->c_str());
 			if (pstate != PROC_RUNNING && pstate != PROC_ERR)
 				goto out;
 			memdetach_err_once(pid);

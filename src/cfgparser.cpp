@@ -215,10 +215,9 @@ static inline void _cfg_parse_err (string *line, u32 lnr, u32 lidx, const char *
 	exit(-1);
 }
 
-static char *parse_proc_name (string *line, u32 *start)
+static string parse_proc_name (string *line, u32 *start)
 {
 	u32 lidx;
-	char *pname = NULL;
 
 	if (line->length() == 0)
 		proc_name_err(line, 0);
@@ -233,10 +232,7 @@ static char *parse_proc_name (string *line, u32 *start)
 	}
 	*start = lidx;
 
-	// copy process name as we need it as C string
-	pname = to_c_str(line);
-
-	return pname;
+	return *line;
 }
 
 static map<string,string> macros;
@@ -902,9 +898,8 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 	read_config_vect(opt->cfg_path, opt->home, cfg_lines);
 
 	// parse config
-	opt->proc_name = parse_proc_name(&cfg_lines->at(0), &start);
-	tmp_str = opt->proc_name;
-	opt->game_call = to_c_str(&tmp_str);
+	*opt->proc_name = parse_proc_name(&cfg_lines->at(0), &start);
+	opt->game_call = to_c_str(opt->proc_name);
 
 	for (lnr = 1; lnr < cfg_lines->size(); lnr++) {
 		line = cfg_lines->at(lnr);
@@ -1116,7 +1111,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			pos = tmp_str.rfind("/");
 			if (pos != string::npos &&
 			    tmp_str.substr(pos + 1, string::npos) !=
-			    opt->proc_name)
+			    *opt->proc_name)
 				cfg_parse_err(&line, lnr, start);
 
 			// Copy into C string
