@@ -103,8 +103,7 @@ enum pstate check_process (pid_t pid, const char *proc_name)
 
 	/* check process name from 'status' file */
 	pr_len = sprintf((cmd_str + cmd_len),
-		"/status 2>/dev/null | sed -n 1p | "
-		"sed \'s/Name:	//g\' | tr -d \'\n\'");
+		"/status | sed -n 1p | sed \'s/Name:	//g\' | tr -d \'\n\'");
 	if (pr_len <= 0)
 		goto err;
 	cmd = cmd_str;
@@ -119,7 +118,7 @@ enum pstate check_process (pid_t pid, const char *proc_name)
 	/* remove '/status' + shell cmds, append '/status' + shell cmds */
 	memset(cmd_str + cmd_len, 0, pr_len);
 	pr_len = sprintf((cmd_str + cmd_len),
-		"/status 2>/dev/null | sed -n 2p | sed \'s/State:	//g\'");
+		"/status | sed -n 2p | sed \'s/State:	//g\'");
 	if (pr_len <= 0)
 		goto err;
 	cmd = cmd_str;
@@ -286,7 +285,7 @@ ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
 		      size_t pbuf_size)
 {
 	pid_t pid;
-	i32 status, fds[2];
+	i32 status, fds[2], fd = -1;
 	ssize_t bytes_read = 0;
 	bool use_shell = (cmdv == NULL);
 
@@ -308,12 +307,16 @@ ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[], char *pbuf,
 			goto child_err;
 		}
 		close(fds[STDIN_FILENO]);
+		/* 2>/dev/null */
+		fd = open("/dev/null", O_WRONLY);
+		if (fd >= 0) {
+			close(STDERR_FILENO);
+			dup2(fd, STDERR_FILENO);
+		}
 		if (use_shell && execlp(SHELL, SHELL, "-c", cmd, NULL) < 0) {
-			perror("execlp");
 			close(fds[STDOUT_FILENO]);
 			goto child_err;
 		} else if (execvp(cmd, cmdv) < 0) {
-			perror("execvp");
 			close(fds[STDOUT_FILENO]);
 			goto child_err;
 		}
