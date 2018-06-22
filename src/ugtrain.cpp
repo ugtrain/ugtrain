@@ -675,7 +675,7 @@ static void reset_terminal (void)
 	prepare_getch_nb();
 }
 
-static const char *abuse_names[] = { "steam", NULL };
+static const string abuse_names[] = { "steam", "" };
 /*
  * This can only stop noobs but that is already enough.
  * Professionals know what they do and don't let others
@@ -685,9 +685,9 @@ static void detect_abuse (Options *opt)
 {
 	i32 i;
 
-	for (i = 0; abuse_names[i] != NULL; i++) {
-		if (strcmp(opt->game_call, abuse_names[i]) == 0 ||
-		    strcmp(opt->proc_name->c_str(), abuse_names[i]) == 0)
+	for (i = 0; abuse_names[i] != ""; i++) {
+		if (*opt->game_call == abuse_names[i] ||
+		    *opt->proc_name == abuse_names[i])
 			goto err;
 	}
 	return;
@@ -986,7 +986,7 @@ static inline i32 get_game_paths (Options *opt)
 {
 	if (opt->preload_lib) {
 		if (!opt->game_path)
-			opt->game_path = get_abs_app_path(opt->game_call);
+			opt->game_path = get_abs_app_path(opt->game_call->c_str());
 		if (!opt->game_path) {
 			ugerr << "Absolute game path not found or invalid!"
 			      << endl;

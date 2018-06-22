@@ -58,7 +58,7 @@ public:
 	char	*adp_script;
 	char	*home;
 	string  *proc_name;
-	char	*game_call;
+	string	*game_call;
 	char	*game_path;
 	char	*game_binpath;
 	u32	binpath_line;

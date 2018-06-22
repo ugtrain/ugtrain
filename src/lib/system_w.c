@@ -90,7 +90,7 @@ pid_t proc_to_pid (const char *proc_name)
 	return -1;
 }
 
-char *get_abs_app_path (char *app_name)
+char *get_abs_app_path (const char *app_name)
 {
 	return NULL;
 }

@@ -899,7 +899,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 
 	// parse config
 	*opt->proc_name = parse_proc_name(&cfg_lines->at(0), &start);
-	opt->game_call = to_c_str(opt->proc_name);
+	*opt->game_call = *opt->proc_name;
 
 	for (lnr = 1; lnr < cfg_lines->size(); lnr++) {
 		line = cfg_lines->at(lnr);
@@ -1081,7 +1081,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			pos = tmp_str.rfind("/");
 			if (pos != string::npos &&
 			    tmp_str.substr(pos + 1, string::npos) !=
-			    opt->game_call)
+			    *opt->game_call)
 				cfg_parse_err(&line, lnr, start);
 
 			// Copy into C string
@@ -1092,13 +1092,8 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
-			tmp_str = parse_value_name(&line,
-				  lnr, &start, false, NULL);
-
-			// Copy into C string
-			if (opt->game_call)
-				delete[] opt->game_call;
-			opt->game_call = to_c_str(&tmp_str);
+			*opt->game_call = parse_value_name(&line,
+				lnr, &start, false, NULL);
 			break;
 
 		case NAME_GAME_BINPATH:

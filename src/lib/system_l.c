@@ -385,7 +385,7 @@ err:
  * Parameters: the application name
  * Returns: the absolute path or NULL
  */
-char *get_abs_app_path (char *app_name)
+char *get_abs_app_path (const char *app_name)
 {
 	char pbuf[PIPE_BUF] = { 0 };
 	const char *cmd = (const char *) "which";
@@ -394,7 +394,7 @@ char *get_abs_app_path (char *app_name)
 	ssize_t rbytes;
 
 	cmdv[0] = (char *) "which";
-	cmdv[1] = app_name;
+	cmdv[1] = (char *) app_name;
 	cmdv[2] = NULL;
 
 	rbytes = run_cmd_pipe(cmd, cmdv, pbuf, sizeof(pbuf));

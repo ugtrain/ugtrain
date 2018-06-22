@@ -47,7 +47,7 @@ enum pstate {
 #ifdef __cplusplus
 extern "C" {
 #endif
-	char    *get_abs_app_path (char *app_name);
+	char    *get_abs_app_path (const char *app_name);
 	pid_t   proc_to_pid (const char *proc_name);
 	ssize_t run_cmd_pipe (const char *cmd, char *const cmdv[],
 			      char *pbuf, size_t pbuf_size);

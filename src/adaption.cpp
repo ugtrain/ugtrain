@@ -155,11 +155,9 @@ static i32 parse_adapt_result (Options *opt, char *buf, ssize_t buf_len,
 					goto parse_err;
 				if (lnr == 0) {
 					tmp_line = string(obj_name);
-					if (strcmp(opt->game_call, opt->proc_name->c_str()) == 0) {
+					if (*opt->game_call == *opt->proc_name) {
 						*opt->proc_name = tmp_line;
-						if (opt->game_call)
-							delete[] opt->game_call;
-						opt->game_call = to_c_str(&tmp_line);
+						*opt->game_call = tmp_line;
 					} else {
 						*opt->proc_name = tmp_line;
 					}
