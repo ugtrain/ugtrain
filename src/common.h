@@ -59,10 +59,36 @@ enum grow_type {
 	list_for_each_prev(vect, rit)
 #endif
 
+#ifdef __linux__
+#ifndef PSEP
+#define PSEP "/"
+#endif
+#else
+#ifndef PSEP
+#define PSEP "\\"
+#endif
+#endif
+
 /* Common functions */
 #ifdef __cplusplus
 	char *to_c_str(string *str);
 	char *to_c_str_c(string *str);
+
+	/*
+	 * C++ basename() implementation, often used for checks.
+	 * So if the separator is not found, this returns an empty string.
+         */
+	static inline string cppbasename (string *str)
+	{
+		string ret_str;
+		size_t pos = str->find_last_of(PSEP);
+
+		if (likely(pos != string::npos))
+			ret_str = str->substr(pos + 1, string::npos);
+		else
+			ret_str = "";   // differ from C basename() behavior
+		return ret_str;
+	}
 #endif
 
 #endif

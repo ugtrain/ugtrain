@@ -71,7 +71,9 @@ static inline pid_t run_cmd (const char *cmd, char *const cmdv[])
 
 #ifdef __linux__
 /* Path separator */
+#ifndef PSEP
 #define PSEP "/"
+#endif
 /* Prefix to hide a file or directory */
 #define PHIDE "."
 
@@ -236,7 +238,9 @@ static inline void set_sigterm_handler (void (*sighandler)(i32))
 #else
 
 /* Path separator */
+#ifndef PSEP
 #define PSEP "\\"
+#endif
 #define PHIDE ""
 
 static inline void get_home_path (char **home)

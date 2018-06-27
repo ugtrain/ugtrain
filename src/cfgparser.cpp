@@ -1046,7 +1046,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 				cfg_parse_err(&line, lnr, start);
 
 			tmp_str = *opt->cfg_path;
-			pos = tmp_str.rfind("/");
+			pos = tmp_str.find_last_of(PSEP);
 			if (pos != string::npos)
 				tmp_str.erase(pos + 1, string::npos);
 			else
@@ -1078,10 +1078,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			tmp_str = parse_value_name(&line,
 				  lnr, &start, true, NULL);
 
-			pos = tmp_str.rfind("/");
-			if (pos != string::npos &&
-			    tmp_str.substr(pos + 1, string::npos) !=
-			    *opt->game_call)
+			    if (cppbasename(&tmp_str) != *opt->game_call)
 				cfg_parse_err(&line, lnr, start);
 
 			// Copy into C string
@@ -1103,14 +1100,10 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			tmp_str = parse_value_name(&line,
 				  lnr, &start, true, NULL);
 
-			pos = tmp_str.rfind("/");
-			if (pos != string::npos &&
-			    tmp_str.substr(pos + 1, string::npos) !=
-			    *opt->proc_name)
+			if (cppbasename(&tmp_str) != *opt->proc_name)
 				cfg_parse_err(&line, lnr, start);
 
-			// Copy into C string
-			opt->game_binpath = to_c_str(&tmp_str);
+			*opt->game_binpath = tmp_str;
 			opt->binpath_line = lnr;
 			break;
 

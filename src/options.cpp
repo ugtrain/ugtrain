@@ -150,7 +150,7 @@ skip_statmem_cache:
 		opt->game_path = NULL;
 	}
 	if (opt->game_binpath)
-		delete[] opt->game_binpath;
+		delete opt->game_binpath;
 	if (opt->game_call)
 		delete opt->game_call;
 	if (opt->game_params)
@@ -177,6 +177,7 @@ static void init_options (Options *opt)
 	opt->cfg_path = new string;
 	opt->proc_name = new string;
 	opt->game_call = new string;
+	opt->game_binpath = new string;
 	opt->disc_str = new string;
 	opt->disc_lib = new string;
 	tmp_str = DYNMEM_FILE;

@@ -60,7 +60,7 @@ public:
 	string  *proc_name;
 	string	*game_call;
 	char	*game_path;
-	char	*game_binpath;
+	string	*game_binpath;
 	u32	binpath_line;
 	char	*game_params;
 	char	*dynmem_file;

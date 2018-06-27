@@ -993,10 +993,8 @@ static inline i32 get_game_paths (Options *opt)
 			return -1;
 		}
 	}
-	if (!opt->game_binpath) {
-		string tmp_str = opt->game_path;
-		opt->game_binpath = to_c_str(&tmp_str);
-	}
+	if (opt->game_binpath->empty())
+		*opt->game_binpath = opt->game_path;
 
 	return 0;
 }

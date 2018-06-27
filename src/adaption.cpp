@@ -21,7 +21,6 @@
 #include <cstring>
 #include <fstream>
 #include <stdio.h>
-#include <libgen.h>   // basename
 
 // local includes
 #include <lib/getch.h>
@@ -163,11 +162,9 @@ static i32 parse_adapt_result (Options *opt, char *buf, ssize_t buf_len,
 					}
 				} else if ((u32) lnr == opt->binpath_line) {
 					tmp_line = string(obj_name);
-					if (opt->game_binpath)
-						delete[] opt->game_binpath;
-					opt->game_binpath = to_c_str(&tmp_line);
-					if (strcmp(basename(opt->game_binpath),
-					    opt->proc_name->c_str()) != 0)
+					*opt->game_binpath = tmp_line;
+					if (cppbasename(opt->game_binpath) !=
+					    *opt->proc_name)
 						goto parse_err;
 					tmp_line = "game_binpath " + string(obj_name);
 				}
@@ -238,7 +235,7 @@ static i32 adapt_config (Options *opt, vector<string> *cfg_lines)
 	const char *cmd = (const char *) opt->adp_script;
 	char *cmdv[] = {
 		opt->adp_script,
-		opt->game_binpath,
+		(char *) opt->game_binpath->c_str(),
 		NULL, NULL
 	};
 
