@@ -1010,11 +1010,8 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
-			tmp_str = parse_value_name(&line, lnr,
+			*opt->dynmem_file = parse_value_name(&line, lnr,
 				&start, true, NULL);
-			if (opt->dynmem_file)
-				delete[] opt->dynmem_file;
-			opt->dynmem_file = to_c_str(&tmp_str);
 			break;
 
 		case NAME_PTRMEM_START:
@@ -1054,8 +1051,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			tmp_str += parse_value_name(&line, lnr, &start,
 				false, NULL);
 
-			// Copy into C string
-			opt->adp_script = to_c_str(&tmp_str);
+			*opt->adp_script = tmp_str;
 
 			// check for added invalid parameters
 			if (start < line.length() - 1)
@@ -1111,10 +1107,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
-			tmp_str = line.substr(start, string::npos);
-
-			// Copy into C string
-			opt->game_params = to_c_str(&tmp_str);
+			*opt->game_params = line.substr(start, string::npos);
 			break;
 
 		case NAME_USE_GBT:

@@ -144,7 +144,7 @@ skip_statmem_cache:
 	if (opt->cfg_path)
 		delete opt->cfg_path;
 	if (opt->dynmem_file)
-		delete[] opt->dynmem_file;
+		delete opt->dynmem_file;
 	if (opt->game_path) {
 		free(opt->game_path);
 		opt->game_path = NULL;
@@ -154,11 +154,11 @@ skip_statmem_cache:
 	if (opt->game_call)
 		delete opt->game_call;
 	if (opt->game_params)
-		delete[] opt->game_params;
+		delete opt->game_params;
 	if (opt->proc_name)
 		delete opt->proc_name;
 	if (opt->adp_script)
-		delete[] opt->adp_script;
+		delete opt->adp_script;
 	if (opt->disc_lib)
 		delete opt->disc_lib;
 	if (opt->disc_str)
@@ -178,10 +178,11 @@ static void init_options (Options *opt)
 	opt->proc_name = new string;
 	opt->game_call = new string;
 	opt->game_binpath = new string;
+	opt->game_params = new string;
 	opt->disc_str = new string;
 	opt->disc_lib = new string;
-	tmp_str = DYNMEM_FILE;
-	opt->dynmem_file = to_c_str(&tmp_str);
+	opt->dynmem_file = new string(DYNMEM_FILE);
+	opt->adp_script = new string;
 	opt->cache_list = new list<CacheEntry>;
 	opt->stack = new StackOpt;
 	opt->stack->cache_list = new list<CacheEntry>;

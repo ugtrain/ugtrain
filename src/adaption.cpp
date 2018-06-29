@@ -232,9 +232,9 @@ static i32 adapt_config (Options *opt, vector<string> *cfg_lines)
 	bool debug_mode = false;
 	char pbuf[PIPE_BUF] = { 0 };
 	ssize_t read_bytes = 0;
-	const char *cmd = (const char *) opt->adp_script;
+	const char *cmd = opt->adp_script->c_str();
 	char *cmdv[] = {
-		opt->adp_script,
+		(char *) opt->adp_script->c_str(),
 		(char *) opt->game_binpath->c_str(),
 		NULL, NULL
 	};
@@ -278,13 +278,13 @@ i32 process_adaptation (Options *opt, vector<string> *cfg_lines)
 
 	if (opt->adp_required && !opt->do_adapt && opt->disc_str->empty() &&
 	    !opt->run_scanmem) {
-		if (!opt->adp_script) {
+		if (opt->adp_script->empty()) {
 			ugerr << "Error, adaptation required but no adaptation script!" << endl;
 			ret = -1;
 			goto out;
 		}
 		ugout << "Adaptation to your compiler/game version is required." << endl;
-		ugout << "Adaptation script: " << opt->adp_script << endl;
+		ugout << "Adaptation script: " << *opt->adp_script << endl;
 		ugout << "Run the adaptation script, now (y/n)? : ";
 		fflush(stdout);
 		ch = 'n';
@@ -297,7 +297,7 @@ i32 process_adaptation (Options *opt, vector<string> *cfg_lines)
 	}
 
 	if (opt->do_adapt) {
-		if (!opt->adp_script) {
+		if (opt->adp_script->empty()) {
 			ugerr << "Error, no adaptation script!" << endl;
 			ret = -1;
 			goto out;

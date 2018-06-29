@@ -730,9 +730,9 @@ static pid_t run_game (Options *opt, char *preload_lib)
 	}
 	cmd_str += game_path;
 
-	if (opt->game_params) {
+	if (!opt->game_params->empty()) {
 		cmd_str += " ";
-		cmd_str += opt->game_params;
+		cmd_str += *opt->game_params;
 	}
 
 	if (opt->run_scanmem) {

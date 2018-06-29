@@ -55,15 +55,15 @@ public:
 	bool	use_gbt;
 	bool	adp_required;
 	u32	adp_req_line;
-	char	*adp_script;
+	string	*adp_script;
 	char	*home;
 	string  *proc_name;
 	string	*game_call;
 	char	*game_path;
 	string	*game_binpath;
 	u32	binpath_line;
-	char	*game_params;
-	char	*dynmem_file;
+	string	*game_params;
+	string	*dynmem_file;
 	ptr_t	disc_addr;
 	ptr_t	code_addr;
 	ptr_t	code_offs;

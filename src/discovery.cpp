@@ -258,7 +258,7 @@ static i32 postproc_stage1234 (Options *opt)
 	struct disc_pp dpp;
 	struct parse_cb pcb = { NULL };
 
-	ifd = open(opt->dynmem_file, O_RDONLY);
+	ifd = open(opt->dynmem_file->c_str(), O_RDONLY);
 	if (ifd < 0) {
 		perror("open ifd");
 		goto err;
@@ -348,7 +348,7 @@ static void run_stage1234_loop (void *argp)
 
 	set_sigterm_handler(sigterm_handler);
 
-	ofd = open(opt->dynmem_file, O_WRONLY | O_CREAT | O_TRUNC,
+	ofd = open(opt->dynmem_file->c_str(), O_WRONLY | O_CREAT | O_TRUNC,
 		   0644);
 
 	if (ofd < 0) {
