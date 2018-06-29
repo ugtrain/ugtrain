@@ -883,7 +883,6 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 	u32 i, lnr, start = 0;
 	name_e name_type;
 	bool in_dynmem = false, in_ptrmem = false;
-	size_t pos;
 	CacheEntry cache_en;
 
 	// init static memory cache
@@ -1042,16 +1041,9 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			if (in_dynmem || in_ptrmem)
 				cfg_parse_err(&line, lnr, start);
 
-			tmp_str = *opt->cfg_path;
-			pos = tmp_str.find_last_of(PSEP);
-			if (pos != string::npos)
-				tmp_str.erase(pos + 1, string::npos);
-			else
-				tmp_str.clear();
-			tmp_str += parse_value_name(&line, lnr, &start,
+			*opt->adp_script = cppdirname(opt->cfg_path);
+			*opt->adp_script += parse_value_name(&line, lnr, &start,
 				false, NULL);
-
-			*opt->adp_script = tmp_str;
 
 			// check for added invalid parameters
 			if (start < line.length() - 1)

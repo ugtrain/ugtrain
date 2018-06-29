@@ -77,7 +77,7 @@ enum grow_type {
 	/*
 	 * C++ basename() implementation, often used for checks.
 	 * So if the separator is not found, this returns an empty string.
-         */
+	 */
 	static inline string cppbasename (string *str)
 	{
 		string ret_str;
@@ -87,6 +87,22 @@ enum grow_type {
 			ret_str = str->substr(pos + 1, string::npos);
 		else
 			ret_str = "";   // differ from C basename() behavior
+		return ret_str;
+	}
+
+	/*
+	 * C++ dirname() implementation
+	 * keeps trailing path separator
+	 */
+	static inline string cppdirname (string *str)
+	{
+		string ret_str;
+		size_t pos = str->find_last_of(PSEP);
+
+		if (likely(pos != string::npos))
+			ret_str = str->substr(0, pos + 1);
+		else
+			ret_str = "." PSEP;
 		return ret_str;
 	}
 #endif
