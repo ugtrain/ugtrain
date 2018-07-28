@@ -61,12 +61,12 @@ static inline i32 send_bt_addrs (struct region_map *map, void *data)
 	struct lf_disc_params *lfp = (struct lf_disc_params *) data;
 	string *disc_lib = lfp->disc_lib;
 	i32 ofd = lfp->ofd;
-	char *lib_name = basename(map->file_path);
+	string lib_name = string(basename(map->file_path));
 	ptr_t lib_start, lib_end;
 
 	if (map->exec != 'x')
 		goto out;
-	if (!strstr(lib_name, disc_lib->c_str()))
+	if (lib_name != *disc_lib)
 		goto out;
 
 	lib_start = (ptr_t) map->start;
@@ -86,10 +86,10 @@ static void handle_disc_pic (LF_PARAMS)
 	string *disc_lib = lfp->disc_lib;
 	i32 ret;
 
-	//ugout << lib_name << " loaded" << endl;
+	//ugout << *lib_name << " loaded" << endl;
 
 	if (!disc_lib->empty() && disc_lib->at(0) != '\1' &&
-	    strstr(lib_name, disc_lib->c_str())) {
+	    *lib_name == *disc_lib) {
 		ret = read_maps(pid, send_bt_addrs, lfp);
 		if (!ret)
 			send_lib_bounds(ofd, 0, UINTPTR_MAX);
@@ -168,17 +168,17 @@ void do_disc_pic_work (pid_t pid, Options *opt,
  * Libraries are always built as position-independent code (PIC).
  * So we have to find the start and the end of their code regions.
  */
-static inline void find_lib_region (struct list_head *rlist, const char *lib,
+static inline void find_lib_region (struct list_head *rlist, const string *lib,
 				    ptr_t *lib_start, ptr_t *lib_end)
 {
 	struct region *it;
 
 	clist_for_each_entry (it, rlist, list) {
-		char *file_name;
+		string file_name;
 		if (!it->flags.exec || it->type == REGION_TYPE_EXE)
 		       continue;
-		file_name = basename(it->file_path);
-		if (strstr(file_name, lib)) {
+		file_name = string(basename(it->file_path));
+		if (file_name == *lib) {
 			*lib_start = (ptr_t) it->start;
 			*lib_end = (ptr_t) (it->start + it->size);
 			return;
@@ -216,9 +216,9 @@ void get_lib_load_addr (LF_PARAMS)
 			continue;
 		grow = dynmem->grow;
 		old_dynmem = dynmem;
-		if (dynmem->lib && strstr(dynmem->lib, lib_name))
+		if (dynmem->lib && *dynmem->lib == *lib_name)
 			dynmem->code_addr = dynmem->code_offs + lib_start;
-		if (grow && grow->lib && strstr(grow->lib, lib_name))
+		if (grow && grow->lib && *grow->lib == *lib_name)
 			grow->code_addr = grow->code_offs + lib_start;
 	}
 	send_lib_bounds(ofd, lib_start, lib_end);
@@ -310,7 +310,7 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 		} else {                          // early PIC
 			ptr_t lib_start, lib_end;
 
-			find_lib_region(rlist, opt->disc_lib->c_str(), &lib_start,
+			find_lib_region(rlist, opt->disc_lib, &lib_start,
 				&lib_end);
 			// notify libmemdisc that we are ready for PIC handling
 			// and send backtrace filter for early library load

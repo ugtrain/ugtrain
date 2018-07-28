@@ -31,7 +31,7 @@ ssize_t parse_dynmem_buf (list<CfgEntry> *cfg, void *argp, char *ibuf,
 	ptr_t mem_addr = 0, code_addr = 0, stack_offs = 0, stack_end = 0;
 	ulong mem_size = 0;
 	char *msg_start = ibuf, *msg_end = ibuf, *pstart = ibuf, *sep_pos = ibuf;
-	char *lib_name = NULL;
+	string lib_name;
 	struct post_parse pp;
 	char scan_ch;
 
@@ -134,13 +134,10 @@ skip_o:
 		if (*pstart != ';')
 			goto parse_err;
 		pstart++;
-		lib_name = new char[msg_end - pstart + 1];
-		memcpy(lib_name, pstart, msg_end - pstart);
-		lib_name[msg_end - pstart] = '\0';
+		lib_name = string(pstart, msg_end - pstart);
 
 		// call post parsing function
-		pcb->lf(argp, lib_name);
-		delete[] lib_name;
+		pcb->lf(argp, &lib_name);
 		break;
 	case 'h':
 		pstart++;

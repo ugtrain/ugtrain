@@ -101,8 +101,8 @@ static void output_config_en (CfgEntry *cfg_en, const char *pfx)
 		ugout << pfx << "  " << cfg_en->name << " ";
 		if (cfg_en->type.on_stack)
 			cout << "stack 0x";
-		else if (cfg_en->type.lib_name)
-			cout << "lib " << cfg_en->type.lib_name << " 0x";
+		else if (cfg_en->type.lib_name && !cfg_en->type.lib_name->empty())
+			cout << "lib " << *cfg_en->type.lib_name << " 0x";
 		else
 			cout << "0x";
 		cout << hex << cfg_en->addr << dec
@@ -163,8 +163,8 @@ static void output_checks (CfgEntry *cfg_en)
 		ugout << "    check ";
 		if (cfg_en->type.on_stack)
 			cout << "stack 0x";
-		else if (cfg_en->type.lib_name)
-			cout << "lib " << cfg_en->type.lib_name << " 0x";
+		else if (cfg_en->type.lib_name && !cfg_en->type.lib_name->empty())
+			cout << "lib " << *cfg_en->type.lib_name << " 0x";
 		else
 			cout << "0x";
 		cout << hex << cfg_en->addr << dec << check_op;
@@ -182,8 +182,8 @@ static void output_checks (CfgEntry *cfg_en)
 		}
 		if (it->type.on_stack)
 			cout << "stack 0x";
-		else if (it->type.lib_name)
-			cout << "lib " << it->type.lib_name << " 0x";
+		else if (it->type.lib_name && !it->type.lib_name->empty())
+			cout << "lib " << *it->type.lib_name << " 0x";
 		else
 			cout << "0x";
 		cout  << hex << it->addr << dec;
@@ -272,16 +272,16 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 			      << dynmem->mem_size << " 0x" << hex
 			      << dynmem->code_addr << " 0x" << dynmem->stack_offs
 			      << dec;
-			if (dynmem->lib)
-				cout << " " << dynmem->lib;
+			if (dynmem->lib && !dynmem->lib->empty())
+				cout << " " << *dynmem->lib;
 			if (grow) {
 				cout << " growing " << grow->size_min
 				     << " " << grow->size_max << " ";
 				output_grow_method(grow);
 				cout << " 0x" << hex << grow->code_addr << " 0x"
 				     << grow->stack_offs << dec;
-				if (grow->lib)
-					cout << " " << grow->lib;
+				if (grow->lib && !grow->lib->empty())
+					cout << " " << *grow->lib;
 			}
 			OUTPUT_CACHE(dynmem);
 			cout << endl;

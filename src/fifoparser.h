@@ -81,7 +81,7 @@ struct post_parse {
 	list<CfgEntry> *cfg, void *argp, ptr_t mem_addr
 
 #define LF_PARAMS \
-	void *argp, char *lib_name
+	void *argp, string *lib_name
 
 #define SF_PARAMS \
 	list<CfgEntry> *cfg, void *argp, ptr_t stack_end

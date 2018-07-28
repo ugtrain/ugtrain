@@ -55,7 +55,7 @@ public:
 	ptr_t code_addr;
 	ptr_t code_offs;              // for late PIC support
 	ptr_t stack_offs;
-	char *lib;                    // for PIC support
+	string *lib;                  // for PIC support
 
 	// later determined values
 	vector<size_t> v_msize;       // set by malloc/realloc calls
@@ -70,7 +70,7 @@ public:
 	ptr_t code_addr;
 	ptr_t code_offs;              // for late PIC support
 	ptr_t stack_offs;
-	char *lib;                    // for PIC support
+	string *lib;                  // for PIC support
 	GrowEntry *grow;
 
 	list<CfgEntry*> cfg_act;
@@ -133,7 +133,7 @@ typedef enum {
 } check_e;
 
 struct type {
-	char *lib_name;
+	string *lib_name;
 	LibEntry *lib;
 	bool on_stack;
 	bool is_signed;

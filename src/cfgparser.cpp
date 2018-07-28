@@ -351,16 +351,10 @@ static bool parse_obj_num_chk (list<CfgEntry> *cfg, CheckEntry *chk_en,
 
 static inline ptr_t get_cfg_en_addr (CheckEntry *chk_en, CfgEntry *cfg_en)
 {
-	string tmp_str;
-
-	if (cfg_en->type.on_stack) {
+	if (cfg_en->type.on_stack)
 		chk_en->type.on_stack = true;
-	} else if (cfg_en->type.lib_name) {
-		if (chk_en->type.lib_name)
-			delete[] chk_en->type.lib_name;
-		tmp_str = cfg_en->type.lib_name;
-		chk_en->type.lib_name = to_c_str(&tmp_str);
-	}
+	else if (cfg_en->type.lib_name && !cfg_en->type.lib_name->empty())
+		chk_en->type.lib_name = new string(*cfg_en->type.lib_name);
 	return cfg_en->addr;
 }
 
@@ -401,9 +395,9 @@ start:
 				cfg_parse_err(line, lnr, lidx);
 			tmp_str = parse_value_name(line, lnr, start, false, NULL);
 			if (chk_en)
-				chk_en->type.lib_name = to_c_str(&tmp_str);
+				chk_en->type.lib_name = new string(tmp_str);
 			else
-				cfg_en->type.lib_name = to_c_str(&tmp_str);
+				cfg_en->type.lib_name = new string(tmp_str);
 			cfg = NULL; cfg_en = NULL; chk_en = NULL;
 			goto start;
 		}
@@ -703,10 +697,10 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
  * returns the string at the end of a line
  * returns NULL if there is no string, it is "exe" or contains blanks
  */
-static inline char *parse_pic_lib (string *line, u32 *start)
+static inline string parse_pic_lib (string *line, u32 *start)
 {
 	string tmp_str;
-	char *lib = NULL;
+	string lib;
 
 	if (*start >= line->length())
 		goto out;
@@ -715,7 +709,7 @@ static inline char *parse_pic_lib (string *line, u32 *start)
 	if (tmp_str == "exe" || tmp_str.find(' ') != string::npos ||
 	    tmp_str.find('\t') != string::npos)
 		goto out;
-	lib = to_c_str(&tmp_str);
+	lib = tmp_str;
 out:
 	return lib;
 }
@@ -755,7 +749,7 @@ static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 	grow_enp->code_offs = grow_enp->code_addr;
 	grow_enp->stack_offs =
 		parse_address(NULL, NULL, NULL, line, lnr, start);
-	grow_enp->lib = parse_pic_lib(line, start);
+	grow_enp->lib = new string(parse_pic_lib(line, start));
 	grow_enp->v_msize.clear();
 	dynmem_enp->grow = grow_enp;
 }
@@ -780,7 +774,7 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->stack_offs =
 			parse_address(NULL, NULL, NULL, line, lnr, start);
 		dynmem_enp->cfg_line = lnr;
-		dynmem_enp->lib = parse_pic_lib(line, start);
+		dynmem_enp->lib = new string(parse_pic_lib(line, start));
 	}
 	init_cache(&cache, PTR_MAX);
 	dynmem_enp->cache_list = new list<CacheEntry>;
@@ -835,14 +829,14 @@ do {									\
 	LibEntry lib_en;						\
 									\
 	list_for_each (opt->lib_list, lit) {				\
-		if (lit->name != entry.type.lib_name)			\
+		if (lit->name != *entry.type.lib_name)			\
 			continue;					\
 		entry.type.lib = &(*lit);				\
 		found = true;						\
 		break;							\
 	}								\
 	if (!found) {							\
-		lib_en.name = entry.type.lib_name;			\
+		lib_en.name = *entry.type.lib_name;			\
 		lib_en.start = 0;					\
 		lib_en.is_loaded = false;				\
 		lib_en.skip_val = false;				\
@@ -940,7 +934,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
 				opt->val_on_stack = true;
-			} else if (chk_en.type.lib_name) {
+			} else if (chk_en.type.lib_name && !chk_en.type.lib_name->empty()) {
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
 				FIND_ADD_LIB_ENTRY(chk_en);
@@ -1141,7 +1135,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
 				opt->val_on_stack = true;
-			} else if (cfg_en.type.lib_name) {
+			} else if (cfg_en.type.lib_name && !cfg_en.type.lib_name->empty()) {
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
 				FIND_ADD_LIB_ENTRY(cfg_en);

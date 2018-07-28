@@ -101,7 +101,7 @@ void clear_config (void)
 		if (it->type.is_cstrp)
 			free(it->cstr);
 		if (it->type.lib_name)
-			delete[] it->type.lib_name;
+			delete it->type.lib_name;
 	}
 	// Clean up dynamic/pointer memory config
 	list_for_each (cfg, it) {
@@ -109,7 +109,7 @@ void clear_config (void)
 		PtrMemEntry *ptrmem = it->ptrmem;
 		if (dynmem)
 			CLEANUP_MEM(dynmem,
-				if (dynmem->lib) delete[] dynmem->lib);
+				if (dynmem->lib) delete dynmem->lib);
 		else if (ptrmem)
 			CLEANUP_MEM(ptrmem, ;);
 		// Clean up checks
@@ -117,7 +117,7 @@ void clear_config (void)
 			list<CheckEntry>::iterator chk_it;
 			list_for_each (it->checks, chk_it) {
 				if (chk_it->type.lib_name)
-					delete[] chk_it->type.lib_name;
+					delete chk_it->type.lib_name;
 			}
 			it->checks->clear();
 			delete it->checks;

@@ -879,7 +879,7 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 				dynmem->stack_offs);
 			if (dynmem->lib)
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-					";%s", dynmem->lib);
+					";%s", dynmem->lib->c_str());
 			else
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 						";exe");
@@ -893,7 +893,7 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 				if (grow->lib)
 					pos += snprintf(obuf + pos,
 						sizeof(obuf) - pos,
-						";%s", grow->lib);
+						";%s", grow->lib->c_str());
 				else
 					pos += snprintf(obuf + pos,
 						sizeof(obuf) - pos, ";exe");
