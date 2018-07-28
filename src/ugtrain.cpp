@@ -834,6 +834,7 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 	char obuf[PIPE_BUF] = { 0 };
 	u32 num_cfg = 0, num_cfg_len = 0, pos = 0;
 	ptr_t old_code_addr = 0, old_grow_addr = 0;
+	string *old_lib = NULL;
 	list<CfgEntry>::iterator it;
 #ifdef __linux__
 	size_t written;
@@ -870,8 +871,10 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 		if (!dynmem)
 			continue;
 		grow = dynmem->grow;
-		if ((!grow && (dynmem->code_addr != old_code_addr)) ||
-		    (grow && (grow->code_addr != old_grow_addr))) {
+		if ((!grow && ((dynmem->code_addr != old_code_addr) ||
+			       (dynmem->lib != old_lib))) ||
+		    (grow && ((grow->code_addr != old_grow_addr) ||
+			       (grow->lib != old_lib)))) {
 			num_cfg++;
 			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 				";%lu;" SCN_PTR ";" SCN_PTR, (ulong)
@@ -898,8 +901,10 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 					pos += snprintf(obuf + pos,
 						sizeof(obuf) - pos, ";exe");
 				old_grow_addr = grow->code_addr;
+				old_lib = grow->lib;
 			} else {
 				old_code_addr = dynmem->code_addr;
+				old_lib = dynmem->lib;
 			}
 		}
 	}
