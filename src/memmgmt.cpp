@@ -39,8 +39,6 @@ static void alloc_ptrmem (CfgEntry *cfg_en)
 		if (cfg_en->type.is_cstrp)
 			cstr = (char *) calloc(1, MAX_CSTR + 1);
 		cfg_en->v_cstr.push_back(cstr);
-		if (cstr)
-			free(cstr);
 	}
 }
 
@@ -68,8 +66,6 @@ void alloc_dynmem (list<CfgEntry> *cfg)
 				if (cfg_en->type.is_cstrp)
 					cstr = (char *) calloc(1, MAX_CSTR + 1);
 				cfg_en->v_cstr.push_back(cstr);
-				if (cstr)
-					free(cstr);
 				if (cfg_en->ptrtgt)
 					alloc_ptrmem(cfg_en);
 			}
@@ -89,6 +85,8 @@ static void free_ptrmem (CfgEntry *cfg_en, u32 idx)
 		cfg_en = *it;
 		cfg_en->v_oldval.erase(cfg_en->v_oldval.begin() + idx);
 		cfg_en->v_value.erase(cfg_en->v_value.begin() + idx);
+		if (cfg_en->v_cstr[idx])
+			free(cfg_en->v_cstr[idx]);
 		cfg_en->v_cstr.erase(cfg_en->v_cstr.begin() + idx);
 	}
 }
@@ -119,6 +117,8 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 					+ ov_idx);
 				cfg_en->v_value.erase(cfg_en->v_value.begin()
 					+ ov_idx);
+				if (cfg_en->v_cstr[ov_idx])
+					free(cfg_en->v_cstr[ov_idx]);
 				cfg_en->v_cstr.erase(cfg_en->v_cstr.begin()
 					+ ov_idx);
 				if (cfg_en->ptrtgt)
