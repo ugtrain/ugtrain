@@ -110,35 +110,35 @@ static struct option long_options[] = {
 
 void cleanup_options (Options *opt)
 {
-	list<CacheEntry>::iterator cait;
+	vector<CacheEntry>::iterator cait;
 	list<LibEntry>::iterator lit;
 
 	// Free cache lists first
 	if (!opt->lib_list)
 		goto skip_lib_list;
 	list_for_each (opt->lib_list, lit) {
-		list_for_each (lit->cache_list, cait)
+		vect_for_each (lit->cache_vect, cait)
 			delete[] cait->data;
-		lit->cache_list->clear();
-		delete lit->cache_list;
+		lit->cache_vect->clear();
+		delete lit->cache_vect;
 	}
 	opt->lib_list->clear();
 	delete opt->lib_list;
 skip_lib_list:
-	if (!opt->stack || !opt->stack->cache_list)
+	if (!opt->stack || !opt->stack->cache_vect)
 		goto skip_stack_cache;
-	list_for_each (opt->stack->cache_list, cait)
+	vect_for_each (opt->stack->cache_vect, cait)
 		delete[] cait->data;
-	opt->stack->cache_list->clear();
-	delete opt->stack->cache_list;
+	opt->stack->cache_vect->clear();
+	delete opt->stack->cache_vect;
 	delete opt->stack;
 skip_stack_cache:
-	if (!opt->cache_list)
+	if (!opt->cache_vect)
 		goto skip_statmem_cache;
-	list_for_each (opt->cache_list, cait)
+	vect_for_each (opt->cache_vect, cait)
 		delete[] cait->data;
-	opt->cache_list->clear();
-	delete opt->cache_list;
+	opt->cache_vect->clear();
+	delete opt->cache_vect;
 
 skip_statmem_cache:
 	if (opt->cfg_path)
@@ -183,9 +183,9 @@ static void init_options (Options *opt)
 	opt->disc_lib = new string;
 	opt->dynmem_file = new string(DYNMEM_FILE);
 	opt->adp_script = new string;
-	opt->cache_list = new list<CacheEntry>;
+	opt->cache_vect = new vector<CacheEntry>;
 	opt->stack = new StackOpt;
-	opt->stack->cache_list = new list<CacheEntry>;
+	opt->stack->cache_vect = new vector<CacheEntry>;
 	opt->lib_list = new list<LibEntry>;
 }
 

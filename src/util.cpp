@@ -50,17 +50,17 @@ Globals *get_globals (void)
 #define CLEANUP_MEM(mem_type, code)				\
 do {								\
 	list<CfgEntry>::iterator cfg_it;			\
-	list<CacheEntry>::iterator cait;			\
+	vector<CacheEntry>::iterator cait;			\
 								\
 	list_for_each (cfg, cfg_it) {				\
 		if (cfg_it->mem_type != mem_type)		\
 			continue;				\
 		cfg_it->mem_type = NULL;			\
 	}							\
-	list_for_each (mem_type->cache_list, cait)		\
+	vect_for_each (mem_type->cache_vect, cait)		\
 		delete[] cait->data;				\
-	mem_type->cache_list->clear();				\
-	delete mem_type->cache_list;				\
+	mem_type->cache_vect->clear();				\
+	delete mem_type->cache_vect;				\
 	code;							\
 	delete mem_type;					\
 } while (0)

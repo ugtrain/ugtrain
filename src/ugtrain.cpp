@@ -390,8 +390,8 @@ static void change_memory (pid_t pid, CfgEntry *cfg_en, value_t *buf,
 
 #define WRITE_CACHES(mem_type)					\
 do {								\
-	cache_list = mem_type->cache_list;			\
-	list_for_each (cache_list, cait) {			\
+	cache_vect = mem_type->cache_vect;			\
+	vect_for_each (cache_vect, cait) {			\
 		if (!cait->is_dirty)				\
 			continue;				\
 		cait->is_dirty = false;				\
@@ -403,8 +403,8 @@ do {								\
 
 #define INVALIDATE_CACHES(mem_type)				\
 do {								\
-	cache_list = mem_type->cache_list;			\
-	list_for_each (cache_list, cait)			\
+	cache_vect = mem_type->cache_vect;			\
+	vect_for_each (cache_vect, cait)			\
 		cait->start = PTR_MAX;				\
 } while (0)
 
@@ -432,8 +432,8 @@ static void process_ptrmem (pid_t pid, CfgEntry *cfg_en, value_t *buf, u32 mem_i
 		return;
 
 	if (buf->ptr == value->ptr) {
-		list<CacheEntry> *cache_list;
-		list<CacheEntry>::iterator cait;
+		vector<CacheEntry> *cache_vect;
+		vector<CacheEntry>::iterator cait;
 		list<CheckEntry> *chk_lp = cfg_en->checks;
 
 		if (chk_lp) {
@@ -530,8 +530,8 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 {
 	value_t _buf, *buf = &_buf;
 	list<CfgEntry*>::iterator it;
-	list<CacheEntry> *cache_list;
-	list<CacheEntry>::iterator cait;
+	vector<CacheEntry> *cache_vect;
+	vector<CacheEntry>::iterator cait;
 	CfgEntry *cfg_en;
 	vector<ptr_t> *mvec = &dynmem->v_maddr;
 	ptr_t mem_addr, mem_offs;
@@ -592,8 +592,8 @@ static void process_act_cfg (Options *opt, pid_t pid, list<CfgEntry*> *cfg_act)
 	CfgEntry *cfg_en;
 	DynMemEntry *old_dynmem = NULL;
 	list<LibEntry>::iterator lit;
-	list<CacheEntry> *cache_list;
-	list<CacheEntry>::iterator cait;
+	vector<CacheEntry> *cache_vect;
+	vector<CacheEntry>::iterator cait;
 	value_t _buf, *buf = &_buf;
 	ptr_t mem_addr, mem_offs = 0;
 	i32 ret;
