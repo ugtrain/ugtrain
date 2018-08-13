@@ -50,20 +50,20 @@ typedef enum {
 #define ASSIGN_CACHE(mem_type, entry, data_type)		\
 do {								\
 	entry = (data_type) ait->element;			\
-	entry->cache = &ait->mem_type->cache_vect->back();	\
+	entry->cache = &ait->mem_type->cache_list->back();	\
 	entry->cache_data = PTR_ADD(void *, entry->cache->data,	\
 		(entry->addr - entry->cache->offs));		\
 } while (0)
 
 #define BUILD_CACHE(mem_type)						\
 do {									\
-	offs_min = ait->mem_type->cache_vect->back().offs + MEM_CHUNK;	\
+	offs_min = ait->mem_type->cache_list->back().offs + MEM_CHUNK;	\
 	if (ait->addr + ait->size > offs_min)				\
 		offs_min = ait->addr;					\
 	if (ait->addr >= offs_min) {					\
 		/* init and add a new cache entry */			\
 		init_cache(&cache, ait->addr);				\
-		ait->mem_type->cache_vect->push_back(cache);		\
+		ait->mem_type->cache_list->push_back(cache);		\
 	}								\
 	if (!ait->is_check)						\
 		ASSIGN_CACHE(mem_type, cfg_en, CfgEntry *);		\
@@ -777,8 +777,8 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->lib = new string(parse_pic_lib(line, start));
 	}
 	init_cache(&cache, PTR_MAX);
-	dynmem_enp->cache_vect = new vector<CacheEntry>;
-	dynmem_enp->cache_vect->push_back(cache);
+	dynmem_enp->cache_list = new list<CacheEntry>;
+	dynmem_enp->cache_list->push_back(cache);
 	dynmem_enp->grow = NULL;
 	dynmem_enp->v_maddr.clear();
 }
@@ -841,8 +841,8 @@ do {									\
 		lib_en.is_loaded = false;				\
 		lib_en.skip_val = false;				\
 		init_cache(&cache_en, PTR_MAX);				\
-		lib_en.cache_vect = new vector<CacheEntry>;		\
-		lib_en.cache_vect->push_back(cache_en);			\
+		lib_en.cache_list = new list<CacheEntry>;		\
+		lib_en.cache_list->push_back(cache_en);			\
 		opt->lib_list->push_back(lib_en);			\
 		entry.type.lib = &opt->lib_list->back();		\
 	}								\
@@ -851,14 +851,14 @@ do {									\
 #define FIND_CACHE_START_CHECK(mem_type)				\
 do {									\
 	if (!chk_en.cfg_ref &&						\
-	    chk_en.addr < mem_type->cache_vect->back().offs)		\
-		mem_type->cache_vect->back().offs = chk_en.addr;	\
+	    chk_en.addr < mem_type->cache_list->back().offs)		\
+		mem_type->cache_list->back().offs = chk_en.addr;	\
 } while (0)
 
 #define FIND_CACHE_START(mem_type)					\
 do {									\
-	if (cfg_en.addr < mem_type->cache_vect->back().offs)		\
-		mem_type->cache_vect->back().offs = cfg_en.addr;	\
+	if (cfg_en.addr < mem_type->cache_list->back().offs)		\
+		mem_type->cache_list->back().offs = cfg_en.addr;	\
 } while (0)
 
 void read_config (Options *opt, vector<string> *cfg_lines)
@@ -881,11 +881,11 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 
 	// init static memory cache
 	init_cache(&cache_en, PTR_MAX);
-	opt->cache_vect->push_back(cache_en);
+	opt->cache_list->push_back(cache_en);
 
 	// init stack memory cache
 	init_cache(&cache_en, PTR_MAX);
-	opt->stack->cache_vect->push_back(cache_en);
+	opt->stack->cache_list->push_back(cache_en);
 
 	// read config into string vector
 	read_config_vect(opt->cfg_path, opt->home, cfg_lines);
@@ -1018,8 +1018,8 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			ptrmem_enp->mem_size = parse_u32_value(&line, lnr,
 				&start);
 			init_cache(&cache, PTR_MAX);
-			ptrmem_enp->cache_vect = new vector<CacheEntry>;
-			ptrmem_enp->cache_vect->push_back(cache);
+			ptrmem_enp->cache_list = new list<CacheEntry>;
+			ptrmem_enp->cache_list->push_back(cache);
 			break;
 
 		case NAME_PTRMEM_END:

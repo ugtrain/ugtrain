@@ -219,13 +219,13 @@ void output_config_act (list<CfgEntry*> *cfg_act)
 
 #define OUTPUT_CACHE(mem_type)						\
 do {									\
-	vector<CacheEntry> *cache_vect = mem_type->cache_vect;		\
-	vector<CacheEntry>::iterator it;				\
+	list<CacheEntry> *cache_list = mem_type->cache_list;		\
 	CacheEntry *cache;						\
+	list<CacheEntry>::iterator it;					\
 									\
-	if (cache_vect->front().offs != PTR_MAX) {			\
+	if (cache_list->front().offs != PTR_MAX) {			\
 		cout << " (caches at:";					\
-		vect_for_each (cache_vect, it) {			\
+		list_for_each (cache_list, it) {			\
 			cache = &(*it);					\
 			if (!cache)					\
 				continue;				\

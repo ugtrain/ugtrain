@@ -40,7 +40,7 @@ class LibEntry {
 public:
 	string name;
 	ptr_t start;      // library load address
-	vector<CacheEntry> *cache_vect;
+	list<CacheEntry> *cache_list;
 	// late PIC handling
 	bool is_loaded;   // for not changing offsets again
 	bool skip_val;    // for skipping 1 cycle value output
@@ -83,7 +83,7 @@ public:
 	u32 pr_idx;                   // object print index
 
 	// caching
-	vector<CacheEntry> *cache_vect; // object cache vector
+	list<CacheEntry> *cache_list; // object cache list
 
 	// adaptation
 	u32 adp_size;                 // adapted object size
@@ -110,7 +110,7 @@ public:
 	vector<ptr_t> v_offs;
 
 	// caching
-	vector<CacheEntry> *cache_vect; // object cache vector
+	list<CacheEntry> *cache_list; // object cache list
 };
 
 

@@ -102,8 +102,8 @@ checks:
 	}
 
 	// clear dirty flags again
-	vector<CacheEntry>::iterator cait;
-	vect_for_each (opt->cache_vect, cait)
+	list<CacheEntry>::iterator cait;
+	list_for_each (opt->cache_list, cait)
 		cait->is_dirty = false;
 }
 
@@ -150,9 +150,9 @@ checks:
 
 	// clear dirty flags again
 	list<LibEntry>::iterator lit;
-	vector<CacheEntry>::iterator cait;
+	list<CacheEntry>::iterator cait;
 	list_for_each (opt->lib_list, lit) {
-		vect_for_each (lit->cache_vect, cait) {
+		list_for_each (lit->cache_list, cait) {
 			if (cait->is_dirty) {
 				lit->is_loaded = true;
 				if (late_pic)

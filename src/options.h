@@ -15,7 +15,6 @@
 #define OPTIONS_H
 
 #include <list>
-#include <vector>
 #include <string>
 
 /* local includes */
@@ -35,7 +34,7 @@ struct list_head;
 
 class StackOpt {
 public:
-	vector<CacheEntry> *cache_vect;  // caching stack memory
+	list<CacheEntry> *cache_list;  // caching stack memory
 };
 
 class Options {
@@ -78,7 +77,7 @@ public:
 	list<CfgEntry>		*cfg;
 	list<CfgEntry*>		*cfg_act;
 	list<CfgEntry*>		**cfgp_map;
-	vector<CacheEntry>	*cache_vect;	// caching static memory
+	list<CacheEntry>	*cache_list;	// caching static memory
 	list<LibEntry>		*lib_list;	// handling statmem in libraries
 	StackOpt		*stack;
 	// options for testing
