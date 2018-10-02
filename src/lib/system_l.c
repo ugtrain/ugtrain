@@ -71,65 +71,52 @@ err:
  */
 enum pstate check_process (pid_t pid, const char *proc_name)
 {
-	char pbuf[PIPE_BUF] = { 0 };
-	DIR *dir;
-	const char *cmd;
-	char *pname;
-	char cmd_str[1024] = "/proc/";
-	i32 pr_len, cmd_len = sizeof("/proc/") - 1;
+	FILE *fp = NULL;
+	char *line = NULL;
+	size_t alloc_len = 0;
+	u32 lnr = 0;
+	char status = '\0';
+	char path_str[1024] = "/proc/";
+	i32 pr_len, path_len = sizeof("/proc/") - 1;
 
-	/* append pid and check if dir exists */
-	pr_len = sprintf((cmd_str + cmd_len), "%d", pid);
+	/* append $pid/status and check if file exists */
+	pr_len = sprintf((path_str + path_len), "%d/status", pid);
 	if (pr_len <= 0)
 		goto err;
-	cmd_len += pr_len;
-	dir = opendir(cmd_str);
-	if (!dir) {
+	path_len += pr_len;
+	fp = fopen(path_str, "r");
+	if (!fp) {
 		if (errno != ENOENT)
 			goto err;
 		else
 			return PROC_DEAD;
-	} else {
-		closedir(dir);
 	}
 
-	/* insert 'cat ' */
-	pr_len = sizeof("cat ") - 1;
-	memmove(cmd_str + pr_len, cmd_str, cmd_len);
-	pr_len = sprintf(cmd_str, "cat %s", (cmd_str + pr_len));
-        if (pr_len <= 0)
-		goto err;
-	cmd_len = pr_len;
+	/* read process name and status */
+	while (getline(&line, &alloc_len, fp) != -1) {
+		if (lnr == 0 && alloc_len > sizeof("Name:\t")) {
+			char *pname = NULL;
+			/* remove "Name:\t" prefix and trailing newline */
+			pname = &line[sizeof("Name:\t") - 1];
+			pname[strlen(pname) - 1] = '\0';
+			if (proc_name && strncmp(pname, proc_name, 15) != 0)
+				return PROC_WRONG;
+		} else if (lnr == 1 && alloc_len > sizeof("State:\t")) {
+			status = line[sizeof("State:\t") - 1];
+		} else {
+			break;
+		}
+		lnr++;
+	}
+	if (line)
+		free(line);
+	fclose(fp);
 
-	/* check process name from 'status' file */
-	pr_len = sprintf((cmd_str + cmd_len),
-		"/status | sed -n 1p | sed \'s/Name:	//g\' | tr -d \'\n\'");
-	if (pr_len <= 0)
-		goto err;
-	cmd = cmd_str;
-
-	/* run the shell cmd */
-	if (run_cmd_pipe(cmd, NULL, pbuf, sizeof(pbuf)) <= 0)
-		goto err;
-	pname = pbuf;
-	if (proc_name && strncmp(pname, proc_name, 15) != 0)
-		return PROC_WRONG;
-
-	/* remove '/status' + shell cmds, append '/status' + shell cmds */
-	memset(cmd_str + cmd_len, 0, pr_len);
-	pr_len = sprintf((cmd_str + cmd_len),
-		"/status | sed -n 2p | sed \'s/State:	//g\'");
-	if (pr_len <= 0)
-		goto err;
-	cmd = cmd_str;
-
-	/* reset pipe buffer and run the shell cmd */
-	memset(pbuf, 0, sizeof(pbuf));
-	if (run_cmd_pipe(cmd, NULL, pbuf, sizeof(pbuf)) <= 0)
+	if (status < 'A' || status > 'Z')
 		goto err;
 
 	/* zombies are not running - parent doesn't wait */
-	if (pbuf[0] == 'Z')
+	if (status == 'Z' || status == 'X')
 		return PROC_ZOMBIE;
 	return PROC_RUNNING;
 err:
