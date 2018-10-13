@@ -76,7 +76,7 @@ enum pstate check_process (pid_t pid, const char *proc_name)
 	size_t alloc_len = 0;
 	u32 lnr = 0;
 	char status = '\0';
-	char path_str[1024] = "/proc/";
+	char path_str[128] = "/proc/";
 	i32 pr_len, path_len = sizeof("/proc/") - 1;
 
 	/* append $pid/status and check if file exists */
