@@ -74,10 +74,10 @@ enum pstate check_process (pid_t pid, const char *proc_name)
 	FILE *fp = NULL;
 	char *line = NULL;
 	size_t alloc_len = 0;
-	u32 lnr = 0;
 	char status = '\0';
 	char path_str[128] = "/proc/";
 	i32 pr_len, path_len = sizeof("/proc/") - 1;
+	enum pstate ret = PROC_ERR;
 
 	/* append $pid/status and check if file exists */
 	pr_len = sprintf((path_str + path_len), "%d/status", pid);
@@ -94,24 +94,28 @@ enum pstate check_process (pid_t pid, const char *proc_name)
 
 	/* read process name and status */
 	while (getline(&line, &alloc_len, fp) != -1) {
-		if (lnr == 0 && alloc_len > sizeof("Name:\t")) {
+		if (alloc_len > sizeof("Name:\t") &&
+		    strncmp(line, "Name:\t", sizeof("Name:\t") - 1) == 0) {
 			char *pname = NULL;
 			/* remove "Name:\t" prefix and trailing newline */
 			pname = &line[sizeof("Name:\t") - 1];
 			pname[strlen(pname) - 1] = '\0';
-			if (proc_name && strncmp(pname, proc_name, 15) != 0)
-				return PROC_WRONG;
-		} else if (lnr == 1 && alloc_len > sizeof("State:\t")) {
+			if (proc_name && strncmp(pname, proc_name, 15) != 0) {
+				ret = PROC_WRONG;
+				break;
+			}
+		} else if (alloc_len > sizeof("State:\t") &&
+		    strncmp(line, "State:\t", sizeof("State:\t") - 1) == 0) {
 			status = line[sizeof("State:\t") - 1];
-		} else {
 			break;
 		}
-		lnr++;
 	}
 	if (line)
 		free(line);
 	fclose(fp);
 
+	if (ret == PROC_WRONG)
+		return ret;
 	if (status < 'A' || status > 'Z')
 		goto err;
 
