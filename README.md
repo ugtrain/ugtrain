@@ -1,4 +1,7 @@
-## Description
+## ugtrain - Universal Game Trainer
+
+[![Build status](https://travis-ci.com/ugtrain/ugtrain.svg?branch=master)](https://travis-ci.com/ugtrain/ugtrain)
+[![Coverity Status](https://scan.coverity.com/projects/6376/badge.svg?flat=1)](https://scan.coverity.com/projects/ugtrain)
 
 The ugtrain (say You-Gee-train) is an advanced free and universal game trainer for
 the command line under GPLv3 license. It is a research project and a tool for
