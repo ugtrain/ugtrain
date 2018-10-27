@@ -2,6 +2,7 @@ Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache
+compile
 config.guess
 config.log
 config.status
@@ -22,3 +23,6 @@ m4
 missing
 src/ugtrain
 src/tools/ugsimfind
+src/tools/ugptrfind
+src/lib/.dirstamp
+tags
