@@ -1,6 +1,6 @@
 /* libmemdisc.c:    discovery of a unique malloc call
  *
- * Copyright (c) 2012..2016 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -270,8 +270,6 @@ void __attribute ((constructor)) memdisc_init (void)
 	char *iptr = ibuf, *pos;
 	size_t buf_left = sizeof(ibuf) - 1;
 	char gbt_buf[sizeof(GBT_CMD)] = { 0 };
-	void *heap_ptr;
-	ptr_t heap_start = 0;
 
 #if USE_DEBUG_LOG
 	if (!DBG_FILE_VAR) {
@@ -302,16 +300,6 @@ void __attribute ((constructor)) memdisc_init (void)
 		return;
 
 	pr_out("Stack end:  %p\n", __libc_stack_end);
-	/*
-	 * We can only do this safely as (active == false).
-	 * Set no_hook to true to prevent malloc recursion.
-	 */
-	heap_ptr = malloc(1);
-	if (heap_ptr) {
-		heap_start = (ptr_t) heap_ptr;
-		pr_out("Heap start: " PRI_PTR "\n", heap_start);
-		free(heap_ptr);
-	}
 
 	if (ifd >= 0)
 		goto out;
@@ -513,8 +501,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	}
 	pr_dbg("new cfg: %d;%zd;" PRI_PTR "\n", stage, malloc_size, code_addr);
 
-	/* Send out the heap start and stack end */
-	fprintf(ofile, "h" PRI_PTR "\n", heap_start);
+	/* Send out the stack end */
 	fprintf(ofile, "S" PRI_PTR "\n", stack_end);
 	active = true;
 out:
