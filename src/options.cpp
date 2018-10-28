@@ -23,7 +23,7 @@
 #include <util.h>
 
 
-#define DYNMEM_FILE "/tmp/memhack_file"
+#define DYNMEM_FILE "/tmp/memdisc_file"
 
 void do_assumptions (Options *opt)
 {

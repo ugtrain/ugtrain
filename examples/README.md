@@ -45,7 +45,7 @@ and this is the optional config entry to set them.
 
 ### [ dynmemfile AbsoluteFilePath ]
 
-Sometimes `/tmp/memhack_file` containing all memory allocations recorded during
+Sometimes `/tmp/memdisc_file` containing all memory allocations recorded during
 dynamic memory discovery is too big for tmpfs. Then it has to be moved to a
 different location. This is especially required for embedded systems and
 smartphones.
