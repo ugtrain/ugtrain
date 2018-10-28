@@ -73,7 +73,7 @@ struct post_parse {
 };
 
 #define MF_PARAMS \
-	list<CfgEntry> *cfg, struct post_parse *pp, ptr_t heap_start, \
+	list<CfgEntry> *cfg, struct post_parse *pp, \
 	ptr_t mem_addr, size_t mem_size, ptr_t code_offs, ptr_t code_addr, \
 	ptr_t stack_offs
 

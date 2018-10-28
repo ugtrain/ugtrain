@@ -155,7 +155,6 @@ static void process_disc1234_malloc (MF_PARAMS)
 		cout << "m0x" << hex << mem_addr << dec << ";" << "s"
 		     << mem_size << " contains 0x" << hex << in_addr
 		     << ", offs: 0x" << in_addr - mem_addr
-		     << ", heap offs: 0x" << mem_addr - heap_start
 		     << dec << endl;
 
 		switch (stage) {

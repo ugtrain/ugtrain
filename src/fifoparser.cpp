@@ -27,7 +27,6 @@ ssize_t parse_dynmem_buf (list<CfgEntry> *cfg, void *argp, char *ibuf,
 			  ssize_t *ilen, ssize_t tmp_ilen, i32 pmask,
 			  bool reverse, ptr_t code_offs, struct parse_cb *pcb)
 {
-	static ptr_t heap_start = 0;
 	ptr_t mem_addr = 0, code_addr = 0, stack_offs = 0, stack_end = 0;
 	ulong mem_size = 0;
 	char *msg_start = ibuf, *msg_end = ibuf, *pstart = ibuf, *sep_pos = ibuf;
@@ -114,7 +113,7 @@ skip_o:
 		pp.argp = argp;
 
 		// call post parsing function
-		pcb->mf(cfg, &pp, heap_start, mem_addr, mem_size,
+		pcb->mf(cfg, &pp, mem_addr, mem_size,
 			code_offs, code_addr, stack_offs);
 		break;
 	case 'f':
@@ -138,11 +137,6 @@ skip_o:
 
 		// call post parsing function
 		pcb->lf(argp, &lib_name);
-		break;
-	case 'h':
-		pstart++;
-		if (sscanf(pstart, SCN_PTR, &heap_start) != 1)
-			goto parse_err;
 		break;
 	case 'S':
 		if (!pcb || !pcb->sf)
@@ -184,32 +178,15 @@ parse_err:
 ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 			 bool reverse, ptr_t code_offs, struct parse_cb *pcb)
 {
-	static ptr_t heap_start = 0;
 	static ssize_t ilen = 0;
 	ssize_t tmp_ilen;
 	static char ibuf[PIPE_BUF] = { 0 };
 	size_t max_read = sizeof(ibuf) - 1 - ilen;   // always '\0' at end
 	char *istart = ibuf + ilen;
-	char scan_ch;
 	static off_t fd_offs = REVERSE_FST;
 
 	if (reverse) {
 		if (fd_offs == REVERSE_FST) {
-			// read heap start from file first
-			tmp_ilen = read(ifd, ibuf, max_read);
-			if (tmp_ilen <= 0) {
-				tmp_ilen = 0;
-				if (argp)
-					return -1;
-			}
-			if (sscanf(ibuf, "%c", &scan_ch) != 1)
-				goto parse_err;
-			if (scan_ch == 'h') {
-				if (sscanf(ibuf + 1, SCN_PTR, &heap_start) != 1)
-					goto parse_err;
-			}
-			// clear buffer again
-			memset(ibuf, 0, tmp_ilen);
 			// set file pointer to file end
 			fd_offs = lseek(ifd, 0, SEEK_END);
 		}
@@ -244,10 +221,4 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 		return -1;
 
 	return tmp_ilen;
-parse_err:
-	ugerr << "parse error at ppos: 0" << endl;
-	cerr << ibuf;
-	memset(ibuf, 0, sizeof(ibuf));
-	ilen = 0;
-	return 0;
 }
