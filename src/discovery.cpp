@@ -139,8 +139,11 @@ static void process_disc1234_malloc (MF_PARAMS)
 	Options *opt = dpp->opt;
 	struct list_head *rlist = dpp->rlist;
 	char stage = opt->disc_str->at(0);
+	ptr_t obj_offs = 0;
 	ptr_t codes[MAX_BT] = { 0 };
 	ptr_t soffs[MAX_BT] = { 0 };
+	ptr_t cfg_code = 0, cfg_offs = 0;
+	string cfg_binname;
 	char *sep_pos;
 	i32 i, ret, num_codes = 0;
 	static u32 matches_left = MAX_MATCHES;
@@ -152,10 +155,10 @@ static void process_disc1234_malloc (MF_PARAMS)
 			return;
 		matches_left--;
 
+		obj_offs = in_addr - mem_addr;
 		cout << "m0x" << hex << mem_addr << dec << ";" << "s"
 		     << mem_size << " contains 0x" << hex << in_addr
-		     << ", offs: 0x" << in_addr - mem_addr
-		     << dec << endl;
+		     << ", offs: 0x" << obj_offs << dec << endl;
 
 		switch (stage) {
 		case '3':
@@ -210,10 +213,15 @@ static void process_disc1234_malloc (MF_PARAMS)
 					disassemble_file(&bin_path, &dasm_fpath);
 				rbytes = code_addr_to_func_name(codes[i],
 					&dasm_fpath, pbuf, sizeof(pbuf));
+				if (rbytes > 0 && !cfg_code) {
+					cfg_code = codes[i];
+					cfg_offs = soffs[i];
+					cfg_binname = bin_name;
+				}
 			}
 			// output one call from backtrace
 			if (!bin_name.empty()) {
-				cout << "c0x" << hex << codes[i];
+				cout << "  c0x" << hex << codes[i] << dec;
 				if (stage == '4')
 					cout << ";o0x" << hex << soffs[i]
 					     << dec;
@@ -222,6 +230,20 @@ static void process_disc1234_malloc (MF_PARAMS)
 			// cleanup pipe buffer
 			if (rbytes > 0)
 				memset(pbuf, 0, rbytes);
+		}
+		// propose a config template if libc malloc function detected
+		if (cfg_code) {
+			cout << "------------------------------" << endl;
+			cout << "dynmemstart ClassName " << mem_size << " 0x"
+			     << hex << cfg_code << " 0x" << cfg_offs
+			     << dec;
+			if (cfg_binname != *opt->proc_name)
+				cout << " " << cfg_binname;
+			cout << endl;
+			cout << "ValueName 0x" << hex << obj_offs << dec
+			     << " i32 watch" << endl;
+			cout << "dynmemend" << endl;
+			cout << "------------------------------" << endl;
 		}
 	}
 }
