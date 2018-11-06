@@ -183,10 +183,31 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 	static char ibuf[PIPE_BUF] = { 0 };
 	size_t max_read = sizeof(ibuf) - 1 - ilen;   // always '\0' at end
 	char *istart = ibuf + ilen;
+	char scan_ch;
+	ptr_t stack_end = 0;
 	static off_t fd_offs = REVERSE_FST;
 
 	if (reverse) {
 		if (fd_offs == REVERSE_FST) {
+			// read stack end from file first
+			tmp_ilen = read(ifd, ibuf, max_read);
+			if (tmp_ilen <= 0) {
+				tmp_ilen = 0;
+				if (argp)
+					return -1;
+			}
+			if (sscanf(ibuf, "%c", &scan_ch) != 1)
+				goto parse_err;
+			if (scan_ch == 'S') {
+				if (sscanf(ibuf + 1, SCN_PTR, &stack_end) != 1)
+					goto parse_err;
+			}
+			if (pcb && pcb->sf && stack_end) {
+				// call post parsing function
+				pcb->sf(cfg, argp, stack_end);
+			}
+			// clear buffer again
+			memset(ibuf, 0, tmp_ilen);
 			// set file pointer to file end
 			fd_offs = lseek(ifd, 0, SEEK_END);
 		}
@@ -221,4 +242,10 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 		return -1;
 
 	return tmp_ilen;
+parse_err:
+	ugerr << "parse error at ppos: 0" << endl;
+	cerr << ibuf;
+	memset(ibuf, 0, sizeof(ibuf));
+	ilen = 0;
+	return 0;
 }

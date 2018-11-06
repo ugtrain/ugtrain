@@ -514,7 +514,7 @@ i32 prepare_discovery (Options *opt)
 	stage = disc_part[0];
 	switch (stage) {
 	case '0':
-		// just get stack end and heap start
+		// just get stack end
 		*opt->disc_str = "0";
 		opt->disc_offs = 0;
 		break;
