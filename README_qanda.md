@@ -54,4 +54,4 @@ allocates. But pointer following has its advantages if used from within a known
 dynamic memory object. This way, ugtrain can keep track of the relation between
 the memory objects.
 
-See [Dynamic Memory Cheating Documentation](doc/ugtrain-dynmem.txt) for details.
+See [Dynamic Memory Cheating Documentation](doc/ugtrain-dynmem.md) for details.

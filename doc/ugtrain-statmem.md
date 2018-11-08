@@ -271,7 +271,7 @@ Power at 0x7fcddcd22d44, Data: 0x1388 (5000)
 
 **heap**
 
-See: [Dynamic Memory Cheating Documentation](./ugtrain-dynmem.txt)
+See: [Dynamic Memory Cheating Documentation](./ugtrain-dynmem.md)
 
 An unpreferred alternative is [Pointer Following](#pointer-following).
 
@@ -351,6 +351,8 @@ the stack end with the dynamic memory cheating and discovery methods. During
 discovery, the stack address from scanmem is matched against the stack region
 and subtracted from the recorded stack end. So we get a forward stack offset
 for the config.
+
+See also: [Dynamic Memory Cheating: Stack Values](ugtrain-dynmem.md#stack-values)
 
 An example is the `Credits` value in the game `endless-sky`:
 ```

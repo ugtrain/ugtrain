@@ -279,7 +279,8 @@ Dynamic memory cheating always needs preloading (-P option). Ugtrain runs
 the game as regular user with it. Here, only the code address in the binary
 where "malloc" is called remains static. We have to find it and its location
 on the stack with information from inside the game process.
-See doc/ugtrain-dynmem.txt how to discover and adapt it to other versions.
+See [Dynamic Memory Cheating Documentation](../doc/ugtrain-dynmem.md) how to discover
+and adapt it to other versions.
 
 ### $ ugtrain -P [lib] \<config\>
 

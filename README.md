@@ -28,7 +28,7 @@ For **further documentation** see:
 
 * [Questions and Answers](README_qanda.md)
 * [Static Memory Cheating Documentation](doc/ugtrain-statmem.md)
-* [Dynamic Memory Cheating Documentation](doc/ugtrain-dynmem.txt)
+* [Dynamic Memory Cheating Documentation](doc/ugtrain-dynmem.md)
 * [Config Syntax Description](examples/README.md)
 * [Development TODOs](TODO)
 
