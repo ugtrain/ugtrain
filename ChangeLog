@@ -17,7 +17,7 @@
 * adapt mem_size, game_binpath and proc_name
 * conversion of documentation to Markdown
 * improvements in documentation (e.g. added images)
-* many more configs (most of them without adaption)
+* many more configs (most of them without adaptation)
 * anti-abuse implementation
 * license change to GPLv3
 
@@ -32,7 +32,7 @@
 * added float support
 * added dynamic wish value support (min, max, from addr, ...)
 * added dynamic memory support for Linux (hooking malloc, calloc, free)
-* implemented dynmem discovery, object dump and adaption
+* implemented dynmem discovery, object dump and adaptation
 * implemented multiple object cheating support
 * added Chromium B.S.U. and Warzone 2100 examples
 * added Cube 2: Sauerbraten example (experimental)
@@ -49,6 +49,6 @@
 * implemented compilation by autotools
 * config parsing implemented
 * lookup PID by process name implemented
-* locking of static memory values supported
+* freezing of static memory values supported
 * universal memory checks supported
 * nonblocking getch for activation toggling by key press
