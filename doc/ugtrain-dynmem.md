@@ -22,6 +22,8 @@ You should have read the
 
 ### Basics
 
+![libmemhack handling](../img/libmemhack.png)
+
 Dynamic memory cheating with ugtrain usually requires a preloader which loads a
 memory hacking library into the game process. Ugtrain has a preloader feature
 (`-P`) and `libmemhack` for that. The library gets the code addresses of unique
