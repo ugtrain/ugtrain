@@ -60,6 +60,8 @@ offset with the config. If it matches, it sends the code and the memory address
 in-memory config to be used for the free() hook. Only memory addresses are
 compared there in order to find a free() which is relevant to be reported.
 
+![libmemhack memory](../img/libmemhack_memory.png)
+
 The in-memory config is stored as an array of config entries on the heap. An
 array of memory addresses of the currently allocated objects is part of a
 config entry. It grows dynamically with a size-doubling allocator with a mutex
