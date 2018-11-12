@@ -327,7 +327,7 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 				continue;
 			grow = dynmem->grow;
 			old_dynmem = dynmem;
-			if (!dynmem->lib)
+			if (!dynmem->lib || dynmem->lib->empty())
 				code_offs = exe_offs;
 			else
 				find_lib_region(rlist, dynmem->lib, &code_offs,
@@ -336,7 +336,7 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 				PRI_PTR ";", code_offs);
 			dynmem->code_addr += code_offs;
 			if (grow) {
-				if (!grow->lib)
+				if (!grow->lib || grow->lib->empty())
 					code_offs = exe_offs;
 				else
 					find_lib_region(rlist, grow->lib,
