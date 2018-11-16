@@ -31,6 +31,10 @@ if [ $RC -ne 0 ]; then
     # try 0.0.20130203.dfsg or 0.0.20140302-1
     MSIZE="$MSIZE2"
     get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE," 7 31 23
+    if [ $RC -ne 0 ]; then
+        # try 0.0.20140302-1 on Bionic
+        get_malloc_code "$APP_PATH" "\<malloc@plt\>" "$MSIZE," 8 44 35
+    fi
 fi
 if [ $RC -ne 0 ]; then exit 1; fi
 

@@ -12,7 +12,6 @@ fi
 
 PATH_RESULT=""
 CODE=""
-OLD_FNAME=""
 FUNC_CALLS=""
 
 pr_dbg()
@@ -93,12 +92,9 @@ get_malloc_code()
         CODE=`objdump -D "$app_path"`
         pr_dbg "\$CODE contains `wc -l <<< $CODE` lines."
     fi
-    if [ "$OLD_FNAME" != "$fname" ]; then
-        pr_dbg "FUNC_LINES=\`grep \"$fname\" -B $blines -A 1 <<< \$CODE\`"
-        FUNC_CALLS=`grep "$fname" -B $blines -A 1 <<< $CODE`
-        pr_dbg "\$FUNC_CALLS contains `wc -l <<< $FUNC_CALLS` lines."
-        OLD_FNAME="$fname"
-    fi
+    pr_dbg "FUNC_LINES=\`grep \"$fname\" -B $blines -A 1 <<< \$CODE\`"
+    FUNC_CALLS=`grep "$fname" -B $blines -A 1 <<< $CODE`
+    pr_dbg "\$FUNC_CALLS contains `wc -l <<< $FUNC_CALLS` lines."
     pr_dbg "CODE_PART=\`grep -A $alines $msize <<< \$FUNC_CALLS\`"
     CODE_PART=`grep -A $alines "$msize" <<< $FUNC_CALLS`
     pr_dbg "\$CODE_PART contains `wc -l <<< $CODE_PART` lines ($explines expected)."
