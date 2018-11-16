@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Tested with: sauerbraten 0.0.20100728.dfsg, 0.0.20130203.dfsg, 0.0.20140302-1
 

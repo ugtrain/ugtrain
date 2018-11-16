@@ -60,15 +60,15 @@ get_func_addr()
     func="$2"
     RC=0
 
-    pr_dbg "objdump -R $app_path | grep $func@  | cut -d ' ' -f1"
-    FUNC_ADDR=`objdump -R "$app_path" | grep $func@ | cut -d ' ' -f1`
+    pr_dbg "objdump -R \"$app_path\" | grep \"$func@\"  | cut -d ' ' -f1"
+    FUNC_ADDR=`objdump -R "$app_path" | grep "$func@" | cut -d ' ' -f1`
     pr_dbg "FUNC_ADDR: $FUNC_ADDR"
-    pr_dbg "echo $FUNC_ADDR | grep -o [1-9a-f].*"
-    FUNC_ADDR=`echo $FUNC_ADDR | grep -o [1-9a-f].*`
+    pr_dbg "echo $FUNC_ADDR | grep -o \"[1-9a-f].*\""
+    FUNC_ADDR=`echo $FUNC_ADDR | grep -o "[1-9a-f].*"`
     pr_dbg "FUNC_ADDR: $FUNC_ADDR"
 
-    pr_dbg "objdump -D $app_path | grep \"# $FUNC_ADDR <\" | cut -d ':' -f1 | grep -o [0-9a-f].*"
-    FUNC_ADDR=`objdump -D "$app_path" | grep "# $FUNC_ADDR <" | cut -d ':' -f1 | grep -o [0-9a-f].*`
+    pr_dbg "objdump -D \"$app_path\" | grep \"# $FUNC_ADDR <\" | cut -d ':' -f1 | grep -o \"[0-9a-f].*\""
+    FUNC_ADDR=`objdump -D "$app_path" | grep "# $FUNC_ADDR <" | cut -d ':' -f1 | grep -o "[0-9a-f].*"`
     pr_dbg "FUNC_ADDR: $FUNC_ADDR"
 }
 
@@ -89,16 +89,19 @@ get_malloc_code()
 
     IFS=`printf '\n+'`
     if [ -z "$CODE" ]; then
-        pr_dbg "objdump -D $app_path"
+        pr_dbg "CODE=\`objdump -D \"$app_path\"\`"
         CODE=`objdump -D "$app_path"`
+        pr_dbg "\$CODE contains `wc -l <<< $CODE` lines."
     fi
     if [ "$OLD_FNAME" != "$fname" ]; then
-        pr_dbg "echo \$CODE | grep $fname -B $blines -A 1"
-        FUNC_CALLS=`echo "$CODE" | grep "$fname" -B $blines -A 1`
+        pr_dbg "FUNC_LINES=\`grep \"$fname\" -B $blines -A 1 <<< \$CODE\`"
+        FUNC_CALLS=`grep "$fname" -B $blines -A 1 <<< $CODE`
+        pr_dbg "\$FUNC_CALLS contains `wc -l <<< $FUNC_CALLS` lines."
         OLD_FNAME="$fname"
     fi
-    pr_dbg "echo \$FUNC_CALLS | grep -A $alines $msize"
-    CODE_PART=`echo "$FUNC_CALLS" | grep -A $alines "$msize"`
+    pr_dbg "CODE_PART=\`grep -A $alines $msize <<< \$FUNC_CALLS\`"
+    CODE_PART=`grep -A $alines "$msize" <<< $FUNC_CALLS`
+    pr_dbg "\$CODE_PART contains `wc -l <<< $CODE_PART` lines ($explines expected)."
     if [ -z "$CODE_PART" ]; then RC=1; return; fi
     pr_dbg "$CODE_PART"
 

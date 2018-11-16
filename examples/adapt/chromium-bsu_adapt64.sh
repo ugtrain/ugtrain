@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Tested with: chromium-bsu 0.9.14.1 .. 0.9.16.1
 

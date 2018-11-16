@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Tested with: dangerdeep 0.4.0
 
