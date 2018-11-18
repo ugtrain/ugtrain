@@ -413,8 +413,10 @@ void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 	struct list_head *rlist = opt->rlist;
 	pid_t worker_pid;
 
-	if (opt->disc_str->at(0) == 'p')
-		opt->disc_str[0] = opt->disc_str[opt->disc_offs];
+	if (opt->disc_str->at(0) == 'p') {
+		const char stage = opt->disc_str->c_str()[opt->disc_offs];
+		opt->disc_str->replace(0, 1, &stage);
+	}
 	if (opt->disc_str->at(0) == '0') {
 		if (opt->scanmem_pid > 0) {
 			wait_orphan(pid, opt->proc_name->c_str());
