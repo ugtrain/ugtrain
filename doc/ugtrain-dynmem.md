@@ -17,6 +17,7 @@ You should have read the
       * [Stack Values](#stack-values)
       * [Finding more Values in Object](#finding-more-values-in-object)
       * [Multiple Objects](#multiple-objects)
+      * [Pointers in Objects](#pointers-in-objects)
    * [Dynamic Memory Adaptation](#dynamic-memory-adaptation)
    * [Known Issues](#known-issues)
 
@@ -515,6 +516,180 @@ type string inside, you can see that these files are exactly these 7 own Droids.
 You have player ID `0` and the AI has ID `6` and ID `7`. So your player ID is
 located at offset `0x22`.
 
+
+### Pointers in Objects
+
+When you could not find enough interesting values in the dumped dynamic memory
+objects, then it might be the case that further interesting data is hiding in
+memory linked by a pointer. That memory is usually also located on the heap.<br/>
+Ugtrain provides with `ugptrfind` a tool which simplifies finding pointers and
+C++ vectors in dynamic memory objects. First of all, dump the found dynamic
+memory object (`>` key). Then look at the dumped `maps.dump.txt` for the heap
+region limits. With those you can let `ugptrfind` find the relevant pointers and
+vectors in the object.
+
+C++ vectors have the advantage that the memory size is known. GNU C++ stores
+them as a start pointer followed by an end pointer. Size = end - start pointer.
+But if the actual size is unknown, then you could guess. 2000 bytes is usually a
+good guess value. Another method is to configure the dynamic memory discovery
+for the pointer memory allocation discovery but this is rather complex.
+
+**Example dangerdeep**
+
+In the game `dangerdeep` only the `ThrottleStatus` value could be found in the
+`Submarine` object. But only interesting are the torpedo status values for each
+torpedo tube in that game. So there must be a vector or an array. Configure
+pointers for each location where you expect a valid pointer. Then do the dump
+once with all torpedos ready to fire and once with all four tubes empty. Compare
+the dumped pointer memory in the two states.
+
+From `maps.dump.txt`:
+```
+00fc3000-0ac3d000 rw-p 00000000 00:00 0                                  [heap]
+```
+
+The Submarine class has a single object and this is the only class. So this is
+how ugptrfind is called:
+```
+$ ugptrfind 0_000.dump 00fc3000 0ac3d000
+...
+3d8: 0x892acd0
+3e0: 0x892acd0 <-- empty vector
+4c0: 0x83bdfb0
+4c8: 0x83be480 <-- vector 1232 bytes
+...
+```
+
+After excluding some irrelevant memory, there is a vector at `0x4c0` `1232`
+bytes in size here. There is a repeating pattern in that vector. After comparing
+the two states, the transition from `0x03` to `0x00` at offsets `0x40`, `0x98`,
+`0xf0`, and `0x148` became visible. So the size of `struct stored_torpedo` is 88
+bytes. To get unlimited topedoes ready to fire now, freeze those to `0x03` if
+they are `0x00`. To make this safe, add heap pointer checks to `0x4c0` and
+`0x4c8` and let ugtrain follow the start pointer.
+
+Looks like this:
+```
+define TSTATUS_CHECK check this i32 e 0
+ptrmemstart TorpedoVec 1232
+# Torpedo status: 0: empty, 1: reloading, 2: unloading, 3: loaded
+TStatus1 0x40 i32 3 1,0 a
+TSTATUS_CHECK
+TStatus2 0x98 i32 3 1,0 a
+TSTATUS_CHECK
+TStatus3 0xf0 i32 3 1,0 a
+TSTATUS_CHECK
+TStatus4 0x148 i32 3 1,0 a
+TSTATUS_CHECK
+ptrmemend
+
+dynmemstart Submarine 1784 0x469dbb 0x8
+ThrottleStatus 0x28c i32 watch
+# Torpedo C++ vector start pointer
+TorpedoVecPtr 0x4c0 p TorpedoVec always
+check this p e heap
+check 0x4c8 p e heap
+dynmemend
+```
+
+Ugtrain follows this pointer always. There is only one cycle delay to wait until
+the pointer is settled (has the same value the next cycle).
+
+**Example warzone2100**
+
+There are two interesting pointers in the `Structure` objects in this game.
+Those are the structure stats and the structure functionality. There are only
+five pointers in total but the pointer at `0x110` is interesting as it is the
+same for all buildings of the same type. So this must be additional data
+describing the building type.
+
+```
+$ ugptrfind 1_002.dump 01931000 06837000
+30: 0x4f5bee0
+80: 0x601b360
+100: 0x6072050
+110: 0x4ddc338
+128: 0x601eb10
+```
+
+Indeed, in this memory there is the structure type ID, the maximum body points
+per player, the maximum build points, and even the research points per player.
+
+Also the pointer at `0x128` is interesting as the command center does not use
+that pointer. It is a union pointer for functionality data. It contains things
+like the research subject pointer for research facilities, the build subject
+pointer for factories, and most importantly how many points are still required
+until building a new droid is completed. If you freeze that value to 0, then you
+can build immediately.
+
+**But how to discover the actual size of the linked memory?**
+
+Libmemdisc has a complex prefix for this. It is:
+```
+p;<ObjSize>;<CodeAddr>;<StackOffs>;<PointerOffset>;;
+```
+
+Then the stage number follows. The object size, code address, and reverse stack
+offset of the Structure class are entered here. The last value is the offset of
+the interesting pointer within the Structure object.
+
+**warzone2100 Structure Stats Pointer**
+
+Let us do an example with the structure stats:
+```
+$ ugtrain -D "p;368;0x6596fe;0x8;0x110;;2" warzone2100-64.conf
+```
+
+Use stage 2 discovery for the pointer here to get the size of the related memory
+allocation. Start a new game, build the command center, and terminate the game
+regularly again. Now the dynamic memory discovery file `/tmp/memdisc_file`
+contains additional entries starting with `p` like:
+```
+$ grep "^p" /tmp/memdisc_file | tail -n1
+p0x52dcee8
+```
+
+This is the value of the configured pointer. The last `p` value in the file is
+what you are looking for as you just built your command center. Pass this value
+to ugtrain now to do the matching:
+```
+[ugt] Memory address (e.g. 0xdeadbeef): 0x52dcee8
+[ugt] Searching reverse for 0x52dcee8 in discovery output..
+m0x52da780;s92168 contains 0x52dcee8, offs: 0x2768
+...
+```
+
+Bad luck. There is one huge allocation at game start for all structure stats.
+So rather compare structure stat pointers of different buildings.
+```
+SStatPtr 0x110 p StructStats always
+check this p e heap
+```
+
+You will notice that it is enough to subtract the factory pointer from the power
+generator pointer. Example: 0x47d3d58 - 0x47d37b8 = 0x5a0 = **1440 bytes**.
+
+**warzone2100 Structure Functionality Pointer**
+
+Now do the same for the functionality pointer. Build the factory for this.
+```
+$ ugtrain -D "p;368;0x6596fe;0x8;0x128;;2" warzone2100-64.conf
+```
+
+Check the last pointer value:
+```
+$ grep "^p" /tmp/memdisc_file | tail -n1
+p0x4e35950
+```
+
+Provide it to ugtrain:
+```
+[ugt] Memory address (e.g. 0xdeadbeef): 0x4e35950
+[ugt] Searching reverse for 0x4e35950 in discovery output..
+m0x4e35950;s72 contains 0x4e35950, offs: 0x0
+```
+
+So there is a **72 bytes** allocation.
 
 -----
 
