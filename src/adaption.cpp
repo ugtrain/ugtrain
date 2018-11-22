@@ -69,7 +69,7 @@ static i32 take_over_config (Options *opt, vector<string> *cfg_lines)
 			+ to_xstring(tmp->code_addr) + " 0x"
 			+ to_xstring(tmp->stack_offs);
 	}
-	// Adaption isn't required anymore
+	// Adaptation isn't required anymore
 	lnr = opt->adp_req_line;
 	if (lnr > 0)
 		cfg_lines->at(lnr) = "adapt_required 0";

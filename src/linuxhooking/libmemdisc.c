@@ -401,7 +401,7 @@ void __attribute ((constructor)) memdisc_init (void)
 	 *	contrast to what GNU backtrace does to be less error prone.
 	 *	But the downside is that we might find some false positives.
 	 *
-	 *	GNU backtrace would be better suited for automated adaption,
+	 *	GNU backtrace would be better suited for automated adaptation,
 	 *	can be also used with libmemhack but it is unreliable as it
 	 *	requires the stack frames and often crashes with SIGSEGV. It
 	 *	is also slower. So use it for testing only.
