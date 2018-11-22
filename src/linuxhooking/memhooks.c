@@ -82,7 +82,7 @@ extern void postprocess_dlopen (const char *lib_path);
 __type __name (__params)						\
 {									\
 	__vars								\
-	static void *(*__orig)(__params) = NULL;			\
+	static __type (*__orig)(__params) = NULL;			\
 									\
 	if (no_hook) {							\
 		if (!__orig) {						\
