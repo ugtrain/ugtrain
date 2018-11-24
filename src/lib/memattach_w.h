@@ -25,7 +25,7 @@
 
 
 static inline
-i32 memattach_test (pid_t pid)
+i32 memattach_test (pid_t pid, i32 *fd)
 {
 	return -1;
 }
