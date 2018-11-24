@@ -89,6 +89,7 @@ static inline char do_getch (void)
 
 static inline int set_getch_nb (int nb)
 {
+	return 0;
 }
 #endif
 
