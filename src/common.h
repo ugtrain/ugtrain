@@ -34,8 +34,8 @@ enum grow_type {
 #define UGT_GAME_PROC_NAME     "UGT_GAME_PROC_NAME"
 #define DBG_FILE_NAME          "/tmp/lib_dbg.txt"
 #define ASLR_NOTIFY_STR        "ready\n"
-#define ugout                  cout << "[ugt] "
-#define ugerr                  cerr << "[ugt] "
+#define ugout                  cout << UGT_PFX
+#define ugerr                  cerr << UGT_PFX
 
 /* Branch optimization */
 #define likely(x)     __builtin_expect(!!(x), 1)

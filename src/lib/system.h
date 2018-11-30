@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #ifdef __linux__
 #include <dirent.h>
 #include <errno.h>
@@ -235,6 +236,11 @@ static inline void set_sigterm_handler (void (*sighandler)(i32))
 	signal(SIGTERM, sighandler);
 }
 
+static inline void show_errorstr (void)
+{
+	(void) fprintf(stderr, UGT_PFX "%s\n", strerror(errno));
+}
+
 #else
 
 /* Path separator */
@@ -322,6 +328,10 @@ static inline void reset_sigint (void)
 }
 
 static inline void set_sigterm_handler (void (*sighandler)(i32))
+{
+}
+
+static inline void show_errorstr (void)
 {
 }
 

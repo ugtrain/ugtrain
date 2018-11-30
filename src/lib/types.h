@@ -86,4 +86,6 @@ typedef uintptr_t ptr_t;
 
 #define BUF_SIZE PIPE_BUF
 
+#define UGT_PFX "[ugt] "
+
 #endif

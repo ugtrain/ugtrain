@@ -38,8 +38,10 @@
 static inline
 i32 memattach_test (pid_t pid, i32 *fd)
 {
-	if (pid <= 1)
+	if (pid <= 1) {
+		errno = ENOENT;
 		goto err;
+	}
 
 	errno = 0;
 	ptrace(PTRACE_ATTACH, pid, 0, 0);

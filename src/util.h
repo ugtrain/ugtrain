@@ -110,6 +110,7 @@ test_memattach (pid_t pid, i32 *fd)
 	if (likely(memattach_test(pid, fd) == 0))
 		return;
 	ugerr << "MEMORY ATTACHING TEST ERROR PID[" << pid << "]!" << endl;
+	show_errorstr();
 	exit(-1);
 }
 
