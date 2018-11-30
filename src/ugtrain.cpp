@@ -997,9 +997,9 @@ static inline i32 get_game_paths (Options *opt)
 			      << endl;
 			return -1;
 		}
+		if (opt->game_binpath->empty())
+			*opt->game_binpath = string(opt->game_path);
 	}
-	if (opt->game_binpath->empty())
-		*opt->game_binpath = opt->game_path;
 
 	return 0;
 }
