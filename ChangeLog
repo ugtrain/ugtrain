@@ -42,7 +42,7 @@
 * added pointer following support
 * added 'or' and 'equals' checks support
 * faster reaction on user input (sleep_sec_unless_input())
-* position independent executable (PIE) support
+* position-independent executable (PIE) support
 * experimental GLIB (e.g. g_malloc) support
 
 0.1.0 (basic release, 2012-06-01)

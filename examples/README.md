@@ -284,7 +284,7 @@ and adapt it to other versions.
 
 ### $ ugtrain -P [lib] \<config\>
 
-Ugtrain detects a position independent executable (PIE) automatically from
+Ugtrain detects a position-independent executable (PIE) automatically from
 its load address and converts static memory and code addresses between
-in-binary and in-memory. Also the load address of libraries using position
-independent code (PIC) is handled like this.
+in-binary and in-memory. Also the load address of libraries using
+position-independent code (PIC) is handled like this.

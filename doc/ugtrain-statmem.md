@@ -260,7 +260,7 @@ See [examples/README.md](../examples/README.md) for the complete config syntax.
 $ ugtrain -P wz2100.conf
 ...
 exe_offs: 0x7fcddc0e6000
-PIE (position independent executable) detected!
+PIE (position-independent executable) detected!
 Power at 0x7fcddcd22d44, Data: 0x0 (0)
 Power at 0x7fcddcd22d44, Data: 0x514 (1300)
 Power at 0x7fcddcd22d44, Data: 0x1388 (5000)

@@ -245,7 +245,7 @@ static inline ptr_t get_exe_offs (struct region *r)
 
 	ugout << "exe_offs: 0x" << hex << exe_offs << dec << endl;
 	if (exe_offs)
-		ugout << "PIE (position independent executable) detected!"
+		ugout << "PIE (position-independent executable) detected!"
 		      << endl;
 	return exe_offs;
 }

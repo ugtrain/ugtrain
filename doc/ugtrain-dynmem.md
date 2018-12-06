@@ -105,15 +105,15 @@ The rest works the same way as with static memory.
 
 ### Hardening
 
-With a **PIE** (position independent executable) and **ASLR** (address space
+With a **PIE** (position-independent executable) and **ASLR** (address space
 layout randomization), the code addresses on the stack are randomized. Ugtrain
 determines the load address of the executable from `/proc/$pid/maps` and
 sends it to libmemhack. Libmemhack adds it to the configured code addresses
 afterward. E.g. Ubuntu uses PIE on everything since version 13.04.
 
-Another trick is to put the allocation into a library with **PIC** (position
-independent code). Also here the load address of the configured library is
-determined and added to configured code addresses. For late library load with
+Another trick is to put the allocation into a library with **PIC**
+(position-independent code). Also here the load address of the configured library
+is determined and added to configured code addresses. For late library load with
 `dlopen()`, libmemhack hooks that function as well to inform ugtrain about the
 library load. An example for this is the battle tanks game `btanks` with its
 `libbt_objects.so`.
@@ -304,7 +304,7 @@ $ ugtrain -P chromium-bsu.conf
 ...
 [memhack] config[0]: mem_size: 288; code_addr: 0x10ab7; stack_offs: 0x8;
 [ugt] exe_offs: 0x558fbcaf5000
-[ugt] PIE (position independent executable) detected!
+[ugt] PIE (position-independent executable) detected!
 [memhack] Config after early PIC/PIE handling:
 [memhack] config[0]: mem_size: 288; code_addr: 0x558fbcb05ab7; stack_offs: 0x8;
 [ugt] stack_end: 0x7fffdb83c770
