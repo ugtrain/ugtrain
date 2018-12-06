@@ -183,13 +183,20 @@ err:
 	return -1;
 }
 
+/* Skip error message printing until next value successfully read */
+bool g_read_error_no_warning = false;
+
 #define FILL_CACHE_AND_BUF(buf, entry, mem_offs, on_fail)		\
 	mem_addr = mem_offs + entry->cache->offs;			\
 	if (entry->cache->start == PTR_MAX) {				\
 		ret = _read_memory(pid, mem_addr,			\
 			entry->cache->data, MEM_CHUNK, "MEMORY");	\
-		if (ret)						\
+		if (ret) {						\
+			g_read_error_no_warning = true;			\
 			on_fail;					\
+		} else {						\
+			g_read_error_no_warning = false;		\
+		}							\
 		entry->cache->start = mem_addr;				\
 	}								\
 	memcpy(buf, entry->cache_data, entry->type.size / 8)

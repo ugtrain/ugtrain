@@ -31,6 +31,9 @@
 #define CFGP_MAP_SIZE 128
 
 
+/* Skip error message printing until next value successfully read */
+extern bool g_read_error_no_warning;
+
 class Globals {
 public:
 	Options *opt;
@@ -142,7 +145,7 @@ _read_memory (pid_t pid, ptr_t mem_addr, void *buf, size_t buf_len, const char *
 	i32 ret;
 
 	ret = memread(pid, mem_addr, buf, buf_len);
-	if (ret)
+	if (ret && !g_read_error_no_warning)
 		ugerr << pfx << " READ ERROR PID[" << pid << "] ("
 		      << hex << mem_addr << dec << ")!" << endl;
 	return ret;
