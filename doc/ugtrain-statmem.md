@@ -60,7 +60,7 @@ check this i32 g 10
 The 32 bit signed integer (`i32`) `Power` value at `0xc3cd44` is set to `5000`
 every second if it is less than (`l`) `5000` and greater than (`g`) `10`. This
 is activated (`a`) when starting ugtrain and the activation can be toggled with
-the keys '1' and '0' on the ugtrain command line. With `d` it would be
+the keys `1` and `0` on the ugtrain command line. With `d` it would be
 deactivated initially and with `w` you could turn this into watching instead
 of modifying. Furthermore, the check uses the keyword `this` for the address
 to avoid duplication of `0xc3cd44`.
@@ -243,7 +243,7 @@ value at every game start even with a PIE.
 
 It is okay to modify it now. Freeze it to at least 5000. It should only be set
 to that value if it is lower than that and greater than 0 or a bit greater.
-Let us say 10. You want to toggle it with the key '1' or '0' and it should be
+Let us say 10. You want to toggle it with the key `1` or `0` and it should be
 activated upon game start.
 
 The new config looks like this:
@@ -405,7 +405,7 @@ A `gdb` watchpoint is required to find the code modifying the found object
 member. By disassembly the offset within the object and with that, the object
 address is discovered. Look for the object address as `int64` in the x86_64
 `exe` regions and with a bit of luck there is a single match for this. But the
-size of the memory object remains unknown. You could guess and dump (key '>')
+size of the memory object remains unknown. You could guess and dump (key `>`)
 as well as compare it in two states to find further values within the object.
 
 Ugtrain has an example for `chromium-bsu` for this to be able to compare the
