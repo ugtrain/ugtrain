@@ -430,6 +430,13 @@ safe. Ugtrain reads the game memory regions every cycle to get the current
 heap limits for this. The `Lives` are stored at offset `0xbc` within the
 object. Details are described in the example.
 
+**Pointer following PIE**: [chromium-bsu64_pointer-pie.conf](../examples/incomplete/chromium-bsu64_pointer-pie.conf)
+
+With PIE this is getting even more complex. Gdb cannot handle PIE properly
+without the respective debuginfo. The `disassemble` command will fail. So
+`gef` ([GDB Enhanced Features](https://github.com/hugsy/gef)) is required here.
+Details are described in the example.
+
 **API hooking**: [chromium-bsu64.conf](../examples/chromium-bsu64.conf)
 
 Compare this to the dynamic memory cheating example.
