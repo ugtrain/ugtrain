@@ -4,31 +4,48 @@
 
 _completeUgtrain()
 {
+    local options='-h --help -V --version -P --preload -D --discover
+        -S --scanmem -A --adapt --pre-cmd'
+
     local cur prev words cword split
     _init_completion -s || return
 
-    $split && return 0
-
     COMPREPLY=()
-    cur=${COMP_WORDS[COMP_CWORD]}
+    case $prev in
+        -h|--help|-V|--version)
+            return 0
+            ;;
+    esac
 
+    # complete options
     if [[ "$cur" == -* ]]; then
-        COMPREPLY=( $( compgen -W '-h --help -V --version \
-            -P --preload -D --discover= -S --scanmem -A --adapt \
-            --pre-cmd=' -- $cur ) )
+        case $prev in
+            --pre-cmd)
+                # error, pre-cmd requires an argument
+                return 0
+                ;;
+        esac
+        COMPREPLY=( $( compgen -W '$options' -- $cur ) )
+    # complete arguments
     else
+        case $prev in
+            --pre-cmd)
+                # pre-cmd should not be a file name
+                return 0
+                ;;
+        esac
+
         if [ -d ~/.ugtrain ]; then
             local cwd="$(pwd)"
             cd ~/.ugtrain
             local configs="$(ls *.conf 2>/dev/null)"
-            cd "${cwd}"
+            cd "$cwd"
         fi
 
-        COMPREPLY=( $(compgen -W "${configs}" -- $cur) )
-        _filedir '@(conf)'
+        COMPREPLY=( $(compgen -W '$configs' -- $cur) )
+        _filedir conf
     fi
-}
-
-complete -F _completeUgtrain $filenames ugtrain
+} &&
+complete -F _completeUgtrain ugtrain
 
 # ex: ts=4 sw=4 et filetype=sh
