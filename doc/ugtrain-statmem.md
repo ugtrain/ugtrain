@@ -402,23 +402,29 @@ adapting configs much more important. A pointer in static memory is plain
 too hard to discover and to adapt. But this is how it works:
 
 A `gdb` watchpoint is required to find the code modifying the found object
-member. By disassembly the offset within the object and with that, the object
+member. By disassembly, the offset within the object and with that, the object
 address is discovered. Look for the object address as `int64` in the x86_64
 `exe` regions and with a bit of luck there is a single match for this. But the
 size of the memory object remains unknown. You could guess and dump (key `>`)
 as well as compare it in two states to find further values within the object.
 
+If no debug symbols are available, then the `gef`
+([GDB Enhanced Features](https://github.com/hugsy/gef)) are required here as
+the `gdb` command `disassemble` does not work then. Those also provide special
+commands for PIE handling.
+
 Ugtrain has an example for `chromium-bsu` for this to be able to compare the
 method with the preferred dynamic memory cheating method by API hooking. The
 object size is known from the preferred method.
 
-**Pointer following**: [chromium-bsu64_pointer.conf](../examples/incomplete/chromium-bsu64_pointer.conf)
+**Pointer following**:
+[chromium-bsu64_pointer.conf](../examples/incomplete/chromium-bsu64_pointer.conf)
 ```
 ptrmemstart HeroAircraft 288
 Lives 0xbc i32 l 9 1,0 a
 ptrmemend
 
-HeroAircraftPtr 0x653260 p HeroAircraft always
+HeroAircraftPtr 0x650f20 p HeroAircraft always
 check this p e heap
 ```
 
@@ -430,12 +436,13 @@ safe. Ugtrain reads the game memory regions every cycle to get the current
 heap limits for this. The `Lives` are stored at offset `0xbc` within the
 object. Details are described in the example.
 
-**Pointer following PIE**: [chromium-bsu64_pointer-pie.conf](../examples/incomplete/chromium-bsu64_pointer-pie.conf)
+**Pointer following PIE**:
+[chromium-bsu64_pointer-pie.conf](../examples/incomplete/chromium-bsu64_pointer-pie.conf)
 
-With PIE this is getting even more complex. Gdb cannot handle PIE properly
-without the respective debuginfo. The `disassemble` command will fail. So
-`gef` ([GDB Enhanced Features](https://github.com/hugsy/gef)) is required here.
-Details are described in the example.
+With a PIE, this is a bit more complex. The `gef` command `pie attach <pid>`
+has to be used to attach to the target process. And at the end, the found
+pointer match offset is put into the config. Details are described in the
+example.
 
 **API hooking**: [chromium-bsu64.conf](../examples/chromium-bsu64.conf)
 
