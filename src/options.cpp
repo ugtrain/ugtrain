@@ -75,7 +75,7 @@ PROG_NAME " is the universal elite game trainer\n"
 "			the new malloc code addresses and start the game with\n"
 "			the \'-P\' option\n"
 "Misc Options\n"
-"--pre-cmd=<str>:	together with the assumed \'-P\' it is possible to\n"
+"--pre-cmd <str>:	together with the assumed \'-P\' it is possible to\n"
 "			specify a preloader command\n"
 "			- it is only important that it appends to LD_PRELOAD\n"
 TESTING_OPT_HELP
