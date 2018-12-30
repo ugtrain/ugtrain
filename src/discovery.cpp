@@ -29,7 +29,7 @@
 // local includes
 #include <lib/getch.h>
 #include <lib/system.h>
-#include <adaption.h>
+#include <adapt.h>
 #include <aslr.h>
 #include <cfgparser.h>
 #include <common.h>

@@ -4,7 +4,7 @@ bin_PROGRAMS = ugtrain
 
 # use "ls -1 *.c*" for an ordered list
 ugtrain_SOURCES = \
-	adaption.cpp \
+	adapt.cpp \
 	aslr.cpp \
 	cfgoutput.cpp \
 	cfgparser.cpp \

@@ -1,4 +1,4 @@
-/* adaption.cpp:    adapt the config by running a script
+/* adapt.cpp:    adapt the config by running a script
  *
  * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
@@ -25,7 +25,7 @@
 // local includes
 #include <lib/getch.h>
 #include <lib/system.h>
-#include <adaption.h>
+#include <adapt.h>
 #include <common.h>
 #include <commont.cpp>
 

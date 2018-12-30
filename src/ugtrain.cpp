@@ -54,7 +54,7 @@
 #include <cfgoutput.h>
 #include <valoutput.h>
 // special features
-#include <adaption.h>
+#include <adapt.h>
 #include <aslr.h>
 #include <discovery.h>
 #include <testing.h>

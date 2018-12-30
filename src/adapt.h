@@ -1,4 +1,4 @@
-/* adaption.h:    adapt the config by running a script
+/* adapt.h:    adapt the config by running a script
  *
  * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
  *
@@ -11,8 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef ADAPTION_H
-#define ADAPTION_H
+#ifndef ADAPT_H
+#define ADAPT_H
 
 #include <list>
 
