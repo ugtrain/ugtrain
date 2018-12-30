@@ -161,7 +161,7 @@ adaptation can be triggered explicitly as well: <br/>
 **Pointer Following**
 
 * preferred from dynamic memory and unpreferred from static memory
-* limited discovery features (tool `ugptrfind` or `gdb`)
+* limited discovery features (tool `ugptrfind` or `gdb` with `gef`)
 
 **Compilation**
 
