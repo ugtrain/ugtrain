@@ -1,3 +1,37 @@
+0.4 (simplification release, 2018-12-30)
+* implemented dumping of memory maps and backup files for everything
+* implemented hooking of _Znwm() and _Znwj()
+* dropped stack offset adaptation (too complex, little benefit)
+* made -D|--discover argument optional (stage 2/4 assumption)
+* implemented pointer following support from static memory
+* processing checks for pointers now
+* implemented heap pointer checks
+* added tool 'ugptrfind' to find heap pointers and C++ vectors in dumps
+* added hex value support and modified wish value from address syntax
+* several security fixes to make Coverity Scan happy
+* several fixes to support spaces better
+* several smaller bugfixes and optimizations
+* enhanced error handling
+* implemented a wish value per memory object for 'min' and 'max'
+* implemented stack value support
+* implemented pointer to C/C++ string watching support
+* made value-from-reference reliable
+* added address-from-reference support ('addr' keyword)
+* added special 'this' config address check keyword support
+* implemented caching of memory values to avoid duplicate target r/w
+* implemented /proc/$pid/mem support with 2K chunks r/w
+* converted the options and some strings to C++
+* dropped debian packaging (to be split from upstream code)
+* implemented PIC support for static memory
+* now using "[ugt] " prefix for ugtrain output
+* implemented freeing of all memory at exit to use Valgrind leak detection
+* implemented Travis-CI and Coverity Scan integration
+* now printing a config template during discovery
+* reworked documentation to use GitHub Markdown
+* new configs: dangerdeep, endless-sky, pointer following, gnome-mines, ...
+* enhanced several configs and their adaptation
+* dropped 32 bit x86 configs (too little benefit)
+
 0.3.0 (dynmem PIC release, 2016-01-01)
 * attaching to the most recently called game instance now
 * always running the game in a shell now to support spaces in paths
