@@ -32,7 +32,7 @@ APP_NAME " - find similarities in mem. obj. dump files\n"
 "\n"
 "Usage: " APP_NAME " <file0> [file1] ...\n"
 "\n"
-"Upto " MAX_FILES_STR " files are possible.\n"
+"Up to " MAX_FILES_STR " files are possible.\n"
 "\n"
 "Example: " APP_NAME " 0_*.dump\n"
 ;
