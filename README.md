@@ -1,5 +1,6 @@
 ## ugtrain - Universal Game Trainer
 
+[![Latest release](https://img.shields.io/github/release/ugtrain/ugtrain.svg)](https://github.com/ugtrain/ugtrain/releases)
 [![Build status](https://travis-ci.com/ugtrain/ugtrain.svg?branch=master)](https://travis-ci.com/ugtrain/ugtrain)
 [![Coverity Status](https://scan.coverity.com/projects/6376/badge.svg?flat=1)](https://scan.coverity.com/projects/ugtrain)
 
