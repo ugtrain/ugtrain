@@ -213,9 +213,8 @@ void parse_options (i32 argc, char **argv, Options *opt)
 			usage();
 			break;
 		case 'V':
-			printf(PACKAGE_STRING " (%s %s)\n\nPlease report "
-				"bugs to " PACKAGE_BUGREPORT "!\n",
-				__DATE__, __TIME__);
+			printf(PACKAGE_STRING "\n\nPlease report "
+				"bugs to " PACKAGE_BUGREPORT "!\n");
 			exit(0);
 		case 'A':
 			opt->do_adapt = true;
