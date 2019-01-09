@@ -47,7 +47,7 @@ AM_PROG_CC_C_O
 # Detect host CPU
 bits64="no"
 case $host_cpu in
-  x86_64)
+  *64* | s390x)
     bits64="yes"
     ;;
 esac

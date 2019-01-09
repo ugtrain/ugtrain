@@ -166,7 +166,7 @@ adaptation can be triggered explicitly as well: <br/>
 
 **Compilation**
 
-* 32 bit and x86\_64 only
+* 32 bit, \*64\*, and s390x only
 * tested with GCC g++ only
 
 **GUI**
