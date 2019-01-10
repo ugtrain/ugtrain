@@ -4,6 +4,7 @@
 AC_INIT([ugtrain], [0.5~pre], [https://github.com/ugtrain/ugtrain/issues])
 
 AC_CONFIG_MACRO_DIR(m4)
+AC_CONFIG_HEADERS([src/config.h])
 AC_CANONICAL_HOST
 
 AM_INIT_AUTOMAKE([subdir-objects])

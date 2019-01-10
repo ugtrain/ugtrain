@@ -2,7 +2,7 @@
 # Run this to generate all the initial makefiles, etc.
 
 # code taken from Warzone 2100 3.1.1 as they use
-# GPLv2 and have it implemented already very well
+# GPLv2 and have implemented it very well already
 
 DIE=0
 SRCDIR=`dirname $0`
@@ -114,12 +114,12 @@ aclocal -I m4 || {
        "are present on system"
   exit 1
 }
-#echo "+ running autoheader ... "
-#autoheader || {
-#  echo
-#  echo "autoheader failed"
-#  exit 1
-#}
+echo "+ running autoheader ... "
+autoheader || {
+  echo
+  echo "autoheader failed"
+  exit 1
+}
 echo "+ running autoconf ... "
 autoconf || {
   echo

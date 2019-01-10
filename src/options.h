@@ -22,7 +22,7 @@
 #include <cfgentry.h>
 #include <testopts.h>
 
-#define PROG_NAME  "ugtrain"
+#define PROG_NAME  PACKAGE
 #define SCANMEM    "scanmem"
 
 #define LDISC_PRE "libmemdisc"

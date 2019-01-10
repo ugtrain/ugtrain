@@ -14,6 +14,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <config.h>
 #include <limits.h>
 #include <stddef.h>  /* size_t */
 #if defined(HAVE_UNISTD_H) && HAVE_UNISTD_H

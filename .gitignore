@@ -21,6 +21,9 @@ ltmain.sh
 libtool
 m4
 missing
+src/config.h
+src/config.h.in
+src/stamp-h1
 src/ugtrain
 src/tools/ugsimfind
 src/tools/ugptrfind
