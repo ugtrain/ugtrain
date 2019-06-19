@@ -74,7 +74,7 @@ Arch: https://aur.archlinux.org/packages/ugtrain-git/
 Debian: https://sourceforge.net/projects/ugtrain/files/<br/>
 Debian source: https://salsa.debian.org/spars-guest/ugtrain
 
-openSUSE/SLES: https://build.opensuse.org/package/show/home:sparschauer/ugtrain
+openSUSE/SLES: https://build.opensuse.org/package/show/home:TuxCheater/ugtrain
 
 Ubuntu: https://launchpad.net/~s-parschauer/+archive/ubuntu/game-cheating<br/>
 Ubuntu source: https://github.com/sriemer/ugtrain-debian
