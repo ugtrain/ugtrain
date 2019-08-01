@@ -38,7 +38,7 @@ _completeUgtrain()
         if [ -d ~/.ugtrain ]; then
             local cwd="$(pwd)"
             cd ~/.ugtrain
-            local configs="$(ls *.conf 2>/dev/null)"
+            local configs="$(ls --color=never *.conf 2>/dev/null)"
             cd "$cwd"
         fi
 
