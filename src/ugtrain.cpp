@@ -864,12 +864,6 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 		pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 			";%s", GBT_CMD);
 	}
-	// Libmemhack always needs a config. So provide a reserved one.
-	if (opt->val_on_stack) {
-		num_cfg++;
-		pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-			";0;0x0;0x0;stack");
-	}
 
 	// Fill the output buffer with the dynmem cfg
 	list_for_each (cfg, it) {
