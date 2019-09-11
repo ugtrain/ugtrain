@@ -475,6 +475,8 @@ static inline void get_stack_end (Options *opt, pid_t pid)
 	ptr_t stack_end = 0;
 	string line;
 	size_t start = 0, end;
+	i32 spaces_in_procname = 0;
+	string proc_name;
 	// The stack end is the 28th value. So go to 27th space.
 	// See "man 5 proc".
 	const i32 stack_end_idx = 27;
@@ -487,7 +489,29 @@ static inline void get_stack_end (Options *opt, pid_t pid)
 	if (!stat_file.is_open())
 		goto out;
 	if (getline(stat_file, line)) {
-		for (i32 i = 0; i < stack_end_idx; i++)
+		// Get the process name and check it for spaces first
+		start = line.find('(', 0);
+		end = line.find(')', 0);
+		if (end > start && end != string::npos) {
+			proc_name = line.substr(start + 1, end - start - 1);
+			start = 0;
+			while (true) {
+				start = proc_name.find(' ', start + 1);
+				if (start != string::npos)
+					spaces_in_procname++;
+				else
+					break;
+			}
+		} else {
+			ugerr << "Fatal: Unexpected format in /proc/$pid/stat."
+			      << endl;
+			exit(-1);
+		}
+		start = 0;
+
+		// Now get the stack end
+		for (i32 i = 0; i < (stack_end_idx + spaces_in_procname) &&
+		     start != string::npos; i++)
 			start = line.find(' ', start + 1);
 		end = line.find(' ', start + 1);
 		if (end > start && end != string::npos) {
