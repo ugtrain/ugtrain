@@ -29,6 +29,8 @@
 #include <common.h>
 #include <options.h>
 
+/* Public functions */
+
 void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 		  i32 ofd, pid_t pid, struct list_head *rlist);
 
@@ -40,7 +42,9 @@ void get_lib_load_addr (LF_PARAMS);
 void get_stack_start (Options *opt, pid_t pid,
 		      struct list_head *rlist);
 
-void get_stack_end (SF_PARAMS);
+void verify_stack_end (SF_PARAMS);
+
+void handle_stack_end (Options *opt, list<CfgEntry> *cfg, pid_t pid);
 
 /* Inline functions */
 

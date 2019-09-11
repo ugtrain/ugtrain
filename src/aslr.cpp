@@ -22,8 +22,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include <libgen.h>  // basename
+#include <fstream>
 
 // local includes
+#include <commont.cpp>
 #include <aslr.h>
 #include <fifoparser.h>
 
@@ -390,20 +392,15 @@ void get_stack_start (Options *opt, pid_t pid,
  * those aren't processed.
  */
 
-// sf() callback for read_dynmem_buf()
-void get_stack_end (SF_PARAMS)
+static inline void process_stack_end (Options *opt, list<CfgEntry> *cfg)
 {
-	struct dynmem_params *dmparams = (struct dynmem_params *) argp;
-	struct sf_params *sfp = dmparams->sfparams;
-	Options *opt = sfp->opt;
 	list<CfgEntry>::iterator cfg_it;
 	CfgEntry *cfg_en;
 	list<CheckEntry> *chk_lp;
 	list<CheckEntry>::iterator chk_it;
 	CheckEntry *chk_en;
 
-	opt->stack_end = stack_end;
-	ugout << "stack_end: 0x" << hex << stack_end << dec << endl;
+	ptr_t stack_end = opt->stack_end;
 
 	if (!opt->val_on_stack)
 		return;
@@ -448,3 +445,72 @@ void get_stack_end (SF_PARAMS)
 	sleep_sec(1);
 }
 
+// sf() callback for read_dynmem_buf()
+void verify_stack_end (SF_PARAMS)
+{
+	struct dynmem_params *dmparams = (struct dynmem_params *) argp;
+	struct sf_params *sfp = dmparams->sfparams;
+	Options *opt = sfp->opt;
+
+	if (opt->stack_end == stack_end) {
+		ugout << "stack_end verified" << endl;
+	} else if (!opt->stack_end) {
+		opt->stack_end = stack_end;
+		ugout << "stack_end: 0x" << hex << stack_end << dec << endl;
+		process_stack_end(opt, cfg);
+	} else {
+		ugerr << "Fatal: stack_end 0x" << hex << stack_end
+		      << " does not match 0x" << opt->stack_end
+		      << " from /proc/$pid/stat" << dec << endl;
+		exit(-1);
+	}
+}
+
+/*
+ * read the stack end from /proc/$pid/stat
+ * and store it in opt
+ */
+static inline void get_stack_end (Options *opt, pid_t pid)
+{
+	ptr_t stack_end = 0;
+	string line;
+	size_t start = 0, end;
+	// The stack end is the 28th value. So go to 27th space.
+	// See "man 5 proc".
+	const i32 stack_end_idx = 27;
+
+	string path = "/proc/";
+	path += to_string(pid);
+	path += "/stat";
+
+	ifstream stat_file(path.c_str());
+	if (!stat_file.is_open())
+		goto out;
+	if (getline(stat_file, line)) {
+		for (i32 i = 0; i < stack_end_idx; i++)
+			start = line.find(' ', start + 1);
+		end = line.find(' ', start + 1);
+		if (end > start && end != string::npos) {
+			line = line.substr(start, end - start);
+			stack_end = strtoptr(line.c_str(), NULL, 10);
+			if (errno)
+				stack_end = 0;
+			ugout << "stack_end: 0x" << hex << stack_end << dec << endl;
+			opt->stack_end = stack_end;
+		}
+	}
+	stat_file.close();
+out:
+	return;
+}
+
+void handle_stack_end (Options *opt, list<CfgEntry> *cfg, pid_t pid)
+{
+	get_stack_end(opt, pid);
+	if (opt->stack_end) {
+		process_stack_end(opt, cfg);
+	} else if (opt->pure_statmem && opt->val_on_stack) {
+		ugerr << "Fatal: Could not determine stack end." << endl;
+		exit(-1);
+	}
+}

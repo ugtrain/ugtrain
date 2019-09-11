@@ -521,7 +521,7 @@ static inline void read_dynmem_fifo (list<CfgEntry> *cfg,
 	pcb.lf = get_lib_load_addr;
 	pcb.mf = queue_dynmem_addr;
 	pcb.ff = clear_dynmem_addr;
-	pcb.sf = get_stack_end;
+	pcb.sf = verify_stack_end;
 
 	do {
 		rbytes = read_dynmem_buf(cfg, dp, ifd, pmask, false,
@@ -1174,6 +1174,7 @@ i32 main (i32 argc, char **argv, char **env)
 	handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 	handle_statmem_pie(opt, cfg);
 	handle_statmem_pic(opt, cfg, false);
+	handle_stack_end(opt, cfg, pid);
 
 	init_dmparams(dmparams, opt, cfg, ofd, pid, rlist);
 
