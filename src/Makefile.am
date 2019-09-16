@@ -41,7 +41,7 @@ AM_CFLAGS += -DTESTING=1
 endif
 # use the same compiler flags for C and C++
 # (required for hardening builds)
-AM_CXXFLAGS = $(AM_CFLAGS) $(CFLAGS)
+AM_CXXFLAGS = $(AM_CFLAGS) $(CFLAGS) -std=gnu++98
 
 if ENABLE_BASH_COMPLETION
 bashcompletiondir = $(BASH_COMPLETION_DIR)
