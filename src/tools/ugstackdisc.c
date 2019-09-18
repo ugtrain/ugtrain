@@ -115,10 +115,13 @@ i32 main (i32 argc, char **argv)
 			goto parse_err;
 		ret = -1;
 	} else {
+		if (line)
+			free(line);
 		fclose(stat_file);
 		fprintf(stderr, "Failed to read stat file %s.\n", stat_path);
 		return ret;
 	}
+	free(line);
 	fclose(stat_file);
 
 	if (debug_mode) {
@@ -140,6 +143,7 @@ err:
 	fprintf(stderr, "%s", Help);
 	return ret;
 parse_err:
+	free(line);
 	fclose(stat_file);
 	fprintf(stderr, "Failed to parse stat file.\n");
 	return ret;
