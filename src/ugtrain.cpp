@@ -1089,7 +1089,7 @@ i32 main (i32 argc, char **argv, char **env)
 	if (!opt->disc_str->empty())
 		allow_empty_cfg = init_discovery(opt);
 	else if (opt->run_scanmem)
-		allow_empty_cfg = init_scanmem(opt);
+		allow_empty_cfg = init_scanmem();
 
 	get_game_paths(opt);
 

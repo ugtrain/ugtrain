@@ -28,7 +28,7 @@
 #include <common.h>
 #include <options.h>
 
-bool init_scanmem	(Options *opt);
+bool init_scanmem	(void);
 bool init_discovery     (Options *opt);
 i32  prepare_discovery  (Options *opt);
 void process_discovery  (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid);

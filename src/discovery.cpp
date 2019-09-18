@@ -619,17 +619,14 @@ bool init_discovery (Options *opt)
 	return allow_empty_cfg;
 }
 
-bool init_scanmem (Options *opt)
+bool init_scanmem (void)
 {
-	list<CfgEntry> *cfg = opt->cfg;
-	list<CfgEntry*> *cfg_act = opt->cfg_act;
 	bool allow_empty_cfg = true;
 
 	if (!tool_is_available((char *) "scanmem"))
 		exit(-1);
 	ugout << "Clearing config for scanmem!" << endl;
-	cfg->clear();
-	cfg_act->clear();
+	clear_config();
 
 	return allow_empty_cfg;
 }
