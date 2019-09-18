@@ -25,7 +25,6 @@
 #include <fstream>
 
 // local includes
-#include <commont.cpp>
 #include <aslr.h>
 #include <fifoparser.h>
 
@@ -360,28 +359,29 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 // ###### Stack handling ######
 // ############################
 
-static inline void find_stack_start (struct list_head *rlist,
-				     ptr_t *stack_start)
+static inline void
+find_stack_bounds (Options *opt, struct list_head *rlist)
 {
 	struct region *it;
 
 	clist_for_each_entry (it, rlist, list) {
 		if (it->type != REGION_TYPE_STACK)
 			continue;
-		*stack_start = (ptr_t) it->start;
+		opt->stack_rstart = (ptr_t) it->start;
+		opt->stack_rend = (ptr_t) it->start + it->size;
 		break;
 	}
 }
 
 /*
- * read the stack start from /proc/$pid/maps
- * and store it in opt
+ * read the stack region bounds from /proc/$pid/maps
+ * and store them in opt
  */
-void get_stack_start (Options *opt, pid_t pid,
-		      struct list_head *rlist)
+void get_stack_bounds (Options *opt, pid_t pid,
+		       struct list_head *rlist)
 {
 	get_regions(pid, rlist);
-	find_stack_start(rlist, &opt->stack_start);
+	find_stack_bounds(opt, rlist);
 }
 
 /*
@@ -466,72 +466,16 @@ void verify_stack_end (SF_PARAMS)
 	}
 }
 
-/*
- * read the stack end from /proc/$pid/stat
- * and store it in opt
- */
-static inline void get_stack_end (Options *opt, pid_t pid)
+void handle_stack_end (Options *opt, list<CfgEntry> *cfg, pid_t pid,
+		       struct list_head *rlist)
 {
-	ptr_t stack_end = 0;
-	string line;
-	size_t start = 0, end;
-	i32 spaces_in_procname = 0;
-	string proc_name;
-	// The stack end is the 28th value. So go to 27th space.
-	// See "man 5 proc".
-	const i32 stack_end_idx = 27;
+	find_stack_bounds(opt, rlist);
+	opt->stack_end = get_stack_end(pid, opt->stack_rstart, opt->stack_rend);
+	if (opt->stack_end == opt->stack_rstart)
+		opt->stack_end = 0;
 
-	string path = "/proc/";
-	path += to_string(pid);
-	path += "/stat";
-
-	ifstream stat_file(path.c_str());
-	if (!stat_file.is_open())
-		goto out;
-	if (getline(stat_file, line)) {
-		// Get the process name and check it for spaces first
-		start = line.find('(', 0);
-		end = line.find(')', 0);
-		if (end > start && end != string::npos) {
-			proc_name = line.substr(start + 1, end - start - 1);
-			start = 0;
-			while (true) {
-				start = proc_name.find(' ', start + 1);
-				if (start != string::npos)
-					spaces_in_procname++;
-				else
-					break;
-			}
-		} else {
-			ugerr << "Fatal: Unexpected format in /proc/$pid/stat."
-			      << endl;
-			exit(-1);
-		}
-		start = 0;
-
-		// Now get the stack end
-		for (i32 i = 0; i < (stack_end_idx + spaces_in_procname) &&
-		     start != string::npos; i++)
-			start = line.find(' ', start + 1);
-		end = line.find(' ', start + 1);
-		if (end > start && end != string::npos) {
-			line = line.substr(start, end - start);
-			stack_end = strtoptr(line.c_str(), NULL, 10);
-			if (errno)
-				stack_end = 0;
-			ugout << "stack_end: 0x" << hex << stack_end << dec << endl;
-			opt->stack_end = stack_end;
-		}
-	}
-	stat_file.close();
-out:
-	return;
-}
-
-void handle_stack_end (Options *opt, list<CfgEntry> *cfg, pid_t pid)
-{
-	get_stack_end(opt, pid);
 	if (opt->stack_end) {
+		ugout << "stack_end: 0x" << hex << opt->stack_end << dec << endl;
 		process_stack_end(opt, cfg);
 	} else if (opt->pure_statmem && opt->val_on_stack) {
 		ugerr << "Fatal: Could not determine stack end." << endl;

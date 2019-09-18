@@ -44,4 +44,9 @@ i32 read_maps (pid_t pid, i32 (*callback)(struct region_map *map, void *data),
 	return -1;
 }
 
+ptr_t get_stack_end (pid_t pid, ptr_t start, ptr_t end)
+{
+	return start;
+}
+
 #endif

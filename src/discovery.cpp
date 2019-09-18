@@ -254,12 +254,12 @@ static void discover_stack_val (SF_PARAMS)
 	struct disc_pp *dpp = (struct disc_pp *) argp;
 	Options *opt = dpp->opt;
 	ptr_t in_addr = dpp->in_addr;
-	ptr_t stack_start = opt->stack_start;
+	ptr_t stack_rstart = opt->stack_rstart;
 
 	opt->stack_end = stack_end;
-	if (!stack_start || !stack_end || stack_start > stack_end)
+	if (!stack_rstart || !stack_end || stack_rstart > stack_end)
 		return;
-	if (in_addr >= stack_start && in_addr < stack_end)
+	if (in_addr >= stack_rstart && in_addr < stack_end)
 		cout << "stack contains 0x" << hex << in_addr
 		     << ", offs: 0x" << stack_end - in_addr
 		     << dec << endl;
@@ -428,7 +428,7 @@ void process_discovery (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid)
 		exit(0);
 	} else if (opt->disc_str->at(0) >= '1' && opt->disc_str->at(0) <= '4') {
 		struct disc_params params = { dfd, pid, opt };
-		get_stack_start(opt, pid, rlist);
+		get_stack_bounds(opt, pid, rlist);
 		if (opt->disc_str->at(0) >= '3' || opt->disc_offs > 0)
 			handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 		worker_pid = fork_proc(run_stage1234_loop, &params);

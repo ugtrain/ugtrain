@@ -67,7 +67,8 @@ public:
 	ptr_t	disc_addr;
 	ptr_t	code_addr;
 	ptr_t	code_offs;
-	ptr_t	stack_start;
+	ptr_t	stack_rstart;
+	ptr_t	stack_rend;
 	ptr_t	stack_end;
 	ptr_t	heap_start;
 	ptr_t	heap_end;

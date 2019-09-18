@@ -24,6 +24,7 @@
 #include <stdlib.h>    /* free */
 #include <string.h>    /* memset */
 #include <alloca.h>    /* alloca */
+#include <errno.h>
 
 /* local includes */
 #include "maps.h"
@@ -277,4 +278,106 @@ out:
 err_free:
 	ret = -1;
 	goto out_free;
+}
+
+/*
+ * Calling strchr() is too expensive as it does not have a built-in.
+ * So avoid this function.
+ */
+#define STRCHR(__code)						\
+do {								\
+	for (; ; epos++) {					\
+		if (*epos == '\0')				\
+			goto parse_err;				\
+		__code						\
+	}							\
+} while (0)
+
+/*
+ * Read the stack end from /proc/$pid/stat
+ *
+ * The process name may contain spaces.
+ */
+ptr_t get_stack_end (pid_t pid, ptr_t start, ptr_t end)
+{
+	FILE *stat_file;
+	char stat_path[128];
+	char *line = NULL, *spos, *epos;  /* start and end positions */
+	size_t len = 0;
+	ptr_t stack_end = start;
+	/*
+	 *  The stack end is the 28th value. So go to 27th space.
+	 *  See "man 5 proc".
+	 */
+	const i32 stack_end_idx = 27;
+	i32 i;
+
+	/* construct the stat file path */
+	snprintf(stat_path, sizeof(stat_path), "/proc/%u/stat", pid);
+
+	/* attempt to open the stat file */
+	stat_file = fopen(stat_path, "r");
+	if (!stat_file) {
+		goto out;
+	}
+	/* read stat file */
+	if (getline(&line, &len, stat_file) < 0) {
+		if (line)
+			free(line);
+		fclose(stat_file);
+		goto out;
+	}
+
+	/* move to the end of the process name first */
+	epos = line;
+	STRCHR(
+		if (*epos == '(') {
+			epos++;
+			break;
+		}
+	);
+	STRCHR(
+		if (*epos == ')') {
+			epos++;
+			break;
+		}
+	);
+
+	/* get the stack end */
+	i = 1;
+	/* start at 1 due to space between pid and proc name */
+	STRCHR(
+		if (*epos == ' ') {
+			i++;
+			if (i == stack_end_idx) {
+				spos = ++epos;
+				break;
+			}
+		}
+	);
+	STRCHR(
+		if (*epos == ' ')
+			break;
+	);
+	*epos = '\0';
+	errno = 0;
+	stack_end = strtoptr(spos, NULL, 10);
+	if (errno) {
+		stack_end = start;
+		goto parse_err;
+	}
+
+	free(line);
+	fclose(stat_file);
+
+	/* stack end needs to be in limits and in the upper half */
+	if (stack_end < start || stack_end > end ||
+	    stack_end < (start + ((end - start) >> 1)))
+		stack_end = start;
+out:
+	return stack_end;
+parse_err:
+	free(line);
+	fclose(stat_file);
+	goto out;
 }

@@ -1168,7 +1168,7 @@ i32 main (i32 argc, char **argv, char **env)
 	handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
 	handle_statmem_pie(opt, cfg);
 	handle_statmem_pic(opt, cfg, false);
-	handle_stack_end(opt, cfg, pid);
+	handle_stack_end(opt, cfg, pid, rlist);
 
 	init_dmparams(dmparams, opt, cfg, ofd, pid, rlist);
 

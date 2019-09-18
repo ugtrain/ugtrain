@@ -46,6 +46,7 @@ extern "C" {
 			 void *data), void *data);
 	i32 process_map (struct region_map *map, void *data);
 	i32 write_maps_to_file (const char *path, pid_t pid);
+	ptr_t get_stack_end (pid_t pid, ptr_t start, ptr_t end);
 #ifdef __cplusplus
 };
 #endif

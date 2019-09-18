@@ -39,12 +39,13 @@ void do_disc_pic_work (pid_t pid, Options *opt,
 
 void get_lib_load_addr (LF_PARAMS);
 
-void get_stack_start (Options *opt, pid_t pid,
-		      struct list_head *rlist);
+void get_stack_bounds (Options *opt, pid_t pid,
+		       struct list_head *rlist);
 
 void verify_stack_end (SF_PARAMS);
 
-void handle_stack_end (Options *opt, list<CfgEntry> *cfg, pid_t pid);
+void handle_stack_end (Options *opt, list<CfgEntry> *cfg, pid_t pid,
+		       struct list_head *rlist);
 
 /* Inline functions */
 
