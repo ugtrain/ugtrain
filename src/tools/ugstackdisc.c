@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include <lib/types.h>
+#include <lib/maps.h>
 
 #define APP_NAME "ugstackdisc"
 #define STACK_LIMIT (long)(16 * 1024 * 1024)
@@ -41,17 +42,14 @@ i32 main (i32 argc, char **argv)
 	ptr_t addr;
 	bool debug_mode = false;
 
-	FILE *stat_file;
-	char *line = NULL, *pos, *spos;
-	char stat_path[128] = {'\0'};
-	size_t len = 0, spaces_in_procname = 0;
-	ptr_t stack_offs = 0, stack_end = 0;
-	/*
-	 *  The stack end is the 28th value. So go to 27th space.
-	 *  See "man 5 proc".
-	 */
-	const i32 stack_end_idx = 27;
-	i32 i, ret = -1;
+	LIST_HEAD(_rlist);
+	struct list_head *rlist = &_rlist;
+	struct pmap_params params;
+	ptr_t stack_offs = 0, stack_end = 0, stack_rstart = 0, stack_rend = 0;
+	i32 ret = -1;
+
+	params.rlist = rlist;
+	params.exe_path = NULL;
 
 	/* Option parsing */
 	if (argc < 3)
@@ -68,65 +66,30 @@ i32 main (i32 argc, char **argv)
 	if (argc >= 4 && strncmp(argv[3], "--debug", sizeof("--debug")) == 0)
 		debug_mode = true;
 
-	/* Get stat path */
-	if (snprintf(stat_path, sizeof(stat_path), "/proc/%u/stat", pid) <= 0) {
-		fprintf(stderr, "Cannot determine the /proc/$pid/stat path.\n");
-		return ret;
+	/* Get memory regions */
+	read_regions(pid, &params);
+	find_stack_bounds(params.rlist, &stack_rstart, &stack_rend);
+	if (!stack_rstart) {
+		fprintf(stderr, "Failed to read the stack bounds.\n");
+		goto err_free;
+	}
+	if (addr < stack_rstart || addr > stack_rend) {
+		fprintf(stderr, "Address " PRI_PTR " is out of bounds ("
+			PRI_PTR ".." PRI_PTR ").\n", addr,
+			stack_rstart, stack_rend);
+		goto err_free;
 	}
 
-	/* Open stat file */
-	stat_file = fopen(stat_path, "r");
-	if (!stat_file) {
-		fprintf(stderr, "Failed to open stat file %s.\n", stat_path);
-		return ret;
+	/* Get stack end */
+	stack_end = get_stack_end(pid, stack_rstart, stack_rend);
+	if (stack_end == stack_rstart) {
+		fprintf(stderr, "Failed to read the stack end.\n");
+		goto err_free;
 	}
-	/* Read stat file */
-	if (getline(&line, &len, stat_file) != -1) {
-		/* handle spaces in the process name first */
-		pos = strchr(line, ')');
-		if (!pos)
-			goto parse_err;
-		*pos = '\0';
-		spos = line;
-		while (true) {
-			spos = strchr(spos + 1, ' ');
-			if (spos)
-				spaces_in_procname++;
-			else
-				break;
-		}
-		if (spaces_in_procname > 0)
-			spaces_in_procname--;
-		*pos = ')';
-
-		/* get the stack end */
-		spos = line;
-		for (i = 0; i < (stack_end_idx + spaces_in_procname); i++) {
-			spos = strchr(spos + 1, ' ');
-			if (!spos)
-				goto parse_err;
-		}
-		pos = strchr(spos + 1, ' ');
-		if (!pos)
-			goto parse_err;
-		*pos = '\0';
-		ret = sscanf(spos, "%lu", &stack_end);
-		if (ret != 1)
-			goto parse_err;
-		ret = -1;
-	} else {
-		if (line)
-			free(line);
-		fclose(stat_file);
-		fprintf(stderr, "Failed to read stat file %s.\n", stat_path);
-		return ret;
-	}
-	free(line);
-	fclose(stat_file);
 
 	if (debug_mode) {
-		printf("pid: %u, addr: " PRI_PTR ", path: %s, stack_end: "
-		       PRI_PTR "\n", pid, addr, stat_path, stack_end);
+		printf("pid: %u, addr: " PRI_PTR ", stack_end: "
+		       PRI_PTR "\n", pid, addr, stack_end);
 	}
 
 	/* Calculate, check, and print stack offset */
@@ -134,17 +97,16 @@ i32 main (i32 argc, char **argv)
 	if (stack_offs > STACK_LIMIT) {
 		fprintf(stderr, "Stack offset unlikely - exceeds limit of "
 			"0x%lx\n", STACK_LIMIT);
-		return ret;
+		goto err_free;
 	}
 	printf(PRI_PTR "\n", stack_offs);
 
+	rlist_clear(rlist);
 	return EXIT_SUCCESS;
 err:
 	fprintf(stderr, "%s", Help);
 	return ret;
-parse_err:
-	free(line);
-	fclose(stat_file);
-	fprintf(stderr, "Failed to parse stat file.\n");
+err_free:
+	rlist_clear(rlist);
 	return ret;
 }

@@ -140,7 +140,7 @@ i32 process_map (struct region_map *map, void *data)
 		/* detect the first region belonging to an ELF file */
 		if (map->exec == 'x' && map->file_path[0] != '\0') {
 			code_regions++;
-			if (strncmp(map->file_path, exe_path,
+			if (exe_path && strncmp(map->file_path, exe_path,
 			    MAPS_MAX_PATH) == 0) {
 				exe_regions = 1;
 				exe_load = map->start;

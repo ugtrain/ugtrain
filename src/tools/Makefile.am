@@ -8,7 +8,8 @@ ugsimfind_SOURCES = ugsimfind.c
 
 ugsimfind_LDADD = $(DEPS_LIBS)
 
-ugstackdisc_SOURCES = ugstackdisc.c
+ugstackdisc_SOURCES = ugstackdisc.c \
+                      ../lib/maps_l.c
 
 ugstackdisc_LDADD = $(DEPS_LIBS)
 

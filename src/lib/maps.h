@@ -149,6 +149,21 @@ struct pmap_params {
 };
 
 
+static inline void
+find_stack_bounds (struct list_head *rlist, ptr_t *stack_rstart,
+		   ptr_t *stack_rend)
+{
+	struct region *it;
+
+	clist_for_each_entry (it, rlist, list) {
+		if (it->type != REGION_TYPE_STACK)
+			continue;
+		*stack_rstart = (ptr_t) it->start;
+		*stack_rend = (ptr_t) it->start + it->size;
+		break;
+	}
+}
+
 static inline void list_regions (struct list_head *rlist)
 {
 	struct region *region;

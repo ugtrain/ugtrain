@@ -359,20 +359,6 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 // ###### Stack handling ######
 // ############################
 
-static inline void
-find_stack_bounds (Options *opt, struct list_head *rlist)
-{
-	struct region *it;
-
-	clist_for_each_entry (it, rlist, list) {
-		if (it->type != REGION_TYPE_STACK)
-			continue;
-		opt->stack_rstart = (ptr_t) it->start;
-		opt->stack_rend = (ptr_t) it->start + it->size;
-		break;
-	}
-}
-
 /*
  * read the stack region bounds from /proc/$pid/maps
  * and store them in opt
@@ -381,7 +367,7 @@ void get_stack_bounds (Options *opt, pid_t pid,
 		       struct list_head *rlist)
 {
 	get_regions(pid, rlist);
-	find_stack_bounds(opt, rlist);
+	find_stack_bounds(rlist, &opt->stack_rstart, &opt->stack_rend);
 }
 
 /*
@@ -469,7 +455,7 @@ void verify_stack_end (SF_PARAMS)
 void handle_stack_end (Options *opt, list<CfgEntry> *cfg, pid_t pid,
 		       struct list_head *rlist)
 {
-	find_stack_bounds(opt, rlist);
+	find_stack_bounds(rlist, &opt->stack_rstart, &opt->stack_rend);
 	opt->stack_end = get_stack_end(pid, opt->stack_rstart, opt->stack_rend);
 	if (opt->stack_end == opt->stack_rstart)
 		opt->stack_end = 0;
