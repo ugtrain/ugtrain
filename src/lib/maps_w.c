@@ -1,6 +1,6 @@
 /* maps_w.c:    just a stub
  *
- * Copyright (C) 2014..2015     Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (C) 2014..2019     Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version

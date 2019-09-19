@@ -3,7 +3,7 @@
  * Copyright (C) 2006,2007,2009 Tavis Ormandy <taviso@sdf.lonestar.org>
  * Copyright (C) 2009           Eli Dupree <elidupree@charter.net>
  * Copyright (C) 2009,2010      WANG Lu <coolwanglu@gmail.com>
- * Copyright (C) 2014..2018     Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (C) 2014..2019     Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * Code in this file has been taken from scanmem.
  *
