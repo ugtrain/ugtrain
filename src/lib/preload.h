@@ -32,5 +32,5 @@ extern "C" {
 	i32 preload_library (char *lib_path);
 #endif
 #ifdef __cplusplus
-};
+}
 #endif

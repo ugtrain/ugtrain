@@ -26,7 +26,7 @@ extern "C" {
 	int  prepare_getch (void);
 	void restore_getch (void);
 #ifdef __cplusplus
-};
+}
 #endif
 
 #ifdef __linux__

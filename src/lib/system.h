@@ -60,7 +60,7 @@ extern "C" {
 	enum pstate check_process (pid_t pid, const char *proc_name);
 	pid_t   fork_proc (void (*task) (void *), void *argp);
 #ifdef __cplusplus
-};
+}
 #endif
 
 /* Inline functions */
