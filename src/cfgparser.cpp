@@ -20,7 +20,6 @@
 // local includes
 #include <cfgparser.h>
 #include <common.h>
-using namespace std;
 
 #define CFG_DIR "~/.ugtrain/"
 #define CFG_EXT ".conf"
