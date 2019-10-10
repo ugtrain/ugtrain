@@ -18,8 +18,7 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#ifndef PRELOAD_H
-#define PRELOAD_H
+#pragma once
 
 /* local includes */
 #include "types.h"
@@ -34,6 +33,4 @@ extern "C" {
 #endif
 #ifdef __cplusplus
 };
-#endif
-
 #endif

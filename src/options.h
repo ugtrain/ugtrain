@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#pragma once
 
 #include <list>
 #include <string>
@@ -105,5 +104,3 @@ static inline void use_libmemhack (Options *opt)
 	else if (sizeof(ptr_t) == 4)
 		opt->preload_lib = (char *) LHACK_PRE "32" LIB_END;
 }
-
-#endif

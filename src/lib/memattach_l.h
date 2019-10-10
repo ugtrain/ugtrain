@@ -21,9 +21,9 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
+#pragma once
+
 #ifdef __linux__
-#ifndef MEMATTACH_L_H
-#define MEMATTACH_L_H
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -192,5 +192,4 @@ err:
 	return -1;
 }
 
-#endif /* MEMATTACH_L_H */
 #endif

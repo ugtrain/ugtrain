@@ -18,8 +18,7 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#ifndef DISCOVERY_H
-#define DISCOVERY_H
+#pragma once
 
 // local includes
 #include <lib/list.h>
@@ -33,5 +32,3 @@ bool init_discovery     (Options *opt);
 i32  prepare_discovery  (Options *opt);
 void process_discovery  (Options *opt, i32 ifd, i32 dfd, i32 ofd, i32 pid);
 i32  postproc_discovery (Options *opt);
-
-#endif

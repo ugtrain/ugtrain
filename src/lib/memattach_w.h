@@ -19,10 +19,9 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#if defined(__WINNT__) || defined (__WIN32__)
-#ifndef MEMATTACH_W_H
-#define MEMATTACH_W_H
+#pragma once
 
+#if defined(__WINNT__) || defined (__WIN32__)
 
 static inline
 i32 memattach_test (pid_t pid, i32 *fd)
@@ -54,5 +53,4 @@ i32 memwrite (pid_t pid, ptr_t addr, void *_buf, size_t buf_len)
 	return -1;
 }
 
-#endif /* MEMATTACH_W_H */
 #endif

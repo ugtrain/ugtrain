@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CFGENTRY_H
-#define CFGENTRY_H
+#pragma once
 
 #include <vector>
 #include <list>
@@ -201,5 +200,3 @@ public:
 	PtrMemEntry *ptrmem;
 	PtrMemEntry *ptrtgt;
 };
-
-#endif

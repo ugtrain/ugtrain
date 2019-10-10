@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef SYSTEM_H
-#define SYSTEM_H
+#pragma once
 
 #if defined(__linux__) && !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
@@ -334,7 +333,5 @@ static inline void set_sigterm_handler (void (*sighandler)(i32))
 static inline void show_errorstr (void)
 {
 }
-
-#endif
 
 #endif

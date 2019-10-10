@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef LINUX_LIST_H
-#define LINUX_LIST_H
+#pragma once
 
 /* common helpers e.g. for lists taken from Linux kernel */
 #undef offsetof
@@ -774,5 +773,3 @@ static inline void hlist_move_list(struct hlist_head *old,
 	for (pos = hlist_entry_safe((head)->first, typeof(*pos), member);\
 	     pos && ({ n = pos->member.next; 1; });			\
 	     pos = hlist_entry_safe(n, typeof(*pos), member))
-
-#endif

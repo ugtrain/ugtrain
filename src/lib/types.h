@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#pragma once
 
 #include <config.h>
 #include <limits.h>
@@ -88,5 +87,3 @@ typedef uintptr_t ptr_t;
 #define BUF_SIZE PIPE_BUF
 
 #define UGT_PFX "[ugt] "
-
-#endif

@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef MEMMGMT_H
-#define MEMMGMT_H
+#pragma once
 
 #include <list>
 
@@ -27,5 +26,3 @@ void clear_dynmem_addr (FF_PARAMS);
 int  output_dynmem_changes (list<CfgEntry> *cfg);
 void free_dynmem  (list<CfgEntry> *cfg, bool process_kicked);
 void alloc_dynmem (list<CfgEntry> *cfg);
-
-#endif

@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef ADAPT_H
-#define ADAPT_H
+#pragma once
 
 #include <list>
 
@@ -22,5 +21,3 @@
 #include <options.h>
 
 i32 process_adaptation (Options *opt, vector<string> *cfg_lines);
-
-#endif

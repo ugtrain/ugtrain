@@ -16,8 +16,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef MAPS_H
-#define MAPS_H
+#pragma once
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -197,5 +196,3 @@ static inline void read_regions (pid_t pid, struct pmap_params *params)
 	if (read_maps(pid, process_map, params))
 		rlist_clear(rlist);
 }
-
-#endif

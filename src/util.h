@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef UTIL_H
-#define UTIL_H
+#pragma once
 
 #if defined(__linux__) && !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
@@ -174,5 +173,3 @@ write_memory (pid_t pid, ptr_t mem_addr, value_t *buf, const char *pfx)
 {
 	return _write_memory(pid, mem_addr, buf, sizeof(value_t), pfx);
 }
-
-#endif

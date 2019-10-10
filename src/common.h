@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef COMMON_H
-#define COMMON_H
+#pragma once
 
 #ifdef __cplusplus
 	#include <iostream>
@@ -105,6 +104,4 @@ enum grow_type {
 			ret_str = "." PSEP;
 		return ret_str;
 	}
-#endif
-
 #endif

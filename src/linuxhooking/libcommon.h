@@ -18,8 +18,7 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#ifndef LIBCOMMON_H
-#define LIBCOMMON_H
+#pragma once
 
 #include <lib/preload.h>
 #include <common.h>
@@ -95,5 +94,3 @@ static FILE *dfile = NULL;
 
 
 void rm_from_env (char *env_name, char *pattern, char separator);
-
-#endif

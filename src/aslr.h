@@ -18,8 +18,7 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#ifndef ASLR_H
-#define ASLR_H
+#pragma once
 
 // local includes
 #include <lib/list.h>
@@ -219,5 +218,3 @@ get_heap_region (Options *opt, pid_t pid,
 	get_regions(pid, rlist);
 	find_heap_region(rlist, &opt->heap_start, &opt->heap_end);
 }
-
-#endif

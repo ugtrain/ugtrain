@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef FIFOPARSER_H
-#define FIFOPARSER_H
+#pragma once
 
 #include <list>
 
@@ -100,4 +99,3 @@ ssize_t read_dynmem_buf (list<CfgEntry> *cfg, void *argp, i32 ifd, i32 pmask,
 ssize_t parse_dynmem_buf (list<CfgEntry> *cfg, void *argp, char *ibuf,
 			  ssize_t *ilen, ssize_t tmp_ilen, i32 pmask,
 			  bool reverse, ptr_t code_offs, struct parse_cb *pcb);
-#endif

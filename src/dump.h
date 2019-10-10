@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef DUMP_H
-#define DUMP_H
+#pragma once
 
 #include <list>
 
@@ -21,5 +20,3 @@
 #include <common.h>
 
 void dump_all_mem_obj (pid_t pid, i32 mfd, list<CfgEntry> *cfg);
-
-#endif

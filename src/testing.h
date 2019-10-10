@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef TESTING_H
-#define TESTING_H
+#pragma once
 
 #include <list>
 #include <stdlib.h>
@@ -50,7 +49,5 @@ static inline void test_cfgoutput (Options *opt)
 static inline void test_optparsing (Options *opt) {}
 static inline void test_cfgparsing (Options *opt) {}
 static inline void test_cfgoutput (Options *opt) {}
-
-#endif
 
 #endif

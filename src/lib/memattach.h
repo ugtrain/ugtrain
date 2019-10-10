@@ -18,12 +18,9 @@
  * configs or codes which might turn ugtrain into a cracker tool!
  */
 
-#ifndef MEMATTACH_H
-#define MEMATTACH_H
+#pragma once
 
 /* local includes */
 #include "types.h"
 #include "memattach_l.h"
 #include "memattach_w.h"
-
-#endif

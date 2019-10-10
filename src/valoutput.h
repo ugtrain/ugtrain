@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef VALOUTPUT_H
-#define VALOUTPUT_H
+#pragma once
 
 #include <list>
 
@@ -21,5 +20,3 @@
 #include <common.h>
 
 int output_mem_values (list<CfgEntry*> *cfg_act);
-
-#endif

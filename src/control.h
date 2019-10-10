@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CONTROL_H
-#define CONTROL_H
+#pragma once
 
 #include <list>
 
@@ -22,5 +21,3 @@
 
 void handle_input_char (char ch, list<CfgEntry*> *cfgp_map[], pid_t pid, i32 mfd,
 			list<CfgEntry> *cfg, list<CfgEntry*> *cfg_act);
-
-#endif

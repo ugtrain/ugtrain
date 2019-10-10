@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef GETCH_H
-#define GETCH_H
+#pragma once
 
 #ifdef __linux__
 #include <fcntl.h>
@@ -91,6 +90,4 @@ static inline int set_getch_nb (int nb)
 {
 	return 0;
 }
-#endif
-
 #endif

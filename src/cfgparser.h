@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CFGPARSER_H
-#define CFGPARSER_H
+#pragma once
 
 #include <list>
 
@@ -24,4 +23,3 @@
 void read_config (Options *opt, vector<string> *cfg_lines);
 
 void write_config_vect (char *path, vector<string> *cfg_lines);
-#endif

@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CFGOUTPUT_H
-#define CFGOUTPUT_H
+#pragma once
 
 #include <list>
 
@@ -23,5 +22,3 @@
 
 void output_config (Options *opt, list<CfgEntry> *cfg);
 void output_config_act (list<CfgEntry*> *cfg_act);
-
-#endif

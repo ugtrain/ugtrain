@@ -11,8 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef TESTOPTS_H
-#define TESTOPTS_H
+#pragma once
 
 #include <string.h>
 
@@ -55,7 +54,5 @@ enum parts {
 #define TESTING_OPT_CHARS
 #define TESTING_OPT_LONG
 #define TESTING_OPT_PARSING
-
-#endif
 
 #endif
