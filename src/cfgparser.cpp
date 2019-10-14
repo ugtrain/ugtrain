@@ -252,6 +252,7 @@ start:
 			case '_':
 			case '/':
 			case '.':
+			case '+':
 			case ' ':
 				break;
 			default:
@@ -348,6 +349,34 @@ static bool parse_obj_num_chk (list<CfgEntry> *cfg, CheckEntry *chk_en,
 	return ret;
 }
 
+static inline bool is_dec_str (string *str)
+{
+	for (size_t i = 0; i < str->length(); i++) {
+		if (!isdigit(str->at(i)))
+			return false;
+	}
+	return true;
+}
+
+static inline bool is_hex_str (string *str)
+{
+	for (size_t i = 0; i < str->length(); i++) {
+		if (!isxdigit(str->at(i)))
+			return false;
+	}
+	return true;
+}
+
+static inline ptr_t get_prev_cfg_en_addr(list<CfgEntry> *cfg, CfgEntry *cfg_en)
+{
+	CfgEntry *prev_en = &cfg->back();
+	if (prev_en->type.on_stack)
+		cfg_en->type.on_stack = true;
+	else if (prev_en->type.lib_name && !prev_en->type.lib_name->empty())
+		cfg_en->type.lib_name = new string(*prev_en->type.lib_name);
+	return prev_en->addr;
+}
+
 static inline ptr_t get_cfg_en_addr (CheckEntry *chk_en, CfgEntry *cfg_en)
 {
 	if (cfg_en->type.on_stack)
@@ -356,6 +385,40 @@ static inline ptr_t get_cfg_en_addr (CheckEntry *chk_en, CfgEntry *cfg_en)
 		chk_en->type.lib_name = new string(*cfg_en->type.lib_name);
 	return cfg_en->addr;
 }
+
+#define PARSE_REL_ADDR(keyword, code_to_get_ret)			\
+do {									\
+	const size_t kw_size = sizeof(keyword) - 1;			\
+	bool subtract = false;						\
+	ptr_t rel_addr = 0;						\
+									\
+	if (tmp_str.at(kw_size) == '-')					\
+		subtract = true;					\
+	else if (tmp_str.at(kw_size) != '+')				\
+		cfg_parse_err(line, lnr, lidx + kw_size);		\
+									\
+	/* Get the base addresss first */				\
+	code_to_get_ret							\
+									\
+	if (tmp_str.substr(kw_size + 1, 2) == "0x") {			\
+		tmp_str = tmp_str.substr(kw_size + 3);			\
+		if (!is_hex_str(&tmp_str))				\
+			cfg_parse_err(line, lnr, lidx + kw_size + 3);	\
+		rel_addr = strtoptr(tmp_str.c_str(), NULL, 16);		\
+	} else {							\
+		tmp_str = tmp_str.substr(kw_size + 1);			\
+		if (!is_dec_str(&tmp_str))				\
+			cfg_parse_err(line, lnr, lidx + kw_size + 1);	\
+		rel_addr = strtoptr(tmp_str.c_str(), NULL, 10);		\
+	}								\
+	if (!rel_addr)							\
+		cfg_parse_err(line, lnr, lidx + kw_size + 1);		\
+	if (subtract)							\
+		ret -= rel_addr;					\
+	else								\
+		ret += rel_addr;					\
+	goto out;							\
+} while (0)
 
 static ptr_t parse_address (list<CfgEntry> *cfg, CfgEntry *cfg_en,
 			    CheckEntry *chk_en, string *line, u32 lnr,
@@ -399,12 +462,22 @@ start:
 				cfg_en->type.lib_name = new string(tmp_str);
 			cfg = NULL; cfg_en = NULL; chk_en = NULL;
 			goto start;
+		} else if (tmp_str.substr(0, 4) == "prev") {
+			if (!cfg_en || chk_en)
+				cfg_parse_err(line, lnr, lidx);
+			PARSE_REL_ADDR("prev",
+				ret = get_prev_cfg_en_addr(cfg, cfg_en);
+			);
 		}
 		if (!cfg || !chk_en || !cfg_en)
 			cfg_parse_err(line, lnr, lidx);
 		if (tmp_str == "this") {
 			ret = get_cfg_en_addr(chk_en, cfg_en);
 			goto out;
+		} else if (tmp_str.substr(0, 4) == "this") {
+			PARSE_REL_ADDR("this",
+				ret = get_cfg_en_addr(chk_en, cfg_en);
+			);
 		}
 		chk_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
 		if (!chk_en->cfg_ref)
