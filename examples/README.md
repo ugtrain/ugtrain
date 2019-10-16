@@ -73,13 +73,13 @@ especially useful for repetitive checks.
 ### ValName [Region] AbsAddress DataType [optional check] WishValue KeyBindings ActState
 ### ValName [Region] AbsAddress DataType watch
 
-All addresses and offsets are in HEX starting with "0x" (e.g. 0xdeadbeef).
+All **addresses and offsets** are in HEX starting with "0x" (e.g. 0xdeadbeef).
 
-Possible DataTypes: i8, i16, i32, i64, u8, u16, u32, u64, f32, f64
+Possible **DataTypes**: i8, i16, i32, i64, u8, u16, u32, u64, f32, f64
 
-checks: 'l' = "less than", 'g' = "greater than", '' = unchecked
+**checks**: 'l' = "less than", 'g' = "greater than", '' = unchecked
 
-Static wish values are in decimal (e.g. 42) or hex (e.g. 0x2a).
+Static **wish values** are in decimal (e.g. 42) or hex (e.g. 0x2a).
 But the dynamic wish values
 "min", "max" and "watch" are also possible. "min" and "max" start with 0
 and if the value gets less than min or greater than max, they are frozen
@@ -95,21 +95,21 @@ has not been read, yet. Reference value 0 means to only watch the current
 value until it is available and valid. Example: "DBody" is set to "DMaxBody"
 in the warzone2100 config.
 
-KeyBindings are alphanumeric chars [0-9a-zA-Z] separated by ','. These are
+**KeyBindings** are alphanumeric chars [0-9a-zA-Z] separated by ','. These are
 processed by non-blocking getch() and toggle the activation state at
 runtime. Multiple keys for the same value and multiple values for the same
 key are possible.
 
-The activation state can be directly set to active ('a') or deactivated
+The **activation state** can be directly set to active ('a') or deactivated
 ('d') upon trainer start in the last colomn. Also watch ('w') is possible
 which results in ignoring the wish value and just displaying the current
 value. The difference here is that we can toggle the watching between on
 and off.
 
-Possible memory regions: "stack" and "lib <lib_name>". Otherwise, the exe
+Possible **memory regions**: "stack" and "lib <lib_name>". Otherwise, the exe
 regions are assumed.
 
-The absolute address of a value on the stack is calculated by
+The absolute address of a **value on the stack** is calculated by
 `libc stack end - forward stack offset` (at AbsAddress). Libmemhack reads
 the libc stack end from within the game process and sends it to ugtrain.
 Execution is delayed by 1s to provide the game a chance to fill the stack
@@ -117,13 +117,18 @@ first. This is a mix between static and dynamic memory cheating.
 **Be careful with this!** It can easily corrupt the stack and crash the game.
 Example: Amount of credits in the game endless-sky.
 
-Static memory within a library (PIC) is configured with "lib <lib_name>".
+Static memory within a **library (PIC)** is configured with "lib <lib_name>".
 Ugtrain reads the memory maps and adds the load addresses of the found
 libraries in every cycle until all configured libraries are loaded.
 
+**Relative addresses** based on previous entry can be used. This is a major
+advantage when arrays have to be adapted. E.g. with a 32 bit integer weapons
+array, only the first address is absolute and the rest uses "prev+4". "prev+"
+and "prev-" are possible with decimal number or hex number (e.g. "prev+0x4").
+
 ### ValName [Region] AbsAddress p PtrMemName <"once" or "always">
 
-Ugtrain can follow a pointer in static memory to a single dynamic memory
+Ugtrain can **follow a pointer** in static memory to a single dynamic memory
 object as in the example "chromium-bsu64_pointer.conf". But this method is
 unpreferred as it is hard to adapt. It is the default method of Cheat Engine
 on Windows. Pointer following should rather be used from dynamic memory. So
@@ -132,7 +137,7 @@ see the dynamic memory section for details.
 ### check [Region] AbsAddress DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
 ### check ["addr"] ValueName DataType <'l', 'g' or 'e'> CheckValue [further "or" checks]
 
-Checks are applied to the previously defined value entry. Here it is also
+**Checks** are applied to the previously defined value entry. Here it is also
 possible to use another already parsed value name as the AbsAddress. The
 value of the config reference is checked then unless the value name belongs
 to the current config entry. In that case its address is taken over instead.
@@ -140,22 +145,24 @@ By adding the keyword "addr" in front of the value name, this behavior can
 be enforced. It makes sense when the config reference may be disabled.
 
 'e' for "equals" is another possible check here and the same value can be
-compared combined with "or" and upto four checks (e.g. "e 1 e 2" means
+compared combined with "or" and upto **four checks** (e.g. "e 1 e 2" means
 (Value == 1 || Value == 2)). Checks in following lines are combined with
 "and". With "p e heap" it is possible to check if a pointer is located on the
-heap. Cyclic reading of /proc/$pid/maps is done for this.
+heap. Cyclic reading of `/proc/$pid/maps` is done for this.
 
-As the AbsAddress, also the keyword "this" can be used to check the current
-value entry by taking over its address.
+As the AbsAddress, also the keyword "**this**" can be used to check the current
+value entry by taking over its address. Also relative addressing similar to the
+"prev"-handling is possible. "this+8" is a typical check for the C++ vector end
+pointer on 64 bit systems before following a vector start pointer.
 
-A stack or PIC value can be checked here as well. The check fails until the
+A **stack or PIC value** can be checked here as well. The check fails until the
 stack or late PIC value is available and valid. The same applies if a referenced
 config entry is used and it has not yet been read e.g. if that one is a
 stack/PIC value.
 
 ### ValName [Region] AbsAddress cstrp watch
 
-Follow a pointer to a C/C++ ASCII string and print it. Those strings cannot
+Follow a pointer to a **C/C++ ASCII string** and print it. Those strings cannot
 be modified. Only watching is possible.
 
 
