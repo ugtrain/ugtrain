@@ -466,6 +466,8 @@ start:
 			if (!cfg_en || chk_en)
 				cfg_parse_err(line, lnr, lidx);
 			PARSE_REL_ADDR("prev",
+				if (cfg->empty())
+					cfg_parse_err(line, lnr, lidx);
 				ret = get_prev_cfg_en_addr(cfg, cfg_en);
 			);
 		}
