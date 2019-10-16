@@ -588,7 +588,7 @@ ThrottleStatus 0x28c i32 watch
 # Torpedo C++ vector start pointer
 TorpedoVecPtr 0x4c0 p TorpedoVec always
 check this p e heap
-check 0x4c8 p e heap
+check this+8 p e heap
 dynmemend
 ```
 
