@@ -17,6 +17,21 @@
 #include <cfgoutput.h>
 
 
+static void output_dump_entries (Options *opt)
+{
+	list<DumpEntry>::iterator dit;
+	if (opt->dump_list->empty())
+		return;
+	ugout << "statmem dump areas:" << endl;
+	list_for_each(opt->dump_list, dit) {
+		ugout << "  dump " << "0x" << hex << dit->addr << dec << " "
+		      << dit->mem_size;
+		if (dit->lib && !dit->lib->empty())
+			cout << " " << *dit->lib;
+		cout << endl;
+	}
+}
+
 static void output_val (struct type *type, value_t value, const char *suffix)
 {
 	if (type->is_float) {
@@ -311,4 +326,5 @@ skip_hl:
 		output_config_en(cfg_en, "");
 		output_checks(cfg_en);
 	}
+	output_dump_entries(opt);
 }

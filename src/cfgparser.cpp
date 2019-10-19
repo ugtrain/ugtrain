@@ -42,6 +42,7 @@ typedef enum {
 	NAME_DYNMEM_FILE,
 	NAME_PTRMEM_START,
 	NAME_PTRMEM_END,
+	NAME_DUMP,
 	NAME_ADP_SCRIPT,
 	NAME_ADP_REQ
 } name_e;
@@ -316,6 +317,8 @@ start:
 		*name_type = NAME_NO_PRELOAD;
 	} else if (ret == "define") {
 		*name_type = NAME_DEFINE;
+	} else if (ret == "dump") {
+		*name_type = NAME_DUMP;
 	} else {
 		map<string,string>::iterator it;
 
@@ -769,7 +772,7 @@ static void parse_key_bindings (string *line, u32 lnr, u32 *start,
 
 /*
  * returns the string at the end of a line
- * returns NULL if there is no string, it is "exe" or contains blanks
+ * returns empty string if there is no string, it is "exe" or contains blanks
  */
 static inline string parse_pic_lib (string *line, u32 *start)
 {
@@ -1193,6 +1196,16 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 				&start, false, NULL);
 			tmp_str = line.substr(start, string::npos);
 			macros[key] = tmp_str;
+			break;
+
+		case NAME_DUMP:
+			if (in_dynmem || in_ptrmem)
+				cfg_parse_err(&line, lnr, start);
+			DumpEntry dump_en;
+			dump_en.addr = parse_address(NULL, NULL, NULL, &line, lnr, &start);
+			dump_en.mem_size = parse_u32_value(&line, lnr, &start);
+			dump_en.lib = new string(parse_pic_lib(&line, &start));
+			opt->dump_list->push_back(dump_en);
 			break;
 
 		default:

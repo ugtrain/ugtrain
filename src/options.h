@@ -79,6 +79,7 @@ public:
 	list<CfgEntry*>		**cfgp_map;
 	list<CacheEntry>	*cache_list;	// caching static memory
 	list<LibEntry>		*lib_list;	// handling statmem in libraries
+	list<DumpEntry>		*dump_list;	// dump static memory areas
 	StackOpt		*stack;
 	// options for testing
 	TESTING_OPT_VARS

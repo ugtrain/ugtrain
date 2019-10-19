@@ -112,6 +112,7 @@ void cleanup_options (Options *opt)
 {
 	list<CacheEntry>::iterator cait;
 	list<LibEntry>::iterator lit;
+	list<DumpEntry>::iterator dit;
 
 	// Free cache lists first
 	if (!opt->lib_list)
@@ -139,8 +140,17 @@ skip_stack_cache:
 		delete[] cait->data;
 	opt->cache_list->clear();
 	delete opt->cache_list;
-
 skip_statmem_cache:
+	if (!opt->dump_list)
+		goto skip_dump_list;
+	list_for_each (opt->dump_list, dit) {
+		if (dit->lib)
+			delete dit->lib;
+	}
+	opt->dump_list->clear();
+	delete opt->dump_list;
+
+skip_dump_list:
 	if (opt->cfg_path)
 		delete opt->cfg_path;
 	if (opt->dynmem_file)
@@ -187,6 +197,7 @@ static void init_options (Options *opt)
 	opt->stack = new StackOpt;
 	opt->stack->cache_list = new list<CacheEntry>;
 	opt->lib_list = new list<LibEntry>;
+	opt->dump_list = new list<DumpEntry>;
 }
 
 /*
