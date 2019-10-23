@@ -98,6 +98,22 @@ out:
 	return;
 }
 
+#define DUMP_PTR_MEM()						\
+do {								\
+	ugout << ">>> Dumping Pointer " << ptr_id		\
+	      << " Obj " << obj_id << " at 0x"			\
+	      << hex << it->old_val.ptr << dec << endl;		\
+	dump_mem_obj(pid, mfd, "p", ptr_id, obj_id,		\
+		     it->old_val.ptr, it->ptrtgt->mem_size);	\
+} while (0)
+
+#define CHECK_PTR(__jump_target)				\
+do {								\
+	if (it->old_val.u64 == 0 ||				\
+	    it->ptrtgt->v_state[obj_id] < PTR_SETTLED)		\
+		goto __jump_target;				\
+} while (0)
+
 void dump_all_mem_obj (pid_t pid, i32 mfd, list<CfgEntry> *cfg)
 {
 	DynMemEntry *old_dynmem = NULL;
@@ -125,19 +141,22 @@ void dump_all_mem_obj (pid_t pid, i32 mfd, list<CfgEntry> *cfg)
 	}
 
 	list_for_each (cfg, it) {
-		if (!it->dynmem || !it->ptrtgt)
+		if (!it->ptrtgt)
 			continue;
 		obj_id = 0;
+		if (!it->dynmem) {
+			CHECK_PTR(skip_ptr);
+			DUMP_PTR_MEM();
+			goto skip_ptr;
+		}
 		for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
-			if (it->v_oldval[obj_id].u64 == 0 ||
-			    it->ptrtgt->v_state[obj_id] < PTR_SETTLED)
-				goto skip_obj;
-			dump_mem_obj(pid, mfd, "p", ptr_id, obj_id,
-				     it->v_oldval[obj_id].ptr,
-				     it->ptrtgt->mem_size);
+			it->old_val = it->v_oldval[obj_id];
+			CHECK_PTR(skip_obj);
+			DUMP_PTR_MEM();
 skip_obj:
 			obj_id++;
 		}
+skip_ptr:
 		ptr_id++;
 	}
 }
