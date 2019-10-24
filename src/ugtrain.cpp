@@ -1054,7 +1054,6 @@ i32 main (i32 argc, char **argv, char **env)
 	vector<string> *cfg_lines = gbl->cfg_lines;
 	list<CfgEntry> *cfg = gbl->cfg;
 	list<CfgEntry*> *cfg_act = gbl->cfg_act;
-	list<CfgEntry*> **cfgp_map = gbl->cfgp_map;
 	struct dynmem_params *dmparams = gbl->dmparams;
 	struct list_head *rlist = gbl->rlist;
 	struct mqueue *mq = &dmparams->_mqueue;
@@ -1180,7 +1179,7 @@ i32 main (i32 argc, char **argv, char **env)
 		sleep_sec_unless_input2(1, ifd, STDIN_FILENO);
 		ch = do_getch();
 		if (ch > 0 && ch < CFGP_MAP_SIZE)
-			handle_input_char(ch, cfgp_map, pid, opt->procmem_fd, cfg, cfg_act);
+			handle_input_char(ch, opt, pid);
 
 		// get allocated and freed objects (TIME CRITICAL!)
 		if (!opt->pure_statmem) {

@@ -114,10 +114,12 @@ do {								\
 		goto __jump_target;				\
 } while (0)
 
-void dump_all_mem_obj (pid_t pid, i32 mfd, list<CfgEntry> *cfg)
+void dump_all_mem_obj (pid_t pid, Options *opt)
 {
 	DynMemEntry *old_dynmem = NULL;
 	u32 class_id = 0, obj_id = 0, ptr_id = 0, i;
+	i32 mfd = opt->procmem_fd;
+	list<CfgEntry> *cfg = opt->cfg;
 	list<CfgEntry>::iterator it;
 
 	dump_maps(pid);
