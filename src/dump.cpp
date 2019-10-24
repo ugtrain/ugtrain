@@ -100,10 +100,10 @@ out:
 
 #define DUMP_PTR_MEM()						\
 do {								\
-	ugout << ">>> Dumping Pointer " << ptr_id		\
+	ugout << ">>> Dumping Pointer " << main_id		\
 	      << " Obj " << obj_id << " at 0x"			\
 	      << hex << it->old_val.ptr << dec << endl;		\
-	dump_mem_obj(pid, mfd, "p", ptr_id, obj_id,		\
+	dump_mem_obj(pid, mfd, "p", main_id, obj_id,		\
 		     it->old_val.ptr, it->ptrtgt->mem_size);	\
 } while (0)
 
@@ -117,31 +117,35 @@ do {								\
 void dump_all_mem_obj (pid_t pid, Options *opt)
 {
 	DynMemEntry *old_dynmem = NULL;
-	u32 class_id = 0, obj_id = 0, ptr_id = 0, i;
+	u32 main_id = 0, obj_id = 0, i;
 	i32 mfd = opt->procmem_fd;
 	list<CfgEntry> *cfg = opt->cfg;
 	list<CfgEntry>::iterator it;
+	list<DumpEntry> *dump_list = opt->dump_list;
+	list<DumpEntry>::iterator dit;
 
 	dump_maps(pid);
 
+	main_id = 0;  // class id
 	list_for_each (cfg, it) {
 		if (!it->dynmem || it->dynmem == old_dynmem)
 			continue;
 		obj_id = 0;
 		for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
-			ugout << ">>> Dumping Class " << class_id
+			ugout << ">>> Dumping Class " << main_id
 			      << " Obj " << obj_id << " at 0x"
 			      << hex << it->dynmem->v_maddr[obj_id]
 			      << dec << endl;
-			dump_mem_obj(pid, mfd, NULL, class_id, obj_id,
+			dump_mem_obj(pid, mfd, NULL, main_id, obj_id,
 				     it->dynmem->v_maddr[obj_id],
 				     it->dynmem->mem_size);
 			obj_id++;
 		}
-		class_id++;
+		main_id++;
 		old_dynmem = it->dynmem;
 	}
 
+	main_id = 0;  // pointer id
 	list_for_each (cfg, it) {
 		if (!it->ptrtgt)
 			continue;
@@ -159,6 +163,18 @@ skip_obj:
 			obj_id++;
 		}
 skip_ptr:
-		ptr_id++;
+		main_id++;
+	}
+
+	// Static memory areas
+	main_id = 0;  // area id
+	obj_id = 0;
+	list_for_each (dump_list, dit) {
+		ugout << ">>> Dumping Static Memory " << main_id
+		      << " Obj " << obj_id << " at 0x"
+		      << hex << dit->addr << dec << endl;
+		dump_mem_obj(pid, mfd, "s", main_id, obj_id,
+			     dit->addr, dit->mem_size);
+		main_id++;
 	}
 }
