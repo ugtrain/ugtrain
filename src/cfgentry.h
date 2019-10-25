@@ -27,13 +27,6 @@
 
 #define PTR_MAX ULONG_MAX             // value to show that a cache is invalid
 
-class DumpEntry {
-public:
-	ptr_t addr;                   // static memory address
-	size_t mem_size;
-	string *lib;                  // for PIC support
-};
-
 class CacheEntry {
 public:
 	ptr_t offs;                   // offset within dynmem object
@@ -50,6 +43,14 @@ public:
 	// late PIC handling
 	bool is_loaded;   // for not changing offsets again
 	bool skip_val;    // for skipping 1 cycle value output
+};
+
+class DumpEntry {
+public:
+	ptr_t addr;                   // static memory address
+	size_t mem_size;
+	string *lib_name;             // for PIC support
+	LibEntry *lib;
 };
 
 class GrowEntry {

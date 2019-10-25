@@ -899,21 +899,21 @@ read_config_vect (string *path, char *home,
 	cfg_file.close();
 }
 
-#define FIND_ADD_LIB_ENTRY(entry)					\
+#define FIND_ADD_LIB_ENTRY(__entry)					\
 do {									\
 	list<LibEntry>::iterator lit;					\
 	bool found = false;						\
 	LibEntry lib_en;						\
 									\
 	list_for_each (opt->lib_list, lit) {				\
-		if (lit->name != *entry.type.lib_name)			\
+		if (lit->name != *__entry.lib_name)			\
 			continue;					\
-		entry.type.lib = &(*lit);				\
+		__entry.lib = &(*lit);					\
 		found = true;						\
 		break;							\
 	}								\
 	if (!found) {							\
-		lib_en.name = *entry.type.lib_name;			\
+		lib_en.name = *__entry.lib_name;			\
 		lib_en.start = 0;					\
 		lib_en.is_loaded = false;				\
 		lib_en.skip_val = false;				\
@@ -921,7 +921,7 @@ do {									\
 		lib_en.cache_list = new list<CacheEntry>;		\
 		lib_en.cache_list->push_back(cache_en);			\
 		opt->lib_list->push_back(lib_en);			\
-		entry.type.lib = &opt->lib_list->back();		\
+		__entry.lib = &opt->lib_list->back();			\
 	}								\
 } while (0)
 
@@ -1014,7 +1014,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			} else if (chk_en.type.lib_name && !chk_en.type.lib_name->empty()) {
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
-				FIND_ADD_LIB_ENTRY(chk_en);
+				FIND_ADD_LIB_ENTRY(chk_en.type);
 			}
 			parse_data_type(&line, lnr, &start, &chk_en.type);
 			if (!chk_en.type.size)
@@ -1204,7 +1204,10 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			DumpEntry dump_en;
 			dump_en.addr = parse_address(NULL, NULL, NULL, &line, lnr, &start);
 			dump_en.mem_size = parse_u32_value(&line, lnr, &start);
-			dump_en.lib = new string(parse_pic_lib(&line, &start));
+			dump_en.lib_name = new string(parse_pic_lib(&line, &start));
+			dump_en.lib = NULL;
+			if (dump_en.lib_name && !dump_en.lib_name->empty())
+				FIND_ADD_LIB_ENTRY(dump_en);
 			opt->dump_list->push_back(dump_en);
 			break;
 
@@ -1225,7 +1228,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			} else if (cfg_en.type.lib_name && !cfg_en.type.lib_name->empty()) {
 				if (in_dynmem || in_ptrmem)
 					cfg_parse_err(&line, lnr, start);
-				FIND_ADD_LIB_ENTRY(cfg_en);
+				FIND_ADD_LIB_ENTRY(cfg_en.type);
 			}
 			parse_data_type(&line, lnr, &start, &cfg_en.type);
 			cfg_en.ptrtgt = NULL;

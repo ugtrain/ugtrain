@@ -170,11 +170,15 @@ skip_ptr:
 	main_id = 0;  // area id
 	obj_id = 0;
 	list_for_each (dump_list, dit) {
+		// Handle late PIC
+		if (dit->lib && !dit->lib->is_loaded)
+			goto skip_statmem;
 		ugout << ">>> Dumping Static Memory " << main_id
 		      << " Obj " << obj_id << " at 0x"
 		      << hex << dit->addr << dec << endl;
 		dump_mem_obj(pid, mfd, "s", main_id, obj_id,
 			     dit->addr, dit->mem_size);
+skip_statmem:
 		main_id++;
 	}
 }

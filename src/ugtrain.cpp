@@ -1165,8 +1165,8 @@ i32 main (i32 argc, char **argv, char **env)
 	test_memattach(pid, &opt->procmem_fd);
 
 	handle_aslr(opt, cfg, ifd, ofd, pid, rlist);
-	handle_statmem_pie(opt, cfg);
-	handle_statmem_pic(opt, cfg, false);
+	handle_statmem_pie(opt);
+	handle_statmem_pic(opt, false);
 	handle_stack_end(opt, cfg, pid, rlist);
 
 	init_dmparams(dmparams, opt, cfg, ofd, pid, rlist);
@@ -1246,7 +1246,7 @@ i32 main (i32 argc, char **argv, char **env)
 				get_regions(pid, rlist);
 			regions_read = true;
 			find_lib_regions(rlist, opt);
-			handle_statmem_pic(opt, cfg, true);
+			handle_statmem_pic(opt, true);
 		}
 
 		if (!opt->pure_statmem) {

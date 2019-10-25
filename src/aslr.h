@@ -71,8 +71,9 @@ get_regions (pid_t pid, struct list_head *rlist)
  * Handle PIE for static memory
  */
 static inline void
-handle_statmem_pie (Options *opt, list<CfgEntry> *cfg)
+handle_statmem_pie (Options *opt)
 {
+	list<CfgEntry> *cfg = opt->cfg;
 	list<CfgEntry>::iterator it;
 	list<CheckEntry> *chk_lp;
 	list<CheckEntry>::iterator chk_it;
@@ -105,6 +106,14 @@ checks:
 		}
 	}
 
+	// handle static memory dump areas
+	list<DumpEntry>::iterator dit;
+	list_for_each (opt->dump_list, dit) {
+		if (dit->lib)
+			continue;
+		dit->addr += code_offs;
+	}
+
 	// clear dirty flags again
 	list<CacheEntry>::iterator cait;
 	list_for_each (opt->cache_list, cait)
@@ -115,8 +124,9 @@ checks:
  * Handle PIC for static memory
  */
 static inline void
-handle_statmem_pic (Options *opt, list<CfgEntry> *cfg, bool late_pic)
+handle_statmem_pic (Options *opt, bool late_pic)
 {
+	list<CfgEntry> *cfg = opt->cfg;
 	list<CfgEntry>::iterator it;
 	list<CheckEntry> *chk_lp;
 	list<CheckEntry>::iterator chk_it;
@@ -150,6 +160,17 @@ checks:
 				chk_it->cache->offs += chk_it->type.lib->start;
 			}
 		}
+	}
+
+	// handle static memory dump areas
+	list<DumpEntry>::iterator dit;
+	list_for_each (opt->dump_list, dit) {
+		if (!dit->lib || !dit->lib->start || dit->lib->is_loaded)
+			continue;
+		dit->addr += dit->lib->start;
+		dit->lib->is_loaded = true;
+		// Cache handling might set is_loaded for the same lib.
+		// So better run before cache handling.
 	}
 
 	// clear dirty flags again

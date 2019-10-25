@@ -144,8 +144,8 @@ skip_statmem_cache:
 	if (!opt->dump_list)
 		goto skip_dump_list;
 	list_for_each (opt->dump_list, dit) {
-		if (dit->lib)
-			delete dit->lib;
+		if (dit->lib_name)
+			delete dit->lib_name;
 	}
 	opt->dump_list->clear();
 	delete opt->dump_list;

@@ -26,8 +26,8 @@ static void output_dump_entries (Options *opt)
 	list_for_each(opt->dump_list, dit) {
 		ugout << "  dump " << "0x" << hex << dit->addr << dec << " "
 		      << dit->mem_size;
-		if (dit->lib && !dit->lib->empty())
-			cout << " " << *dit->lib;
+		if (dit->lib_name && !dit->lib_name->empty())
+			cout << " " << *dit->lib_name;
 		cout << endl;
 	}
 }
