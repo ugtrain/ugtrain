@@ -15,6 +15,7 @@
       * [Warzone 2100 Power Value](#warzone-2100-power-value)
       * [Matches in other Regions](#matches-in-other-regions)
       * [No Matches](#no-matches)
+      * [Finding further Values](#finding-further-values)
    * [Static Memory Adaptation](#static-memory-adaptation)
    * [Special Cases](#special-cases)
       * [Stack Values](#stack-values)
@@ -318,6 +319,46 @@ Sometimes FOSS games like e.g. `endless-sky` use unusual double precision
 floats. If a dynamic memory object has a user-defined name like the ships in
 this game, then the string search might be able to find the address of that
 string and you can search for a pointer pointing to it afterward.
+
+### Finding further Values
+
+Chances are high that there are further interesting values close to the found
+value. The `scanmem` dump command can be used to look around the found static
+memory address. E.g. if the `warzone2100` Power value is at `0xdf53c4` with a
+non-PIE executable, then we can subtract `0xc4` from it and use size 1024 to
+dump a perfectly aligned memory area where the Power value is easy to find.
+
+The command is:
+```
+1> dump 0xdf5300 1024
+```
+
+`dump 0xdf5300 1024` is exactly the line which you can put into a ugtrain
+config as well. When pressing the key `>` at the ugtrain console, then it
+will dump the configured static memory area to a file `s0_000.dump`. When
+doing this again, then the old data will be stored in file `s0_000~.dump`.
+This way two states can be compared e.g. with `vbindiff` or `dhex`.
+
+As an additional parameter, `scanmem` accepts the file name where to store the
+dump. Ugtrain in contrast uses the name of a loaded library with static memory
+to be dumped (PIC support). Then use the match offset as the address. The same
+applies with PIE. So it makes perfect sense to let ugtrain dump the same memory
+area each game execution quickly and reliably.
+
+Another method is just guessing that there is an array and configuring further
+values. The typical case for this are the ammo values in first-person shooters
+like e.g. `freedoom2`. You got the pistol ammo, then you will find the shotgun,
+missile launcher, and plasma gun ammo as well.
+
+Example:
+```
+dump 0x386600 1024
+
+AmmoPT 0x3866c0 i32 l 300 2,0 a
+Test1 prev+4 i32 l 300 2,0 a
+Test2 prev+4 i32 l 300 2,0 a
+Test3 prev+4 i32 l 300 2,0 a
+```
 
 
 -----

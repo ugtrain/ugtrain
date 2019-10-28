@@ -165,6 +165,13 @@ stack/PIC value.
 Follow a pointer to a **C/C++ ASCII string** and print it. Those strings cannot
 be modified. Only watching is possible.
 
+### dump AbsAddress MemSize [LibName]
+
+Static memory areas cannot be dumped automatically as there is no container
+element for those. So use this special entry to provide that information. The
+address must start with "0x" and must be in hex here. The memory size is in
+decimal. The library name is optional for static memory within a library.
+
 
 -----
 
