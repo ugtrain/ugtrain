@@ -606,11 +606,7 @@ static inline bool find_code_addresses (ptr_t ffp, char *obuf, i32 *obuf_offs)
 	i32 i = 0;
 	bool found = false;
 
-	/*
-	 * check if we are in the correct section
-	 * -> we shouldn't be more that 16 MiB away
-	 */
-	if (!ffp || ffp < stack_end - (1 << 24))
+	if (!ffp)
 		return false;
 
 	for (offs = ffp;
@@ -720,8 +716,12 @@ void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 			found = run_gnu_backtrace(obuf, &obuf_offs);
 		else
 			found = find_code_addresses(ffp, obuf, &obuf_offs);
-		if (!found)
+		if (!found) {
+#if DEBUG_MEM
+			pr_out("find_code_addresses() failed!\n");
+#endif
 			goto out;
+		}
 	}
 	wbytes = snprintf(obuf + obuf_offs, BUF_SIZE - obuf_offs, "\n");
 	if (wbytes < 0)
