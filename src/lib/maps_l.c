@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>    /* free */
 #include <string.h>    /* memset */
-#include <alloca.h>    /* alloca */
 #include <errno.h>
 
 /* local includes */
@@ -227,7 +226,7 @@ error:
  *
  * returns:
  *  0: all memory maps successfully processed,
- * -1: fopen(), alloca() or sscanf() error,
+ * -1: fopen() or sscanf() error,
  * return code of callback() != 0.
  *
  * Assumption: pid > 0
@@ -251,19 +250,16 @@ i32 read_maps (pid_t pid, i32 (*callback)(struct region_map *map, void *data),
 		struct region_map map;
 
 		/* slight overallocation */
-		map.file_path = (char *) alloca(len);
-		if (!map.file_path) {
-			fprintf(stderr, "Failed to allocate %zu bytes for "
-				"file path.\n", len);
-			goto err_free;
-		}
-		memset(map.file_path, '\0', len);
+		char file_path[len];
+		memset(file_path, '\0', len);
 
 		if (sscanf(line, "%lx-%lx %c%c%c%c %x %x:%x %u %[^\n]",
 		    &map.start, &map.end, &map.read, &map.write, &map.exec,
 		    &map.cow, &map.offset, &map.dev_major, &map.dev_minor,
-		    &map.inode, map.file_path) < 6)
+		    &map.inode, file_path) < 6)
 			goto err_free;
+
+		map.file_path = file_path;
 
 		/* process each line by map structure */
 		ret = callback(&map, data);
