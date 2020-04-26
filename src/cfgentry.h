@@ -70,16 +70,18 @@ public:
 
 class CfgEntry;
 
-class DynMemEntry {
-public:
-	string name;
+struct DynMemEssentials {
 	size_t mem_size;
 	ptr_t code_addr;
 	ptr_t code_offs;              // for late PIC support
 	ptr_t stack_offs;
 	string *lib;                  // for PIC support
-	GrowEntry *grow;
+};
 
+struct DynMemEntry : DynMemEssentials {
+	string name;
+	vector<DynMemEssentials> *consts;
+	GrowEntry *grow;
 	list<CfgEntry*> cfg_act;
 
 	// later determined values

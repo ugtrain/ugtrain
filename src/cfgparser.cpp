@@ -37,6 +37,7 @@ typedef enum {
 	NAME_CHECK_OBJ,
 	NAME_DEFINE,
 	NAME_DYNMEM_START,
+	NAME_DYNMEM_CONST,
 	NAME_DYNMEM_GROW,
 	NAME_DYNMEM_END,
 	NAME_DYNMEM_FILE,
@@ -271,6 +272,8 @@ start:
 	if (ret.substr(0, 6) == "dynmem") {
 		if (ret.substr(6, string::npos) == "start")
 			*name_type = NAME_DYNMEM_START;
+		else if (ret.substr(6, string::npos) == "const")
+			*name_type = NAME_DYNMEM_CONST;
 		else if (ret.substr(6, string::npos) == "grow")
 			*name_type = NAME_DYNMEM_GROW;
 		else if (ret.substr(6, string::npos) == "end")
@@ -791,6 +794,22 @@ out:
 	return lib;
 }
 
+#define _PARSE_DYNMEM_ESSENTIALS(entry_ptr)				\
+do {									\
+	entry_ptr->code_addr =						\
+		parse_address(NULL, NULL, NULL, line, lnr, start);	\
+	entry_ptr->code_offs = entry_ptr->code_addr;			\
+	entry_ptr->stack_offs =						\
+		parse_address(NULL, NULL, NULL, line, lnr, start);	\
+	entry_ptr->lib = new string(parse_pic_lib(line, start));	\
+} while (0)
+
+#define PARSE_DYNMEM_ESSENTIALS(entry_ptr)				\
+do {									\
+	entry_ptr->mem_size = parse_u32_value(line, lnr, start);	\
+	_PARSE_DYNMEM_ESSENTIALS(entry_ptr);				\
+} while (0)
+
 static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 			   u32 *start)
 {
@@ -821,20 +840,24 @@ static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 		cfg_parse_err(line, lnr, --lidx);
 	}
 	// parse backtracing
-	grow_enp->code_addr =
-		parse_address(NULL, NULL, NULL, line, lnr, start);
-	grow_enp->code_offs = grow_enp->code_addr;
-	grow_enp->stack_offs =
-		parse_address(NULL, NULL, NULL, line, lnr, start);
-	grow_enp->lib = new string(parse_pic_lib(line, start));
+	_PARSE_DYNMEM_ESSENTIALS(grow_enp);
 	grow_enp->v_msize.clear();
 	dynmem_enp->grow = grow_enp;
 }
 
-static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
+static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow,
+			  bool from_const, string *line,
 			  u32 lnr, u32 *start)
 {
 	CacheEntry cache;
+	if (from_const) {
+		DynMemEssentials dynmem_es, *dynmem_esp = &dynmem_es;
+		PARSE_DYNMEM_ESSENTIALS(dynmem_esp);
+		if (!dynmem_enp->consts)
+			dynmem_enp->consts = new vector<DynMemEssentials>;
+		dynmem_enp->consts->push_back(*dynmem_esp);
+		return;
+	}
 	dynmem_enp->name = parse_value_name(line, lnr, start, false, NULL);
 	if (from_grow) {
 		dynmem_enp->mem_size = 0;
@@ -844,14 +867,8 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow, string *line,
 		dynmem_enp->cfg_line = 0;
 		dynmem_enp->lib = NULL;
 	} else {
-		dynmem_enp->mem_size = parse_u32_value(line, lnr, start);
-		dynmem_enp->code_addr =
-			parse_address(NULL, NULL, NULL, line, lnr, start);
-		dynmem_enp->code_offs = dynmem_enp->code_addr;
-		dynmem_enp->stack_offs =
-			parse_address(NULL, NULL, NULL, line, lnr, start);
+		PARSE_DYNMEM_ESSENTIALS(dynmem_enp);
 		dynmem_enp->cfg_line = lnr;
-		dynmem_enp->lib = new string(parse_pic_lib(line, start));
 	}
 	init_cache(&cache, PTR_MAX);
 	dynmem_enp->cache_list = new list<CacheEntry>;
@@ -1050,7 +1067,13 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 				cfg_parse_err(&line, lnr, start);
 			in_dynmem = true;
 			dynmem_enp = new DynMemEntry();
-			parse_dynmem(dynmem_enp, false, &line, lnr, &start);
+			parse_dynmem(dynmem_enp, false, false, &line, lnr, &start);
+			break;
+
+		case NAME_DYNMEM_CONST:
+			if (!in_dynmem)
+				cfg_parse_err(&line, lnr, start);
+			parse_dynmem(dynmem_enp, false, true, &line, lnr, &start);
 			break;
 
 		case NAME_DYNMEM_GROW:
@@ -1059,7 +1082,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			if (!in_dynmem) {
 				in_dynmem = true;
 				dynmem_enp = new DynMemEntry();
-				parse_dynmem(dynmem_enp, true, &line, lnr, &start);
+				parse_dynmem(dynmem_enp, true, false, &line, lnr, &start);
 			}
 			if (!dynmem_enp || dynmem_enp->grow)
 				cfg_parse_err(&line, lnr, start);
