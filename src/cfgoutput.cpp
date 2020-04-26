@@ -264,6 +264,16 @@ static void output_grow_method (GrowEntry *grow)
 	}
 }
 
+#define _OUTPUT_DYNMEM_ESSENTIALS(entry_ptr)				\
+	" 0x" << hex << entry_ptr->code_addr << " 0x"			\
+		<< entry_ptr->stack_offs << dec;			\
+	if (entry_ptr->lib && !entry_ptr->lib->empty())			\
+		cout << " " << *entry_ptr->lib
+
+#define OUTPUT_DYNMEM_ESSENTIALS(entry_ptr)				\
+	entry_ptr->mem_size						\
+		<< _OUTPUT_DYNMEM_ESSENTIALS(entry_ptr)
+
 void output_config (Options *opt, list<CfgEntry> *cfg)
 {
 	if (!cfg || cfg->empty()) {
@@ -284,22 +294,23 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 			if (old_cfg_en && dynmem == old_cfg_en->dynmem)
 				goto skip_hl;
 			ugout << "dynmem: " << dynmem->name << " "
-			      << dynmem->mem_size << " 0x" << hex
-			      << dynmem->code_addr << " 0x" << dynmem->stack_offs
-			      << dec;
-			if (dynmem->lib && !dynmem->lib->empty())
-				cout << " " << *dynmem->lib;
+			      << OUTPUT_DYNMEM_ESSENTIALS(dynmem);
 			if (grow) {
 				cout << " growing " << grow->size_min
 				     << " " << grow->size_max << " ";
 				output_grow_method(grow);
-				cout << " 0x" << hex << grow->code_addr << " 0x"
-				     << grow->stack_offs << dec;
-				if (grow->lib && !grow->lib->empty())
-					cout << " " << *grow->lib;
+				cout << _OUTPUT_DYNMEM_ESSENTIALS(grow);
 			}
 			OUTPUT_CACHE(dynmem);
 			cout << endl;
+			if (dynmem->consts) {
+				vector<DynMemEssentials>::iterator vit;
+				vect_for_each (dynmem->consts, vit) {
+					ugout << " constructor: "
+					      << OUTPUT_DYNMEM_ESSENTIALS(vit);
+					cout << endl;
+				}
+			}
 		} else if (cfg_en->ptrmem) {
 			PtrMemEntry *ptrmem = cfg_en->ptrmem;
 			if (old_cfg_en && ptrmem == old_cfg_en->ptrmem)
