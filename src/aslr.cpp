@@ -267,6 +267,18 @@ static inline void find_exe_region (struct list_head *rlist,
 	}
 }
 
+#define HANDLE_DYNMEM_ESSENTIALS(entry_ptr)				\
+do {									\
+	if (!entry_ptr->lib || entry_ptr->lib->empty())			\
+		code_offs = exe_offs;					\
+	else								\
+		find_lib_region(rlist, entry_ptr->lib, &code_offs,	\
+			&lib_end);					\
+	osize += snprintf(obuf + osize, sizeof(obuf) - osize,		\
+		PRI_PTR ";", code_offs);				\
+	entry_ptr->code_addr += code_offs;				\
+} while (0)
+
 /*
  * handle PIE and early PIC
  * for dynamic memory discovery and hacking
@@ -328,14 +340,12 @@ void handle_aslr (Options *opt, list<CfgEntry> *cfg, i32 ifd,
 				continue;
 			grow = dynmem->grow;
 			old_dynmem = dynmem;
-			if (!dynmem->lib || dynmem->lib->empty())
-				code_offs = exe_offs;
-			else
-				find_lib_region(rlist, dynmem->lib, &code_offs,
-					&lib_end);
-			osize += snprintf(obuf + osize, sizeof(obuf) - osize,
-				PRI_PTR ";", code_offs);
-			dynmem->code_addr += code_offs;
+			HANDLE_DYNMEM_ESSENTIALS(dynmem);
+			vector<DynMemEssentials>::iterator vit;
+			if (dynmem->consts) {
+				vect_for_each (dynmem->consts, vit)
+					HANDLE_DYNMEM_ESSENTIALS(vit);
+			}
 			if (grow) {
 				if (!grow->lib || grow->lib->empty())
 					code_offs = exe_offs;

@@ -305,7 +305,18 @@ void alloc_dynmem_addr (MF_PARAMS)
 			svec = &grow->v_msize;
 			svec->push_back(mem_size);
 		} else if (dynmem->code_addr != code_addr) {
-			continue;
+			bool found = false;
+			if (dynmem->consts) {
+				vector<DynMemEssentials>::iterator vit;
+				vect_for_each (dynmem->consts, vit) {
+					if (vit->code_addr == code_addr) {
+						found = true;
+						break;
+					}
+				}
+			}
+			if (!found)
+				continue;
 		}
 		mvec = &dynmem->v_maddr;
 		mvec->push_back(mem_addr);

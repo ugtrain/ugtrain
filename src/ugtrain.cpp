@@ -834,6 +834,20 @@ err:
 }
 #endif
 
+#define ADD_DYNMEM_ESSENTIALS(entry_ptr)				\
+do {									\
+	pos += snprintf(obuf + pos, sizeof(obuf) - pos,			\
+		";%lu;" SCN_PTR ";" SCN_PTR, (ulong)			\
+		entry_ptr->mem_size, entry_ptr->code_addr,		\
+		entry_ptr->stack_offs);					\
+	if (entry_ptr->lib)						\
+		pos += snprintf(obuf + pos, sizeof(obuf) - pos,		\
+			";%s", entry_ptr->lib->c_str());		\
+	else								\
+		pos += snprintf(obuf + pos, sizeof(obuf) - pos,		\
+				";exe");				\
+} while (0)
+
 /* returns: 0: success, 1: error, 2: pure static memory detected */
 static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 			   i32 *ifd, i32 *ofd, i32 *dfd, pid_t *pid)
@@ -877,16 +891,14 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 		    (grow && ((grow->code_addr != old_grow_addr) ||
 			       (grow->lib != old_lib)))) {
 			num_cfg++;
-			pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-				";%lu;" SCN_PTR ";" SCN_PTR, (ulong)
-				dynmem->mem_size, dynmem->code_addr,
-				dynmem->stack_offs);
-			if (dynmem->lib)
-				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-					";%s", dynmem->lib->c_str());
-			else
-				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-						";exe");
+			ADD_DYNMEM_ESSENTIALS(dynmem);
+			if (dynmem->consts) {
+				vector<DynMemEssentials>::iterator vit;
+				vect_for_each (dynmem->consts, vit) {
+					num_cfg++;
+					ADD_DYNMEM_ESSENTIALS(vit);
+				}
+			}
 			if (grow) {
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
 					";grow;%lu;%lu;+%u;" SCN_PTR ";" SCN_PTR,
