@@ -1,6 +1,6 @@
 /* util.cpp:    C++ utility functions
  *
- * Copyright (c) 2018 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2018..2020 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -109,7 +109,16 @@ void clear_config (void)
 		PtrMemEntry *ptrmem = it->ptrmem;
 		if (dynmem)
 			CLEANUP_MEM(dynmem,
-				if (dynmem->lib) delete dynmem->lib);
+				if (dynmem->lib)
+					delete dynmem->lib;
+				vector<DynMemEssentials>::iterator esit;
+				vect_for_each (dynmem->consts, esit) {
+					if (esit->lib)
+						delete esit->lib;
+				}
+				dynmem->consts->clear();
+				delete dynmem->consts;
+                        );
 		else if (ptrmem)
 			CLEANUP_MEM(ptrmem, ;);
 		// Clean up checks

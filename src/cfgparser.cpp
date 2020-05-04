@@ -1,6 +1,6 @@
 /* cfgparser.cpp:    parsing functions to read in the config file
  *
- * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2020 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -853,8 +853,6 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow,
 	if (from_const) {
 		DynMemEssentials dynmem_es, *dynmem_esp = &dynmem_es;
 		PARSE_DYNMEM_ESSENTIALS(dynmem_esp);
-		if (!dynmem_enp->consts)
-			dynmem_enp->consts = new vector<DynMemEssentials>;
 		dynmem_enp->consts->push_back(*dynmem_esp);
 		return;
 	}
@@ -870,6 +868,7 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow,
 		PARSE_DYNMEM_ESSENTIALS(dynmem_enp);
 		dynmem_enp->cfg_line = lnr;
 	}
+	dynmem_enp->consts = new vector<DynMemEssentials>;
 	init_cache(&cache, PTR_MAX);
 	dynmem_enp->cache_list = new list<CacheEntry>;
 	dynmem_enp->cache_list->push_back(cache);
