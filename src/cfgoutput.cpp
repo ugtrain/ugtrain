@@ -1,6 +1,6 @@
 /* cfgoutput.cpp:    output functions for the ugtrain config
  *
- * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2020 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -303,13 +303,11 @@ void output_config (Options *opt, list<CfgEntry> *cfg)
 			}
 			OUTPUT_CACHE(dynmem);
 			cout << endl;
-			if (dynmem->consts) {
-				vector<DynMemEssentials>::iterator vit;
-				vect_for_each (dynmem->consts, vit) {
-					ugout << " constructor: "
-					      << OUTPUT_DYNMEM_ESSENTIALS(vit);
-					cout << endl;
-				}
+			vector<DynMemEssentials>::iterator esit;
+			vect_for_each (dynmem->consts, esit) {
+				ugout << " constructor: "
+				      << OUTPUT_DYNMEM_ESSENTIALS(esit);
+				cout << endl;
 			}
 		} else if (cfg_en->ptrmem) {
 			PtrMemEntry *ptrmem = cfg_en->ptrmem;

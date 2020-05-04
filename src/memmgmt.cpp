@@ -1,6 +1,6 @@
 /* memmgmt.cpp:    allocation and freeing of objects and values
  *
- * Copyright (c) 2012..2018 Sebastian Parschauer <s.parschauer@gmx.de>
+ * Copyright (c) 2012..2020 Sebastian Parschauer <s.parschauer@gmx.de>
  *
  * This file may be used subject to the terms and conditions of the
  * GNU General Public License Version 3, or any later version
@@ -306,14 +306,12 @@ void alloc_dynmem_addr (MF_PARAMS)
 			svec->push_back(mem_size);
 		} else if (dynmem->code_addr != code_addr) {
 			bool found = false;
-			if (dynmem->consts) {
-				vector<DynMemEssentials>::iterator vit;
-				vect_for_each (dynmem->consts, vit) {
-					if (vit->code_addr == code_addr) {
-						found = true;
-						break;
-					}
-				}
+			vector<DynMemEssentials>::iterator esit;
+			vect_for_each (dynmem->consts, esit) {
+				if (likely(esit->code_addr != code_addr))
+					continue;
+				found = true;
+				break;
 			}
 			if (!found)
 				continue;
