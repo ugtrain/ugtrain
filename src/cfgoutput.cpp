@@ -258,6 +258,9 @@ static void output_grow_method (GrowEntry *grow)
 	case GROW_ADD:
 		cout << "+" << grow->add;
 		break;
+	case GROW_MUL:
+		cout << "*" << grow->add;
+		break;
 	default:
 		cout << "unknown";
 		break;

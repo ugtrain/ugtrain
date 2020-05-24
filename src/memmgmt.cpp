@@ -96,7 +96,6 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 	list<CfgEntry>::iterator it;
 	CfgEntry *cfg_en;
 	DynMemEntry *dynmem, *old_dynmem = NULL;
-	GrowEntry *grow;
 	vector<ptr_t> *mvec;
 	vector<size_t> *svec;
 	u32 mem_idx, ov_idx, num_kicked;
@@ -135,16 +134,13 @@ void free_dynmem (list<CfgEntry> *cfg, bool process_kicked)
 		dynmem = cfg_en->dynmem;
 		if (!dynmem || dynmem == old_dynmem)
 			continue;
-		grow = dynmem->grow;
 		mvec = &dynmem->v_maddr;
 		num_kicked = 0;
 		for (mem_idx = 0; mem_idx < mvec->size(); mem_idx++) {
 			if (!mvec->at(mem_idx)) {
 				mvec->erase(mvec->begin() + mem_idx);
-				if (grow) {
-					svec = &grow->v_msize;
-					svec->erase(svec->begin() + mem_idx);
-				}
+				svec = &dynmem->v_msize;
+				svec->erase(svec->begin() + mem_idx);
 				num_kicked++;
 				mem_idx--;
 			}
@@ -266,19 +262,15 @@ void clear_dynmem_addr (FF_PARAMS)
 
 	list_for_each (cfg, it) {
 		DynMemEntry *dynmem = it->dynmem;
-		GrowEntry *grow;
 		if (!dynmem)
 			continue;
-		grow = dynmem->grow;
 		mvec = &dynmem->v_maddr;
 		idx = find_addr_idx(mvec, mem_addr);
 		if (idx < 0)
 			continue;
 		mvec->at(idx) = 0;
-		if (grow) {
-			svec = &grow->v_msize;
-			svec->at(idx) = 0;
-		}
+		svec = &dynmem->v_msize;
+		svec->at(idx) = 0;
 		it->dynmem->num_freed++;
 		break;
 	}
@@ -302,8 +294,6 @@ void alloc_dynmem_addr (MF_PARAMS)
 			if (dynmem->code_addr != code_addr &&
 			    grow->code_addr != code_addr)
 				continue;
-			svec = &grow->v_msize;
-			svec->push_back(mem_size);
 		} else if (dynmem->code_addr != code_addr) {
 			bool found = false;
 			vector<DynMemEssentials>::iterator esit;
@@ -318,6 +308,8 @@ void alloc_dynmem_addr (MF_PARAMS)
 		}
 		mvec = &dynmem->v_maddr;
 		mvec->push_back(mem_addr);
+		svec = &dynmem->v_msize;
+		svec->push_back(mem_size);
 		dynmem->num_alloc++;
 		break;
 	}

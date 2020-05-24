@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include <algorithm>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -130,6 +131,8 @@ void dump_all_mem_obj (pid_t pid, Options *opt)
 	list_for_each (cfg, it) {
 		if (!it->dynmem || it->dynmem == old_dynmem)
 			continue;
+		vector<size_t> *svec = &it->dynmem->v_msize;
+		vector<DynMemEssentials>::iterator esit;
 		obj_id = 0;
 		for (i = 0; i < it->dynmem->v_maddr.size(); i++) {
 			ugout << ">>> Dumping Class " << main_id
@@ -138,7 +141,7 @@ void dump_all_mem_obj (pid_t pid, Options *opt)
 			      << dec << endl;
 			dump_mem_obj(pid, mfd, NULL, main_id, obj_id,
 				     it->dynmem->v_maddr[obj_id],
-				     it->dynmem->mem_size);
+				     svec->at(obj_id));
 			obj_id++;
 		}
 		main_id++;

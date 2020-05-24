@@ -63,9 +63,6 @@ public:
 	ptr_t code_offs;              // for late PIC support
 	ptr_t stack_offs;
 	string *lib;                  // for PIC support
-
-	// later determined values
-	vector<size_t> v_msize;       // set by malloc/realloc calls
 };
 
 class CfgEntry;
@@ -86,6 +83,7 @@ struct DynMemEntry : DynMemEssentials {
 
 	// later determined values
 	vector<ptr_t> v_maddr;        // set by malloc calls
+	vector<size_t> v_msize;       // set by malloc/realloc calls
 	u32 num_alloc;                // how many obj. created at once
 	u32 num_freed;                // how many obj. freed at once
 	u32 obj_idx;                  // object index for object check
