@@ -115,9 +115,10 @@ static inline void output_cfg (void)
 			config[i]->lib : "exe");
 		if (grow) {
 			pr_out("config[%u] growing: size_min: %zd; size_max: "
-				"%zd; add: %u; code_addr: " PRI_PTR
+				"%zd; op: %c; add: %u; code_addr: " PRI_PTR
 				"; stack_offs: " PRI_PTR "; %s\n", i,
-				grow->size_min, grow->size_max, grow->add,
+				grow->size_min, grow->size_max,
+				(grow->type == GROW_MUL) ? '*' : '+', grow->add,
 				grow->code_addr, grow->stack_offs, (grow->lib) ?
 				grow->lib : "exe");
 		}
@@ -309,13 +310,16 @@ void __attribute ((constructor)) memhack_init (void)
 		scanned = sscanf(start, "%zd;%zd;%c%u;" SCN_PTR ";"
 			SCN_PTR, &grow->size_min, &grow->size_max, &op_ch,
 			&grow->add, &grow->code_addr, &grow->stack_offs);
-		if (scanned != 6 || op_ch != '+') {
+		if (scanned != 6 || (op_ch != '+' && op_ch != '*')) {
 			pr_err("Error: Grow parsing failed!\n");
 			free(grow);
 			goto err;
 		}
 		grow->code_offs = grow->code_addr;
-		grow->type = GROW_ADD;
+		if (op_ch == '*')
+			grow->type = GROW_MUL;
+		else
+			grow->type = GROW_ADD;
 		for (j = 5; j > 0; --j)
 			SET_IBUF_START(start);
 		SET_CODE_LIB(start, grow->lib);
@@ -454,7 +458,7 @@ out:
 
 void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 {
-	ptr_t code_addr, stack_offs, stack_addr;
+	ptr_t code_addr = 0, stack_offs = 0, stack_addr = 0;
 	i32 i, j, wbytes, num_taddr = 0;
 	void *trace[MAX_GNUBT] = { NULL };
 
@@ -466,12 +470,22 @@ void postprocess_malloc (ptr_t ffp, size_t size, ptr_t mem_addr)
 		if (size == config[i]->mem_size) {
 			code_addr = config[i]->code_addr;
 			stack_offs = config[i]->stack_offs;
-		} else if (grow && size <= grow->size_max &&
-		    size >= grow->size_min) {
-			if (size % grow->add != 0)
-				continue;
-			code_addr = grow->code_addr;
-			stack_offs = grow->stack_offs;
+		} else if (grow) {
+			if (grow->type == GROW_MUL) {
+				if (size > (grow->size_max * grow->add) ||
+				    size < (grow->size_min * grow->add) ||
+				    size % grow->add != 0)
+					continue;
+				code_addr = grow->code_addr;
+				stack_offs = grow->stack_offs;
+			} else {
+				if (size > grow->size_max ||
+				    size < grow->size_min ||
+				    size % grow->add != 0)
+					continue;
+				code_addr = grow->code_addr;
+				stack_offs = grow->stack_offs;
+			}
 		} else {
 			continue;
 		}

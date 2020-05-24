@@ -836,12 +836,19 @@ static void parse_growing (DynMemEntry *dynmem_enp, string *line, u32 lnr,
 		    grow_enp->add > grow_enp->size_max -
 		    grow_enp->size_min)
 			cfg_parse_err(line, lnr, --lidx);
+	} else if (line->at(lidx) == '*') {
+		grow_enp->type = GROW_MUL;
+		*start = ++lidx;
+		grow_enp->add = parse_u32_value(line, lnr, start);
+		if (grow_enp->size_min < 1 || grow_enp->add <= 0 ||
+		    grow_enp->size_max < grow_enp->size_min)
+			cfg_parse_err(line, lnr, --lidx);
 	} else {
 		cfg_parse_err(line, lnr, --lidx);
 	}
 	// parse backtracing
 	_PARSE_DYNMEM_ESSENTIALS(grow_enp);
-	grow_enp->v_msize.clear();
+	dynmem_enp->v_msize.clear();
 	dynmem_enp->grow = grow_enp;
 }
 
@@ -874,6 +881,7 @@ static void parse_dynmem (DynMemEntry *dynmem_enp, bool from_grow,
 	dynmem_enp->cache_list->push_back(cache);
 	dynmem_enp->grow = NULL;
 	dynmem_enp->v_maddr.clear();
+	dynmem_enp->v_msize.clear();
 }
 
 static inline void pr_warn_statmem_ptr (void)

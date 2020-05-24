@@ -564,12 +564,7 @@ process_dynmem_cfg_act (pid_t pid, list<CfgEntry*> *cfg_act,
 			if (!mem_offs)
 				continue;
 			// check for out of bounds access
-			if (dynmem->grow) {
-				GrowEntry *grow = dynmem->grow;
-				mem_size = grow->v_msize[mem_idx];
-			} else {
-				mem_size = dynmem->mem_size;
-			}
+			mem_size = dynmem->v_msize[mem_idx];
 			if (cfg_en->addr + type->size / 8 > mem_size)
 				continue;
 			dynmem->obj_idx = mem_idx;
@@ -899,9 +894,10 @@ static i32 prepare_dynmem (Options *opt, list<CfgEntry> *cfg,
 			}
 			if (grow) {
 				pos += snprintf(obuf + pos, sizeof(obuf) - pos,
-					";grow;%lu;%lu;+%u;" SCN_PTR ";" SCN_PTR,
+					";grow;%lu;%lu;%c%u;" SCN_PTR ";" SCN_PTR,
 					(ulong) grow->size_min,	(ulong)
-					grow->size_max, grow->add,
+					grow->size_max, (grow->type == GROW_MUL) ?
+					'*' : '+', grow->add,
 					grow->code_addr,
 					grow->stack_offs);
 				if (grow->lib)

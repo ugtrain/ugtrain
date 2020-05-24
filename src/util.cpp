@@ -107,7 +107,12 @@ void clear_config (void)
 	list_for_each (cfg, it) {
 		DynMemEntry *dynmem = it->dynmem;
 		PtrMemEntry *ptrmem = it->ptrmem;
-		if (dynmem)
+		if (dynmem) {
+			if (dynmem->grow) {
+				if (dynmem->grow->lib)
+					delete dynmem->grow->lib;
+				delete dynmem->grow;
+			}
 			CLEANUP_MEM(dynmem,
 				if (dynmem->lib)
 					delete dynmem->lib;
@@ -119,6 +124,7 @@ void clear_config (void)
 				dynmem->consts->clear();
 				delete dynmem->consts;
                         );
+		}
 		else if (ptrmem)
 			CLEANUP_MEM(ptrmem, ;);
 		// Clean up checks

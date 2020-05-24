@@ -24,7 +24,8 @@
 
 /* common types */
 enum grow_type {
-	GROW_ADD
+	GROW_ADD,
+	GROW_MUL
 };
 
 /* Common defines */
