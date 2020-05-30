@@ -98,7 +98,7 @@ void clear_config (void)
 	list_for_each (cfg, it) {
 		if (it->dynmem || it->ptrmem)
 			continue;
-		if (it->type.is_cstrp)
+		if (it->type.is_cstrp || it->type.is_cstr)
 			free(it->cstr);
 		if (it->type.lib_name)
 			delete it->type.lib_name;

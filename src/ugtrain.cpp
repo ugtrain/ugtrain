@@ -187,6 +187,7 @@ err:
 bool g_read_error_no_warning = false;
 
 #define FILL_CACHE_AND_BUF(buf, entry, mem_offs, on_fail)		\
+if (likely(!entry->type.is_cstr)) {					\
 	mem_addr = mem_offs + entry->cache->offs;			\
 	if (entry->cache->start == PTR_MAX) {				\
 		ret = _read_memory(pid, mem_addr,			\
@@ -199,7 +200,8 @@ bool g_read_error_no_warning = false;
 		}							\
 		entry->cache->start = mem_addr;				\
 	}								\
-	memcpy(buf, entry->cache_data, entry->type.size / 8)
+	memcpy(buf, entry->cache_data, entry->type.size / 8);		\
+}
 
 
 static i32 process_checks (pid_t pid, CfgEntry *cfg_en,
@@ -309,11 +311,17 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 		}
 		break;
 	case DYN_VAL_WATCH:
-		if (!cfg_en->type.is_cstrp || !cstr)
+		if (!cstr)
 			break;
-		mem_addr = read_val;
-		if (!mem_addr)
+		if (cfg_en->type.is_cstrp) {
+			mem_addr = read_val;
+			if (!mem_addr)
+				break;
+		} else if (cfg_en->type.is_cstr) {
+			mem_addr = mem_offs + cfg_en->addr;
+		} else {
 			break;
+		}
 		if (memread(pid, mem_addr, cstr, MAX_CSTR))
 			ugerr << "STRING READ ERROR PID[" << pid << "] ("
 			      << hex << mem_addr << dec << ")!" << endl;
