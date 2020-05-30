@@ -137,6 +137,9 @@ build_caches (Options *opt, list<CfgEntry> *cfg)
 	list_for_each (cfg, cfgit) {
 		DynMemEntry *dynmem = cfgit->dynmem;
 		PtrMemEntry *ptrmem = cfgit->ptrmem;
+		// no caching for strings
+		if (cfgit->type.is_cstr)
+			continue;
 		is_check = false;
 		LIST_ADD_ADDR(cfgit, is_check);
 
@@ -555,6 +558,11 @@ static void parse_data_type (string *line, u32 lnr, u32 *start,
 			*start = lidx;
 			type->is_cstrp = true;
 			type->size = 0;
+		} else if (line->substr(lidx, 4) == "cstr") {
+			lidx += 5;
+			*start = lidx;
+			type->is_cstr = true;
+			type->size = 64;
 		} else {
 			cfg_parse_err(line, lnr, --lidx);
 		}
@@ -958,7 +966,8 @@ do {									\
 
 #define FIND_CACHE_START(mem_type)					\
 do {									\
-	if (cfg_en.addr < mem_type->cache_list->back().offs)		\
+	if (!cfg_en.type.is_cstr &&					\
+	    cfg_en.addr < mem_type->cache_list->back().offs)		\
 		mem_type->cache_list->back().offs = cfg_en.addr;	\
 } while (0)
 
@@ -1263,7 +1272,7 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			parse_data_type(&line, lnr, &start, &cfg_en.type);
 			cfg_en.ptrtgt = NULL;
 			cfg_en.cstr = NULL;
-			if (cfg_en.type.is_cstrp) {
+			if (cfg_en.type.is_cstrp || cfg_en.type.is_cstr) {
 				cfg_en.type.size = sizeof(long) * 8;
 				if (!in_dynmem && !in_ptrmem)
 					cfg_en.cstr = (char *) calloc(1, MAX_CSTR + 1);
@@ -1286,7 +1295,8 @@ void read_config (Options *opt, vector<string> *cfg_lines)
 			cfg_en.value = parse_value(&line, lnr, &start, cfg, &cfg_en,
 				NULL, &cfg_en.dynval, &cfg_en.check, 0);
 			// Cannot allow other than watching for C/C++ strings
-			if (cfg_en.type.is_cstrp && cfg_en.dynval != DYN_VAL_WATCH)
+			if ((cfg_en.type.is_cstrp || cfg_en.type.is_cstr) &&
+			     cfg_en.dynval != DYN_VAL_WATCH)
 				cfg_parse_err(&line, lnr, --start);
 			if (cfg_en.dynval == DYN_VAL_ADDR)
 				cfg_en.val_addr = cfg_en.value.ptr;

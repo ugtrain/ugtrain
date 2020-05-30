@@ -48,6 +48,10 @@ static void output_mem_val (CfgEntry *cfg_en, ptr_t mem_offs, bool is_dynmem)
 		     << " (\"" << cfg_en->cstr << "\")" << endl;
 		return;
 	}
+	if (type->is_cstr && cfg_en->cstr) {
+		cout << "0 (\"" << cfg_en->cstr << "\")" << endl;
+		return;
+	}
 
 	if (type->is_float) {
 		if (type->size == 32) {
