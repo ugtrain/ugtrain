@@ -663,7 +663,8 @@ skip_check:
 		} else if (number_base == 10 &&
 		    !isdigit(line->at(lidx)) && line->at(*start) != '-' &&
 		    !(type->is_float && line->at(lidx) == '.')) {
-			if (!dynval || !isalpha(line->at(lidx)))
+			if (!dynval || (!isalpha(line->at(lidx)) &&
+			    line->at(lidx) != '-' && line->at(lidx) != '+'))
 				cfg_parse_err(line, lnr, lidx);
 			else
 				dynval_detected = true;
@@ -691,9 +692,21 @@ skip_check:
 			if (!cfg || !cfg_en)
 				cfg_parse_err(line, lnr, lidx);
 			// So you want a cfg value reference?
+			cfg_en->cfg_ref_add = 0;
 			cfg_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
-			if (!cfg_en->cfg_ref)
-				cfg_parse_err(line, lnr, lidx);
+			if (!cfg_en->cfg_ref) {
+				size_t op_idx = tmp_str.rfind('+');
+				if (op_idx == string::npos)
+					op_idx = tmp_str.rfind('-');
+				if (op_idx == string::npos)
+					cfg_parse_err(line, lnr, lidx);
+				cfg_en->cfg_ref_add = strtoll(
+					tmp_str.substr(op_idx, string::npos).c_str(), NULL, 10);
+				tmp_str = tmp_str.substr(0, op_idx);
+				cfg_en->cfg_ref = find_cfg_en(cfg, &tmp_str);
+				if (!cfg_en->cfg_ref)
+					cfg_parse_err(line, lnr, lidx);
+			}
 			*dynval = DYN_VAL_ADDR;
 		}
 		goto out;

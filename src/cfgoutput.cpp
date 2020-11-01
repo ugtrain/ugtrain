@@ -95,11 +95,17 @@ static void output_config_val (CfgEntry *cfg_en)
 		cout << endl;
 		break;
 	case DYN_VAL_ADDR:
-		if (cfg_en->cfg_ref)
-			cout << cfg_en->cfg_ref->name << endl;
-		else
+		if (cfg_en->cfg_ref) {
+			if (cfg_en->cfg_ref_add == 0)
+				cout << cfg_en->cfg_ref->name << endl;
+			else if (cfg_en->cfg_ref_add > 0)
+				cout << cfg_en->cfg_ref->name << "+" << cfg_en->cfg_ref_add << endl;
+			else
+				cout << cfg_en->cfg_ref->name << cfg_en->cfg_ref_add << endl;
+		} else {
 			cout << "0x" << hex << cfg_en->value.i64
 				<< " (from addr)" << dec << endl;
+		}
 		break;
 	default:
 		output_val(&cfg_en->type, cfg_en->value, "");

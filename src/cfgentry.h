@@ -195,6 +195,7 @@ public:
 	bool val_set;                 // Value has been written this cycle?
 
 	CfgEntry *cfg_ref;            // value from another cfg entry (DYN_VAL_ADDR)
+	i64 cfg_ref_add;              // What needs to be added to the cfg_ref value?
 	list<CheckEntry> *checks;     // more checks
 
 	// dynamic memory

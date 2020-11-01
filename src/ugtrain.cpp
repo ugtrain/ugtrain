@@ -299,10 +299,12 @@ static void handle_dynval (pid_t pid, CfgEntry *cfg_en, T read_val,
 		break;
 	case DYN_VAL_ADDR:
 		if (cfg_en->cfg_ref) {
-			if (handle_cfg_ref(cfg_en->cfg_ref, buf) != 0)
+			if (handle_cfg_ref(cfg_en->cfg_ref, buf) != 0) {
 				*value = 0;
-			else
+			} else {
 				*value = *(T *) buf;
+				*value += cfg_en->cfg_ref_add;
+			}
 		} else {
 			mem_addr = mem_offs + cfg_en->val_addr;
 			if (read_memory(pid, mem_addr, buf, "DYNVAL MEMORY"))
